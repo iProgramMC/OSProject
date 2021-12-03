@@ -1,0 +1,10 @@
+#probably not necessary but a good thing to add just in case
+.git/*
+
+#directories I don't want added
+build/*
+cp/*
+lol/*
+srcc/*
+tools/*
+tools2/*
