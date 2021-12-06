@@ -26,6 +26,7 @@ void TaskA(VariantList* unused)
 	
 	while (1) 
 	{
+		//LogMsg("Hello from task A!");
 		LogMsgNoCr("A");
 		//useless delay
 		for (int i = 0; i < 100000; i++)
@@ -38,6 +39,7 @@ void TaskB(VariantList* unused)
 	
 	while (1) 
 	{
+		//LogMsg("Hello from task B!");
 		LogMsgNoCr("B");
 		//useless delay
 		for (int i = 0; i < 100000; i++)
@@ -48,6 +50,7 @@ void TaskK()
 {
 	while (1) 
 	{
+		//LogMsg("Hello from task K!");
 		LogMsgNoCr("K");
 		//useless delay
 		for (int i = 0; i < 100000; i++)
@@ -78,15 +81,18 @@ void StartupSystem (unsigned long magic, multiboot_info_t *mbi)
 	ResetConsole();
 	
 	//print the hello text, to see if the os booted properly
-	LogMsg("iProgramInCpp's Operating System " VersionString);
+	LogMsg("NanoShell Operating System " VersionString);
 	
 	//initialize memory subsystem
 	VerboseLog ("1>Initializing memory subsystem");
 	
-	//take away the first meg of kernel memory, we'll use that for our own rodata/etc.
+	//take away the first few megs of kernel memory, we'll use that for our own rodata/etc.
 	//the other meg is taken out of the other end of memory, it's just to be safe.
-	g_memoryUsable = (mbi->mem_upper - 2048) * 1024;
-	g_memory = (uint8_t*)0x200000;//start at 2 megs
+	
+	size_t memoryStart = 0x380000;
+	
+	g_memoryUsable = (mbi->mem_upper) * 1024 - memoryStart;
+	g_memory = (uint8_t*)memoryStart;//start at 3 megs. TODO: make memoryStart automatically adjust itself.
 	
 	//report if we can't initialize memory
 	bool memoryCheck = g_memoryUsable < 0x500000;
@@ -114,12 +120,11 @@ void StartupSystem (unsigned long magic, multiboot_info_t *mbi)
 	
 	//initialize our IDT
 	VerboseLog ("1>Setting up our IDT");
-	cli;
 	InitIDT();
-	cli;
 	InitPIT();
-	sti;
 	VerboseLog ("[OK]\n");
+	
+	sti;
 	
 	LogMsg("Spawning some tasks.");
 	

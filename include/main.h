@@ -10,12 +10,14 @@ typedef char byte;
 typedef char BYTE;
 typedef unsigned uint;
 
+extern bool g_interruptsAvailable;
+
 #define false 0
 #define true 1
 
 #define hlt __asm__("hlt\n\t")  
 #define cli __asm__("cli\n\t")
-#define sti __asm__("sti\n\t")
+#define sti do { if (g_interruptsAvailable) __asm__("sti\n\t"); } while (0)
 
 #define Version 10
 #define VersionString "V0.10"

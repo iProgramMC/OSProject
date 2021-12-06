@@ -3,7 +3,7 @@
 extern SwitchToNextTask
 
 OnTaskInterrupt:
-	
+	cli
 	push esp
 	push ebp
 	push edi
@@ -34,14 +34,18 @@ OnTaskInterrupt:
 	; and do a regular return
 	iretd
 ; Function ends here. No more
-extern g_saveStateToRestore
+extern g_saveStateToRestore1
 
-fuckmess123 dw 0
 OnStartedNewTask:
 OnStartedNewKernelTask:
 	;cli
 	; restore the registers now
-	mov esp, [g_saveStateToRestore]
+	mov esp, [g_saveStateToRestore1]
+	nop
+	nop
+	nop
+	nop
+	nop
 	
 	pop eax
 	pop ebx

@@ -170,3 +170,4 @@ mht:hlt 				; halt the CPU (aka wait for interrupt)
 section .bss
 resb 32768; 32KB for stack
 g_stackSpace:
+

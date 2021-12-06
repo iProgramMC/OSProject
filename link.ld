@@ -35,8 +35,6 @@ SECTIONS
 	{
 		*(COMMON)
 		*(.bss)
-		/* simple kmalloc before we get paging-style malloc working */
-		*(.heapstart) 
 	}
  
 	/* The compiler may produce other sections, by default it will put them in

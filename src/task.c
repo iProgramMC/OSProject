@@ -38,6 +38,7 @@ void ConstructTask(Task* pTask)
 Task* StartTaskD(TaskedFunction function, VariantList* pVList, int* errorCodeOut,
 				   const char* callerFile, const char* callerFunc, int callerLine)
 {
+	cli;
 	// Find a free slot, if you can't find any, write TASK_ERROR_TOO_MANY_TASKS.
 	int i = 1;
 	for (; i < C_MAX_TASKS; i++)
@@ -47,6 +48,7 @@ Task* StartTaskD(TaskedFunction function, VariantList* pVList, int* errorCodeOut
 	if (i == C_MAX_TASKS)
 	{
 		*errorCodeOut = TASK_ERROR_TOO_MANY_TASKS;
+		sti;
 		return NULL;
 	}
 	
@@ -76,13 +78,16 @@ Task* StartTaskD(TaskedFunction function, VariantList* pVList, int* errorCodeOut
 		ConstructTask(pTask);
 		
 		*errorCodeOut = TASK_SUCCESS;
+		sti;
 		return pTask;
 	}
 	else
 	{
 		*errorCodeOut = TASK_ERROR_STACK_ALLOC_FAILED;
+		sti;
 		return NULL;
 	}
+	sti;
 }
 
 static void ResetTask(Task* pTask, bool killing)
@@ -104,11 +109,19 @@ static void ResetTask(Task* pTask, bool killing)
 
 bool KillTask(Task* pTask)
 {
-	if (pTask == NULL) return false;
-	if (!pTask->m_exists) return false;
+	cli;
+	if (pTask == NULL) {
+		sti;
+		return false;
+	}
+	if (!pTask->m_exists) {
+		sti;
+		return false;
+	}
 	
 	ResetTask(pTask, true);
 	
+	sti;
 	return true;
 }
 Task* GetRunningTask()
@@ -135,16 +148,15 @@ void DumpSaveState(CPUSaveState* pSaveState)
 
 extern void OnStartedNewTask();
 extern void OnStartedNewKernelTask();
-CPUSaveState* g_saveStateToRestore = NULL;
+CPUSaveState* g_saveStateToRestore1 = NULL;
 void RestoreKernelTask()
 {
-	g_saveStateToRestore = &g_kernelSaveState;
+	g_saveStateToRestore1 = &g_kernelSaveState;
 	OnStartedNewKernelTask();
 }
 void RestoreStandardTask(Task* pTask)
 {
-	g_saveStateToRestore = &pTask->m_cpuState;
-	//DumpSaveState(g_saveStateToRestore);
+	g_saveStateToRestore1 = &pTask->m_cpuState;
 	OnStartedNewTask();
 }
 
@@ -152,7 +164,6 @@ void TaskInitialFuncC(Task* pTask)
 {
 	//call the main function of the thread
 	pTask->m_function (&pTask->m_arguments);
-	
 	
 	//now kill the task
 	KillTask(pTask);

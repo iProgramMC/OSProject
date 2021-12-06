@@ -10,6 +10,8 @@
 
 IdtEntry g_idt [IDT_SIZE];
 
+bool g_interruptsAvailable = false;
+
 void SetupInterrupt (uint8_t *mask1, uint8_t* mask2, int intNum, void* isrHandler)
 {
 	IdtEntry* pEntry = &g_idt[0x20 + intNum];
@@ -124,5 +126,6 @@ void InitIDT()
 	unsigned long idtPtr[2];
 	idtPtr[0] = (sizeof(IdtEntry) * IDT_SIZE) + ((idtAddr & 0xFFFF) << 16);
 	idtPtr[1] = idtAddr >> 16;
+	g_interruptsAvailable = true;// sti was set in LoadIDT
 	LoadIDT (idtPtr);
 }
