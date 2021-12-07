@@ -126,18 +126,20 @@ void StartupSystem (unsigned long magic, multiboot_info_t *mbi)
 	
 	sti;
 	
-	LogMsg("Spawning some tasks.");
+	//LogMsg("Spawning some tasks.");
+	
+	//test();
 	
 	// Initialize the Programmable Interval Timer (PIT) too
 	
-	int errorCode = 0;
-	StartTask(TaskA, NULL, &errorCode);
-	LogMsg("Task A started with error code: %d", errorCode);
+	//int errorCode = 0;
+	//StartTask(TaskA, NULL, &errorCode);
+	//LogMsg("Task A started with error code: %d", errorCode);
 	//StartTask(TaskB, NULL, &errorCode);
 	//LogMsg("Task B started with error code: %d", errorCode);
 	
-	LogMsg("Starting mainthread task");
-	TaskK();
+	//LogMsg("Starting mainthread task");
+	//TaskK();
 	
 	LogMsg("Hello, world! ");
 	

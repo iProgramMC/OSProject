@@ -43,6 +43,11 @@ section .multiboot
 	dd 0
 	dd 0
 	%endif
+	
+; This section is special in that here is where everything
+; is identity-mapped. In `.text`, you have to subtract 0xC0000000 
+; to get symbols' physical address.
+;section .earlybird
 
 ; Code
 section .text
@@ -165,6 +170,13 @@ mht:hlt 				; halt the CPU (aka wait for interrupt)
 	jmp mht				; if it **SOMEHOW** escaped, make it jump back
 	; I don't think we will ever reach below the jump, but if  we do, the OS will triple-fault anyway
 	
+; Elf test
+global g_testingElfStart, g_testingElfEnd, g_testingElf
+
+g_testingElfStart:
+g_testingElf:
+	incbin 'application/helloworld/main.elf'
+g_testingElfEnd:
 	
 ;;;;;; STACK SPACE
 section .bss
