@@ -43,11 +43,6 @@ section .multiboot
 	dd 0
 	dd 0
 	%endif
-	
-; This section is special in that here is where everything
-; is identity-mapped. In `.text`, you have to subtract 0xC0000000 
-; to get symbols' physical address.
-;section .earlybird
 
 ; Code
 section .text
@@ -158,6 +153,12 @@ Entry:
 	mov esp, g_stackSpace
 	mov edx, eax 		; Make a backup of EAX, that InitGDT bastard uses and destroys it...
 	call SetupGDT
+	
+	; Enable PSE, todo
+	;mov eax, cr4
+	;or  eax, (1 << 4)
+	;mov cr4, eax
+	
 	push ebx			; Push the pointer to the Multiboot information struct
 	push edx			; Push the magic number, normally that'd be `eax` but since we've made
 						; a backup of it in `edx`, we push that and save a few cycles :)

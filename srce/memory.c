@@ -19,7 +19,7 @@ uint8_t* g_memory;
 
 typedef struct AllocatedMemory
 {
-    void* start; size_t size;
+    void* start; size_t size;//, actualSize;
     const char* callerFile; int callerLine;
 } 
 AllocatedMemory;
@@ -109,7 +109,11 @@ void AddFreeMemoryBlock(void* start, size_t size)
     ConnectNeighboringOrOverlappingFreeMemRegions();
 }
 
-void* AllocateMemory(size_t size, const char* calledBy, int callLine)
+int CeilTo4K(size_t size) {
+	return (size & ~0xFFF) + 0x1000;
+}
+
+void* AllocateMemory1(size_t size, const char* calledBy, int callLine)
 {
     int freeSlot = -1;
     for (int i = 0; i < BLOCK_COUNT; i++)
@@ -160,6 +164,10 @@ void* AllocateMemory(size_t size, const char* calledBy, int callLine)
     pMem->callerLine = callLine;
 
     return newMemory;
+}
+void* AllocateMemory(size_t size, const char* calledBy, int callLine)
+{
+	return AllocateMemory1 (CeilTo4K(size), calledBy, callLine);
 }
 //#define kalloc(size) AllocateMemory(size, __FILE__, __LINE__)
 

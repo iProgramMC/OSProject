@@ -1,38 +1,38 @@
 /* Linker script for the OS */
-
-/* Entry point for application. This will be the assembler function, since we have some setup to do. */
-/* ENTRY (_start) */
-ENTRY (Entry)
+ENTRY (KeEntry)
 
 /* Here is where all of the sections of the kernel are defined. */
 SECTIONS
 {
 	/* Begin loading at 0x100000, as that's where GRUB will place our data. */
 	. = 1M;
-	/* Put the multiboot header, since we need that to be as early in the kernel
-	   as possible, or the bootloader cannot recognize this ELF. 
-	   After that we can put the code (.text) */
-	.text BLOCK(4K) : ALIGN(4K) 
+	
+	_kernel_start = .;
+	.multibootdata : {
+		*(.multibootdata)
+	}
+	.multiboottext : {
+		*(.multiboottext)
+	}
+	
+	. += 0xC0000000;
+	
+	.text ALIGN (4K) : AT (ADDR (.text) - 0xC0000000)
 	{
-		*(.multiboot)
-		/**(.earlybird)*/
 		*(.text)
 	}
 	
-	/* Read only data */
-	.rodata BLOCK(4K) : ALIGN(4K)
+	.rodata ALIGN (4K) : AT (ADDR (.rodata) - 0xC0000000)
 	{
 		*(.rodata)
 	}
 	
-	/* Variables with initial values or non-constant arrays */
-	.data BLOCK(4K) : ALIGN(4K)
+	.data ALIGN (4K) : AT (ADDR (.data) - 0xC0000000)
 	{
 		*(.data)
 	}
 	
-	/* Read-write data (uninitialized) and stack) */
-	.bss BLOCK(4K) : ALIGN(4K)
+	.bss ALIGN (4K) : AT (ADDR (.bss) - 0xC0000000)
 	{
 		*(COMMON)
 		*(.bss)
@@ -40,4 +40,8 @@ SECTIONS
  
 	/* The compiler may produce other sections, by default it will put them in
 	   a segment with the same name. Simply add stuff here as needed. */
+	   
+	
+	/* Add a symbol that indicates the end address of the kernel. */
+	_kernel_end = .;
 }

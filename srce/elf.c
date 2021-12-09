@@ -1,5 +1,6 @@
 #include <elf.h>
 #include <string.h>
+#include <variant.h>
 
 extern char g_testingElfStart, g_testingElfEnd;
 extern char g_testingElf;
@@ -28,11 +29,29 @@ int ElfIsSupported(ElfHeader* pHeader)
 	return true;
 }
 
+void ElfExecutionHelper(VariantList *pVList)
+{
+	
+}
 
-
+PageDirectory* ElfSetupPageDirectory ()
+{
+	// Identity map the first 4 MB.
+	PageDirectory* pDirectoryList = (PageDirectory*)malloc (sizeof (PageDirectory));
+	
+	//allocate 1024 pagetables into one:
+	PageTable* pPageTableList = (PageTable*)malloc(sizeof(PageTable) * 1024);
+	
+	for (int i=0; i<1024; i++)
+	{
+		PageTable* pCur = &pPageTableList[i];
+		
+		pCur->m_bPresent = 1;
+	}
+}
 
 //! TODO: Size might not be used
-int ElfLoad (void* pElfFile, size_t size)
+int ElfExecute (void* pElfFile, size_t size)
 {
 	uint8_t* pElfData = (uint8_t*)pElfFile; //to do arithmetic with this
 	//check the header.
@@ -57,6 +76,8 @@ int ElfLoad (void* pElfFile, size_t size)
 	//! Also execute the thing.
 	ElfEntry entry = (ElfEntry)pHeader->m_entry;
 	
+	PageDirectory* pDirectory = ElfCreatePageDirectory();
+	
 	LogMsg("Loaded ELF successfully! Executing it now.");
 	entry();
 	LogMsg("Did we do it?!");
@@ -67,5 +88,5 @@ int ElfLoad (void* pElfFile, size_t size)
 void test()
 {
 	int sz = &g_testingElfEnd - &g_testingElfStart;
-	ElfLoad (&g_testingElf, sz);
+	ElfExecute (&g_testingElf, sz);
 }
