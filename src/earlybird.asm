@@ -6,7 +6,7 @@ BITS 32
 %define VGA_MEM 0xB8000
 ; Pages to identity map from the kernel. First 4MB are mapped.
 ; WORK: To change this to a value > 1024, you need to add support for more than one page directory entry being changed.
-PagesToMap equ 1024
+PagesToMap equ 2048
 
 ; main multiboot header
 section .multibootdata
@@ -36,6 +36,17 @@ section .multibootdata
 	dd 0
 	dd 0
 	%endif
+	
+section .data
+	
+extern g_pageDirectory
+extern e_placement
+extern e_frameBitsetSize
+extern e_frameBitsetVirt
+
+; WORK: Change this if necessary.  Paging is not setup at this stage
+;       so this address is purely PHYSICAL.
+e_placement dd 0x400000
 
 section .bss
 
@@ -53,12 +64,12 @@ g_pageDirectory:
 	; The page directory array's address is stored in CR3, along with some flags.
 	
 g_pageTableArray:
-	resd PagesToMap
+	resd 2048
 	
-g_temporary1:
-	resd 1
-g_temporary2:
-	resd 1
+e_temporary1 resd 1
+e_temporary2 resd 1
+e_frameBitsetVirt resd 1
+e_frameBitsetSize resd 1
 
 section .multiboottext
 global KeEntry
@@ -69,14 +80,30 @@ KeEntry:
 	
 	; We don't actually need a stack at this stage
 	
-	mov [VIRT_TO_PHYS(g_temporary1)], eax	; Make a backup of the multiboot parameters.
-	mov [VIRT_TO_PHYS(g_temporary2)], ebx
+	mov [VIRT_TO_PHYS(e_temporary1)], eax	; Make a backup of the multiboot parameters.
+	mov [VIRT_TO_PHYS(e_temporary2)], ebx
+	
+	; Actually let's get memory info from mbi first.
+	
+	; offset 8 inside multiboot_info = mem_upper
+	mov ecx, dword [eax + 8]
+	
+	; Shift right 5 bits.  Has the effect of getting the number of pages available, divided by 8 (frame bitset size)
+	shl ecx, 5
+	mov [VIRT_TO_PHYS(e_frameBitsetSize)], ecx
+	
+	; Set the frame bitset to whatever
+	mov dword [VIRT_TO_PHYS(e_frameBitsetVirt)], e_placement
+	
+	; Then, increment e_placement
+	mov edx, [VIRT_TO_PHYS(e_placement)]
+	add edx, ecx
+	mov [VIRT_TO_PHYS(e_placement)], edx
 	
 	; First address to map is 0x00000000
 	xor esi, esi
 
-	; Map 1022 pages, The 1023rd and 1024th will be 8192 bytes of the VGA text buffer.
-	; 8192 because what if we want to switch to 80x50 text mode?!
+	; Map 2048 pages.
 	mov ecx, PagesToMap
 	
 	; Get physical address of the boot page table.
@@ -89,14 +116,17 @@ KeEntry:
 	
 	add esi, 0x1000 ; The size of a page is 4096 bytes
 	add edi, 4
+	;inc dword [VIRT_TO_PHYS(e_pageTableNum)]
 	loop .label1
 	
 	; NOTE: If the kernel goes haywire just change PagesToMap
 .label3:
-
+	
 	; Map the one and only pagetable (TODO) to both virtual addresses 0x0 and 0xC0000000
-	mov dword [VIRT_TO_PHYS(g_pageDirectory) +   0*4], VIRT_TO_PHYS(g_pageTableArray) + 0x03
-	mov dword [VIRT_TO_PHYS(g_pageDirectory) + 768*4], VIRT_TO_PHYS(g_pageTableArray) + 0x03
+	mov dword [VIRT_TO_PHYS(g_pageDirectory) +   0*4], VIRT_TO_PHYS(g_pageTableArray+0000) + 0x03
+	mov dword [VIRT_TO_PHYS(g_pageDirectory) +   1*4], VIRT_TO_PHYS(g_pageTableArray+4096) + 0x03
+	mov dword [VIRT_TO_PHYS(g_pageDirectory) + 768*4], VIRT_TO_PHYS(g_pageTableArray+0000) + 0x03
+	mov dword [VIRT_TO_PHYS(g_pageDirectory) + 769*4], VIRT_TO_PHYS(g_pageTableArray+4096) + 0x03
 	
 	; Set CR3 to the physical address of the g_pageDirectory
 	mov ecx, VIRT_TO_PHYS(g_pageDirectory)
@@ -125,8 +155,8 @@ KeHigherHalfEntry:
 	mov esp, g_stackSpace
 	
 	; Restore the multiboot data we got earlier
-	mov eax, [g_temporary1]
-	mov ebx, [g_temporary2]
+	mov eax, [e_temporary1]
+	mov ebx, [e_temporary2]
 	
 	push ebx
 	push eax
@@ -143,8 +173,6 @@ loop: hlt
 
 
 section .bss
-
-
 	resb 32768 ; 32KB for stack
 g_stackSpace:
 

@@ -3,35 +3,35 @@
 uint16_t* g_pBufferBase = (uint16_t*)(KERNEL_MEM_START + 0xB8000);
 uint16_t* g_pBuffer = (uint16_t*)(KERNEL_MEM_START + 0xB8000);
 
-uint32_t VirtualToPhysical(void* pVirtual)
-{
-	uint32_t virtual = (uint32_t)pVirtual;
-	if (virtual >= KERNEL_MEM_START && virtual < KERNEL_MEM_START+0x400000) //Size of 1 largepage
-		return virtual - KERNEL_MEM_START;
-	
-	//don't know how to turn this to physical.
-	return virtual;
-}
-void* PhysicalToVirtual(uint32_t physical)
-{
-	if (physical <= 0x400000)
-		return (void*)(physical + KERNEL_MEM_START);
-	else
-		//don't know how to turn this to virtual.
-		return (void*)(physical);
-}
+int g_textX, g_textY;
 
 void LogMsg(const char* pText)
 {
 	while (*pText)
 	{
-		*g_pBuffer = 0x1F00 | *pText;
+		if (*pText == '\n')
+		{
+			g_textX = 0;
+			g_textY++;
+			if (g_textY == 25)
+			{
+				g_textY = 0;
+			}
+			pText++;
+			continue;
+		}
+		g_pBuffer[g_textY * 80 + g_textX] = *pText | 0x1F00;
 		pText++;
-		g_pBuffer++;
-		
-		//Roll over
-		if (g_pBuffer - g_pBufferBase >= 80*25)
-			g_pBuffer -= 80*25;
+		g_textX++;
+		if (g_textX == 80)
+		{
+			g_textX = 0;
+			g_textY++;
+			if (g_textY == 25)
+			{
+				g_textY = 0;
+			}
+		}
 	}
 }
 void LogInt(uint32_t toPrint)
@@ -63,9 +63,18 @@ void KeStopSystem()
 void KeStartupSystem (unsigned long magic, unsigned long mbi)
 {
 	//print the hello text, to see if the os booted properly
-	LogMsg("NanoShell Operating System " VersionString);
+	LogMsg("NanoShell Operating System " VersionString "\n");
 	LogInt(magic);
 	LogInt(mbi);
+	LogMsg("\n");
+	#define PROBE_ADDRESS 0xC07ffffc
+	*((uint32_t*)PROBE_ADDRESS) = 0xF00DF00D;
+	LogInt (PROBE_ADDRESS);
+	LogMsg("= ");
+	LogInt (*((uint32_t*)PROBE_ADDRESS));
+	LogMsg("\nhaha\n\n");
+	
+	KeInitMemoryManager();
 	
 	KeStopSystem();
 }
