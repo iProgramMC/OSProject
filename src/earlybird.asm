@@ -83,22 +83,23 @@ KeEntry:
 	mov [VIRT_TO_PHYS(e_temporary1)], eax	; Make a backup of the multiboot parameters.
 	mov [VIRT_TO_PHYS(e_temporary2)], ebx
 	
-	; Actually let's get memory info from mbi first.
+	; let's not bother, we'll do it in C
 	
 	; offset 8 inside multiboot_info = mem_upper
-	mov ecx, dword [eax + 8]
+	;add ebx, 8
+	;mov ecx, dword [ebx]
 	
 	; Shift right 5 bits.  Has the effect of getting the number of pages available, divided by 8 (frame bitset size)
-	shl ecx, 5
-	mov [VIRT_TO_PHYS(e_frameBitsetSize)], ecx
+	;shl ecx, 5
+	;mov [VIRT_TO_PHYS(e_frameBitsetSize)], ecx
 	
 	; Set the frame bitset to whatever
-	mov dword [VIRT_TO_PHYS(e_frameBitsetVirt)], e_placement
+	;mov dword [VIRT_TO_PHYS(e_frameBitsetVirt)], e_placement
 	
 	; Then, increment e_placement
-	mov edx, [VIRT_TO_PHYS(e_placement)]
-	add edx, ecx
-	mov [VIRT_TO_PHYS(e_placement)], edx
+	;mov edx, [VIRT_TO_PHYS(e_placement)]
+	;add edx, ecx
+	;mov [VIRT_TO_PHYS(e_placement)], edx
 	
 	; First address to map is 0x00000000
 	xor esi, esi
@@ -169,7 +170,12 @@ KeHigherHalfEntry:
 loop: hlt
 	jmp loop
 
-
+global Move
+Move:
+	mov ecx, dword [e_placement]
+	add ecx, 0xC0000000
+	mov dword [e_frameBitsetVirt], ecx
+	ret
 
 
 section .bss

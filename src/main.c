@@ -62,6 +62,9 @@ void KeStopSystem()
 
 void KeStartupSystem (unsigned long magic, unsigned long mbi)
 {
+	mbi += 0xc0000000;
+	KeFirstThingEver(mbi);
+	
 	//print the hello text, to see if the os booted properly
 	LogMsg("NanoShell Operating System " VersionString "\n");
 	LogInt(magic);
@@ -75,6 +78,31 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	LogMsg("\nhaha\n\n");
 	
 	KeInitMemoryManager();
+	
+	void *pPage = KeAllocateSinglePage();
+	LogInt((int)pPage);
+	KeFreePage(pPage);
+	LogMsg("\n");
+	
+	// try allocating something:
+	void *a = KeAllocate (8100); // 2 pages
+	void *b = KeAllocate(12000); // 3 pages
+	LogInt ((int)a);
+	LogInt ((int)b);
+	LogMsg("\n");
+	
+	KeFree(a);
+	void *c = KeAllocate(12000); //3 pages, should not have same address as a
+	void *d = KeAllocate (4000); //only one page, it should have the same addr as a
+	LogInt ((int)c);
+	LogInt ((int)d);
+	LogMsg("\n");
+	
+	KeFree(b);
+	KeFree(c);
+	KeFree(d);
+	b = c = d = NULL;
+	
 	
 	KeStopSystem();
 }
