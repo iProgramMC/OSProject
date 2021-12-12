@@ -91,17 +91,18 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	LogInt ((int)b);
 	LogMsg("\n");
 	
-	KeFree(a);
+	//KeFree(a);
 	void *c = KeAllocate(12000); //3 pages, should not have same address as a
 	void *d = KeAllocate (4000); //only one page, it should have the same addr as a
 	LogInt ((int)c);
 	LogInt ((int)d);
 	LogMsg("\n");
 	
+	KeFree(a);
 	KeFree(b);
 	KeFree(c);
 	KeFree(d);
-	b = c = d = NULL;
+	a = b = c = d = NULL;
 	
 	
 	KeStopSystem();
