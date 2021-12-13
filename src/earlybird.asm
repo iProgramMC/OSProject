@@ -177,7 +177,6 @@ Move:
 	mov dword [e_frameBitsetVirt], ecx
 	ret
 
-
 section .bss
 	resb 32768 ; 32KB for stack
 g_stackSpace:

@@ -31,4 +31,63 @@ typedef struct {
 	uint32_t   m_pThisPhysical;
 } PageDirectory;
 
+void KeFirstThingEver(unsigned long mbiAddr);
+
+
+/**
+ * Initializes the memory manager and heap.
+ */
+void KeInitMemoryManager();
+
+/**
+ * Allocates a single page (4096 bytes).
+ * 
+ * This returns the address of the new page, or NULL if we ran out of memory.
+ * pPhysOut may be NULL or not, in the case where it's not, the physical address 
+ * of the page is returned.
+ */
+void* KeAllocateSinglePagePhy(uint32_t* pPhysOut);
+
+/**
+ * Allocates a single page (4096 bytes).
+ * 
+ * This returns the address of the new page, or NULL if we ran out of memory.
+ * Use KeAllocateSinglePagePhy if you also want the physical address of the page.
+ */
+void* KeAllocateSinglePage();
+
+/**
+ * Frees a single memory page. A NULL pointer is carefully ignored.
+ */
+void KeFreePage(void* pAddr);
+
+/**
+ * Allocates a memory range of size `size`.  Actually allocates several pages'
+ * worth of memory, so that the `size` always fits inside.
+ * 
+ * For example, KeAllocate(8000) behaves exactly the same as KeAllocate(4193) and KeAllocate(8192).
+ * 
+ * This kind of thing where we're allocating 1 byte's worth of memory but using several is not recommended,
+ * because the specification can always change this later so that memory accesses beyond the size throw an error.
+ *
+ * This returns the starting address of the memory range we obtained.  NULL can also be returned, if we have
+ * no more address space to actually allocate anything, or there are no more memory ranges available.
+ * 
+ * You must call KeFree with the *EXACT* address KeAllocate returned.
+ *
+ * See: KeFree
+ */
+void* KeAllocate(size_t size);
+
+/**
+ * Frees a memory range allocated with KeAllocate. A NULL pointer is carefully ignored.
+ * 
+ * Note that the last 12 bits of pAddr are ignored, but the other 20 bits MUST represent
+ * the first page.
+ *
+ * So for example KeFree(KeAllocate(400)) behaves exactly the same as KeFree(KeAllocate(400)+500),
+ * but not as KeFree(KeAllocate(400)+4100).
+ */
+void KeFree(void* pAddr);
+
 #endif//_MEMORY_H
