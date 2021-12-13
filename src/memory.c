@@ -19,7 +19,7 @@ void KeFirstThingEver(unsigned long mbiAddr)
 // but if there is a need, just increase this. Recommend a Power of 2
 #define PAGE_ENTRY_TOTAL 65536
 
-PageEntry g_pageEntries   [PAGE_ENTRY_TOTAL]; 
+PageEntry g_pageEntries   [PAGE_ENTRY_TOTAL] __attribute__((aligned(4096)));
 int       g_pageEntriesNum   = 0;
 
 // Simple heap: The start PageEntry of a big memalloc also includes the number of pageEntries that also need to be freed
@@ -88,25 +88,24 @@ void MapPages()
 	uint32_t paddr = g_memoryStart >> 12;
 	for (uint32_t i=0; i<PAGE_ENTRY_TOTAL; i++)
 	{
-		//Assign its address (TODO: but DON'T mark it as present.  We'll do that later)
-		//g_pageEntries[i].m_pAddress = paddr;
-		//g_pageEntries[i].m_bPresent = true;
-		//g_pageEntries[i].m_bReadWrite = true;
-		//paddr++;
-		
 		*((uint32_t*)(g_pageEntries + i)) = 0;
 		g_memoryAllocationSize[i] = 0;
 	}
 	int index = 2;
-	for (uint32_t i=0; i<65536; i += 1024)
+	for (uint32_t i=0; i<PAGE_ENTRY_TOTAL; i += 1024)
 	{
-		PageTable* pPageTable = (PageTable*)&g_pageEntries[i];
+		uint32_t pPageTable = (uint32_t)&g_pageEntries[i];
 		//0x00800000
 		
 		//TODO: Normally we'd need 2.. but here we need 1?!?
-		g_pageDirectory[index] = ((uint32_t)pPageTable-BASE_ADDRESS) | PAGE_BITS;//present + readwrite
+		g_pageDirectory[index] = (pPageTable-BASE_ADDRESS) | PAGE_BITS;//present + readwrite
 		index++;
 	}
+	
+	LogMsg("aaaa");
+	LogInt(g_pageDirectory[2]);
+	LogMsg("\n\n\n");
+	
 	InvalidateTLB();
 }
 int g_offset = 0;
@@ -120,20 +119,13 @@ void KeInitMemoryManager()
 	g_memoryStart = e_placement;
 	
 	MapPages();
+}
 
-	#define PROBE_ADDRESS 0x00800000
-//	for (int PROBE_ADDRESS = 0x800000; PROBE_ADDRESS <= 0x10000000; PROBE_ADDRESS += 0x100000)
-	/*{
-		uint32_t* pointer = (uint32_t*)PROBE_ADDRESS;
-		
-		*pointer = 0xADADADAD;
-		
-		LogInt(PROBE_ADDRESS);
-		LogMsg("= ");
-		LogInt(*pointer);
-		//LogMsg(" | ");
-		//break;
-	}*/
+void InvalidateSinglePage(uintptr_t add)
+{
+	//__asm__ volatile ("invlpg (%0)\n\t"::"r"(add));
+	add+=0;
+	InvalidateTLB();
 }
 
 void* KeSetupPage(int i, uint32_t* pPhysOut)
@@ -156,8 +148,12 @@ void* KeSetupPage(int i, uint32_t* pPhysOut)
 	if (pPhysOut)
 		*pPhysOut = g_pageEntries[i].m_pAddress << 12;
 	
-	InvalidateTLB();
-	return (void*)(PAGE_ALLOCATION_BASE + (i << 12));
+	//InvalidateTLB();
+	
+	uint32_t retaddr = (PAGE_ALLOCATION_BASE + (i << 12));
+	InvalidateSinglePage(retaddr);
+	
+	return (void*)retaddr;
 }
 void* KeAllocateSinglePagePhy(uint32_t* pPhysOut)
 {

@@ -73,15 +73,10 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	g_textX = g_textY = 0;
 	
 	//print the hello text, to see if the os booted properly
-	LogMsg("NanoShell Operating System " VersionString "\n");
+	LogMsg("iProgramInCpp's Operating System " VersionString "\nmultiboot parms:");
 	LogInt(magic);
 	LogInt(mbi);
-	LogMsg("\n");
-	//#define PROBE_ADDRESS 0xC07ffffc
-	//*((uint32_t*)PROBE_ADDRESS) = 0xF00DF00D;
-	//LogMsg("= ");
-	//LogInt (*((uint32_t*)PROBE_ADDRESS));
-	LogMsg("\nhaha\n\n");
+	LogMsg("\nHello world!\n\n");
 	
 	KeInitMemoryManager();
 	LogInt (e_placement);
@@ -97,18 +92,27 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	void *b = KeAllocate(12000); // 3 pages
 	
 	InvalidateTLB();
-	*((uint32_t*)a) = 0xFECC;
+	*((uint32_t*)a) = 0xAAAA;
+	*((uint32_t*)b) = 0xBBBB;
 	
 	LogInt ((int)a);
-	//LogInt (*((uint32_t*)a));
 	LogInt ((int)b);
+	LogMsg("   ----   ");
+	LogInt (*((uint32_t*)a));
+	LogInt (*((uint32_t*)b));
 	LogMsg("\n");
 	
 	KeFree(a);
 	void *c = KeAllocate(12000); //3 pages, should not have same address as a
+	*((uint32_t*)c) = 0xCCCC;
 	void *d = KeAllocate (4000); //only one page, it should have the same addr as a
+	*((uint32_t*)d) = 0xDDDD;
 	LogInt ((int)c);
 	LogInt ((int)d);
+	LogMsg("   ----   ");
+	LogInt (*((uint32_t*)c));
+	LogInt (*((uint32_t*)d));
+	LogInt (*((uint32_t*)b));
 	LogMsg("\n");
 	
 	KeFree(a);
