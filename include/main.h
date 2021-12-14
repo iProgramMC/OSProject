@@ -29,7 +29,6 @@ extern unsigned char ReadPort(unsigned short port);
 extern void WritePortW(unsigned short port, unsigned short data);
 extern unsigned short ReadPortW(unsigned short port);
 
-void LogMsg (const char* str);
-void LogInt (uint32_t i);
+#include <print.h>
 
 #endif//_MAIN_H

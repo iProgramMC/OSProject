@@ -1,1 +1,5 @@
-del build\*
+@echo Deleting build...
+@del /q build\*
+@echo Deleting build/asm...
+@del /q build\asm\*
+@echo Clean finished

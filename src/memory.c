@@ -1,4 +1,5 @@
 #include <memory.h>
+#include <print.h>
 
 extern uint32_t g_pageDirectory[];
 extern uint32_t g_pageTableArray[];
@@ -6,11 +7,26 @@ extern uint32_t* e_frameBitsetVirt;
 extern uint32_t e_frameBitsetSize;
 extern uint32_t e_placement;
 
-extern void KeStartupStuff(); //io.asm
-void KeFirstThingEver(unsigned long mbiAddr)
+uint32_t* g_curPageDir = NULL;
+
+void MmTlbInvalidate() {
+	__asm__("movl %cr3, %ecx\n\tmovl %ecx, %cr3\n\t");
+}
+void MmUsePageDirectory(uint32_t* curPageDir, uint32_t phys)
+{
+	g_curPageDir = curPageDir;
+	__asm__ volatile ("mov %0, %%cr3"::"r"((uint32_t*)phys));
+}
+void MmRevertToKernelPageDir()
+{
+	MmUsePageDirectory(g_pageDirectory, (uint32_t)g_pageDirectory - BASE_ADDRESS);
+}
+
+extern void MmStartupStuff(); //io.asm
+void MmFirstThingEver(unsigned long mbiAddr)
 {
 	int nKbExtRam = ((uint32_t*)mbiAddr)[2]; //TODO: use multiboot_info_t struct
-	KeStartupStuff();
+	MmStartupStuff();
 	e_frameBitsetSize = (nKbExtRam >> 2); //nBytesRAM >> 12 = (nKbExtRam << 10) >> 12 = nKbExtRam >> 2
 	e_placement += e_frameBitsetSize;
 }
@@ -23,8 +39,8 @@ PageEntry g_pageEntries   [PAGE_ENTRY_TOTAL] __attribute__((aligned(4096)));
 int       g_pageEntriesNum   = 0;
 
 // Simple heap: The start PageEntry of a big memalloc also includes the number of pageEntries that also need to be freed
-// For this reason freeing just one page from a larger allocation is _not_ enough, you need to use KeFree instead
-// (unless you used KeAllocageSinglePage to allocate it)
+// For this reason freeing just one page from a larger allocation is _not_ enough, you need to use MmFree instead
+// (unless you used MmAllocageSinglePage to allocate it)
 int g_memoryAllocationSize[PAGE_ENTRY_TOTAL];
 
 #define PAGE_BITS 0X3 //present and read/write
@@ -34,7 +50,7 @@ uint32_t g_memoryStart;
 
 #define  INDEX_FROM_BIT(a) (a / 32)
 #define OFFSET_FROM_BIT(a) (a % 32)
-static void SetFrame (uint32_t frameAddr)
+static void MmSetFrame (uint32_t frameAddr)
 {
 	uint32_t frame = frameAddr >> 12;
 	uint32_t idx = INDEX_FROM_BIT (frame),
@@ -42,21 +58,21 @@ static void SetFrame (uint32_t frameAddr)
 	e_frameBitsetVirt[idx] |= (0x1 << off);
 }
 /*
-static void ClrFrame (uint32_t frameAddr)
+static void MmClrFrame (uint32_t frameAddr)
 {
 	uint32_t frame = frameAddr >> 12;
 	uint32_t idx = INDEX_FROM_BIT (frame),
 			 off =OFFSET_FROM_BIT (frame);
 	e_frameBitsetVirt[idx] &=~(0x1 << off);
 }
-static bool TestFrame(uint32_t frameAddr) 
+static bool MmTestFrame(uint32_t frameAddr) 
 {
 	uint32_t frame = frameAddr >> 12;
 	uint32_t idx = INDEX_FROM_BIT (frame),
 			 off =OFFSET_FROM_BIT (frame);
 	return (e_frameBitsetVirt[idx] & (1 << off)) != 0;
 }*/
-static uint32_t FindFreeFrame()
+static uint32_t MmFindFreeFrame()
 {
 	for (uint32_t i=0; i<INDEX_FROM_BIT(e_frameBitsetSize); i++)
 	{
@@ -76,10 +92,7 @@ static uint32_t FindFreeFrame()
 	return 0xffffffffu/*ck you*/;
 }
 
-void InvalidateTLB() {
-	__asm__("movl %cr3, %ecx\n\tmovl %ecx, %cr3\n\t");
-}
-void MapPages()
+void MmInitializeDefaultPages()
 {
 	for (uint32_t i=0; i<INDEX_FROM_BIT(e_frameBitsetSize); i++)
 	{
@@ -94,21 +107,15 @@ void MapPages()
 	for (uint32_t i=0; i<PAGE_ENTRY_TOTAL; i += 1024)
 	{
 		uint32_t pPageTable = (uint32_t)&g_pageEntries[i];
-		//0x00800000
 		
-		//TODO: Normally we'd need 2.. but here we need 1?!?
-		g_pageDirectory[index] = (pPageTable-BASE_ADDRESS) | PAGE_BITS;//present + readwrite
+		g_curPageDir[index] = (pPageTable-BASE_ADDRESS) | PAGE_BITS;//present + readwrite
 		index++;
 	}
 	
-	LogMsg("aaaa");
-	LogInt(g_pageDirectory[2]);
-	LogMsg("\n\n\n");
-	
-	InvalidateTLB();
+	MmTlbInvalidate();
 }
 int g_offset = 0;
-void KeInitMemoryManager()
+void MmInitMemoryManager()
 {
 	e_placement += 0x1000;
 	e_placement &= ~0xFFF;
@@ -117,23 +124,24 @@ void KeInitMemoryManager()
 	
 	g_memoryStart = e_placement;
 	
-	MapPages();
+	MmRevertToKernelPageDir();
+	MmInitializeDefaultPages();
 }
 
-void InvalidateSinglePage(uintptr_t add)
+void MmInvalidateSinglePage(uintptr_t add)
 {
 	//__asm__ volatile ("invlpg (%0)\n\t"::"r"(add));
-	add+=0;
-	InvalidateTLB();
+	add += 0;
+	MmTlbInvalidate();
 }
 
-void* KeSetupPage(int i, uint32_t* pPhysOut)
+void* MmSetupPage(int i, uint32_t* pPhysOut)
 {
-	uint32_t frame = FindFreeFrame();
+	uint32_t frame = MmFindFreeFrame();
 	if (frame == 0xffffffffu/*ck you*/)
 		return NULL;
 
-	SetFrame(frame << 12);
+	MmSetFrame(frame << 12);
 	
 	// Yes. Let's mark this as present, and return a made-up address from the index.
 	g_pageEntries[i].m_bPresent = true;
@@ -147,14 +155,12 @@ void* KeSetupPage(int i, uint32_t* pPhysOut)
 	if (pPhysOut)
 		*pPhysOut = g_pageEntries[i].m_pAddress << 12;
 	
-	//InvalidateTLB();
-	
 	uint32_t retaddr = (PAGE_ALLOCATION_BASE + (i << 12));
-	InvalidateSinglePage(retaddr);
+	MmInvalidateSinglePage(retaddr);
 	
 	return (void*)retaddr;
 }
-void* KeAllocateSinglePagePhy(uint32_t* pPhysOut)
+void* MmAllocateSinglePagePhy(uint32_t* pPhysOut)
 {
 	// find a free pageframe.
 	// For 4096 bytes we can use ANY hole in the pageframes list, and we
@@ -164,18 +170,18 @@ void* KeAllocateSinglePagePhy(uint32_t* pPhysOut)
 	{
 		if (!g_pageEntries[i].m_bPresent) // A non-allocated pageframe?
 		{
-			return KeSetupPage(i, pPhysOut);
+			return MmSetupPage(i, pPhysOut);
 		}
 	}
 	// No more page frames?!
 	LogMsg("WARNING: No more page entries\n");
 	return NULL;
 }
-void* KeAllocateSinglePage()
+void* MmAllocateSinglePage()
 {
-	return KeAllocateSinglePagePhy(NULL);
+	return MmAllocateSinglePagePhy(NULL);
 }
-void KeFreePage(void* pAddr)
+void MmFreePage(void* pAddr)
 {
 	if (!pAddr) return;
 	// Turn this into a g_pageEntries index.
@@ -192,10 +198,10 @@ void KeFreePage(void* pAddr)
 	g_pageEntries[addr].m_bPresent = false;
 	g_memoryAllocationSize[addr] = 0;
 }
-void *KeAllocate (size_t size)
+void *MmAllocate (size_t size)
 {
 	if (size <= 0x1000) //worth one page:
-		return KeAllocateSinglePage();
+		return MmAllocateSinglePage();
 	else {
 		//more than one page, take matters into our own hands:
 		int numPagesNeeded = ((size - 1) >> 12) + 1;
@@ -222,14 +228,14 @@ void *KeAllocate (size_t size)
 					}
 				}
 				// Nope! We have space here!  Let's map all the pages, and return the address of the first one.
-				void* pointer = KeSetupPage(i, NULL);
+				void* pointer = MmSetupPage(i, NULL);
 				
 				// Not to forget, set the memory allocation size below:
 				g_memoryAllocationSize[i] = numPagesNeeded - 1;
 				
 				for (int j = i+1; j < jfinal; j++)
 				{
-					KeSetupPage (j, NULL);
+					MmSetupPage (j, NULL);
 				}
 				return pointer;
 			}
@@ -238,7 +244,7 @@ void *KeAllocate (size_t size)
 		return NULL; //no continuous addressed pages are left.
 	}
 }
-void KeFree(void* pAddr)
+void MmFree(void* pAddr)
 {
 	if (!pAddr) return; //handle (hopefully) accidental NULL freeing
 	
@@ -250,13 +256,21 @@ void KeFree(void* pAddr)
 	
 	int nSubsequentAllocs = g_memoryAllocationSize[addr];
 	
-	KeFreePage(pAddr);
+	MmFreePage(pAddr);
 	pAddr = (void*)((uint8_t*)pAddr+0x1000);
 	for (int i = 0; i<nSubsequentAllocs; i++)
 	{
-		KeFreePage(pAddr);
+		MmFreePage(pAddr);
 		pAddr = (void*)((uint8_t*)pAddr+0x1000);
 	}
 }
 
+uint32_t* MmGetKernelPageDir()
+{
+	return g_pageDirectory;
+}
+uint32_t MmGetKernelPageDirP()
+{
+	return (uint32_t)g_pageDirectory - BASE_ADDRESS;
+}
 

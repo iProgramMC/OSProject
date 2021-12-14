@@ -114,10 +114,49 @@ WriteFont16px:
 	out	dx, ax
 	ret
 
-global KeStartupStuff
-KeStartupStuff:
+global MmStartupStuff
+MmStartupStuff:
 	mov ecx, dword [e_placement]
 	add ecx, 0xC0000000
 	mov dword [e_frameBitsetVirt], ecx
 	ret
+	
+global g_cpuidLastLeaf
+global g_cpuidNameEBX
+global g_cpuidNameECX
+global g_cpuidNameEDX
+global g_cpuidNameNUL
+global g_cpuidFeatureBits
+	
+global KeCPUID
+KeCPUID:
+	MOV EAX, 0 ; First leaf of CPUID
+	
+	CPUID
+	
+	MOV [g_cpuidLastLeaf], EAX
+	MOV [g_cpuidNameEBX],  EBX
+	MOV [g_cpuidNameEDX],  EDX
+	MOV [g_cpuidNameECX],  ECX
+	MOV DWORD [g_cpuidNameNUL], 0x0
+	
+	MOV EAX, 1 ; Second leaf of CPUID
+	CPUID
+	MOV [g_cpuidFeatureBits], EAX
+	
+	RET
+	
+section .bss
+
+; eax=0, eax's value:
+g_cpuidLastLeaf resd 1
+
+; eax=0, the processor name (GenuineIntel, AuthenticAMD etc):
+g_cpuidNameEBX resd 1
+g_cpuidNameEDX resd 1
+g_cpuidNameECX resd 1
+g_cpuidNameNUL resd 1
+
+; eax=1, eax's value:
+g_cpuidFeatureBits resd 1
 	

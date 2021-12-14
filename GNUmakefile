@@ -29,7 +29,7 @@ BUILD=build
 SRC=src
 
 C_FILES=$(wildcard $(SRC)/*.c)
-S_FILES=$(wildcard $(SRC)/*.asm)
+S_FILES=$(wildcard $(SRC)/asm/*.asm)
 
 O_FILES := $(patsubst $(BUILD)/$(SRC)/%.o, $(BUILD)/%.o, $(foreach file,$(C_FILES),$(BUILD)/$(file:.c=.o))) \
 		   $(patsubst $(BUILD)/$(SRC)/%.o, $(BUILD)/%.o, $(foreach file,$(S_FILES),$(BUILD)/$(file:.asm=.o)))
