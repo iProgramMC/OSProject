@@ -6,11 +6,11 @@ extern uint32_t* e_frameBitsetVirt;
 extern uint32_t e_frameBitsetSize;
 extern uint32_t e_placement;
 
-extern void Move(); //earlybird.asm
+extern void KeStartupStuff(); //io.asm
 void KeFirstThingEver(unsigned long mbiAddr)
 {
 	int nKbExtRam = ((uint32_t*)mbiAddr)[2]; //TODO: use multiboot_info_t struct
-	Move();
+	KeStartupStuff();
 	e_frameBitsetSize = (nKbExtRam >> 2); //nBytesRAM >> 12 = (nKbExtRam << 10) >> 12 = nKbExtRam >> 2
 	e_placement += e_frameBitsetSize;
 }
@@ -85,7 +85,6 @@ void MapPages()
 	{
 		e_frameBitsetVirt[i] = 0;
 	}
-	uint32_t paddr = g_memoryStart >> 12;
 	for (uint32_t i=0; i<PAGE_ENTRY_TOTAL; i++)
 	{
 		*((uint32_t*)(g_pageEntries + i)) = 0;

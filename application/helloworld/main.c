@@ -2,7 +2,7 @@
 
 int main ()
 {
-	uint16_t* buffer = (uint16_t*)0xB8000;
+	uint16_t* buffer = (uint16_t*)0xC00B8000;
 	
 	//"Hello, world!" printed out in a grotesque way by 
 	//poking at some random address.  It's in red to illustrate

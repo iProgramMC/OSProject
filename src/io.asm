@@ -1,11 +1,16 @@
 bits 32
 section .text
+
 global ReadPort
 global WritePort
 global ReadPortW
 global WritePortW
 global WriteFont8px
 global WriteFont16px
+
+extern e_placement
+extern e_frameBitsetVirt
+
 ; PORT I/O
 ReadPort:	
 	mov edx, [esp + 4]
@@ -109,4 +114,10 @@ WriteFont16px:
 	out	dx, ax
 	ret
 
+global KeStartupStuff
+KeStartupStuff:
+	mov ecx, dword [e_placement]
+	add ecx, 0xC0000000
+	mov dword [e_frameBitsetVirt], ecx
+	ret
 	

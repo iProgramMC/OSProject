@@ -91,7 +91,6 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	void *a = KeAllocate (8100); // 2 pages
 	void *b = KeAllocate(12000); // 3 pages
 	
-	InvalidateTLB();
 	*((uint32_t*)a) = 0xAAAA;
 	*((uint32_t*)b) = 0xBBBB;
 	
