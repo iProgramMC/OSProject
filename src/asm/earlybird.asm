@@ -83,6 +83,9 @@ KeHigherHalfEntry:
 	; Set up the stack
 	mov esp, g_stackSpace
 	
+	jmp SetupGDT
+GDTPostSetup:
+	
 	; Restore the multiboot data we got earlier
 	mov eax, [e_temporary1]
 	mov ebx, [e_temporary2]
@@ -98,6 +101,44 @@ KeHigherHalfEntry:
 loop: hlt
 	jmp loop
 
+
+GDTStart:
+GDTNull:
+	dd 0x0
+	dd 0x0
+GDTCode:
+	dw 0xffff
+	dw 0x00
+	db 0x00
+	db 0x9a
+	db 0xcf
+	db 0x00
+GDTData:
+	dw 0xffff
+	dw 0x00
+	db 0x00
+	db 0x92
+	db 0xcf
+	db 0x00
+GDTEnd:
+GDTDescription:
+	dw GDTEnd - GDTStart - 1
+	dd GDTStart
+CODE_SEG equ GDTCode - GDTStart
+DATA_SEG equ GDTData - GDTStart
+
+SetupGDT:
+	lgdt [GDTDescription]
+	jmp CODE_SEG:.set_cs
+.set_cs:
+	mov eax, DATA_SEG
+	mov ds, eax
+	mov es, eax
+	mov fs, eax
+	mov gs, eax
+	mov ss, eax
+	jmp GDTPostSetup
+	
 section .bss
 	resb 32768 ; 32KB for stack
 g_stackSpace:

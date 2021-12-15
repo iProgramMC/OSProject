@@ -13,7 +13,7 @@ IdtEntry;
 
 typedef struct
 {
-	uint32_t limit;
+	uint16_t limit;
 	uint32_t base;
 }
 __attribute__((packed))
@@ -23,6 +23,6 @@ extern void KeIdtInit();
 extern void KeTimerInit();
 extern void IrqKeyboardA(void);
 extern void IrqTimerA(void);
-extern void KeIdtLoad(unsigned long *idt_ptr);
+extern void KeIdtLoad(IdtPointer *idt_ptr);
 
 #endif//_IDT_H

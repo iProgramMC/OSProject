@@ -13,6 +13,15 @@ IdtEntry g_idt [IDT_SIZE];
 
 bool g_interruptsAvailable = false;
 
+void SetupSoftInterrupt (int intNum, void *pIsrHandler)
+{
+	IdtEntry* pEntry = &g_idt[intNum];
+	pEntry->offset_lowerbits = ((int)(pIsrHandler) & 0xffff);
+	pEntry->offset_higherbits = ((int)(pIsrHandler) >> 16);
+	pEntry->zero = 0;
+	pEntry->type_attr = INTGATE;
+	pEntry->selector = KECODESEG;
+}
 void SetupInterrupt (uint8_t *mask1, uint8_t* mask2, int intNum, void* isrHandler)
 {
 	IdtEntry* pEntry = &g_idt[0x20 + intNum];
@@ -75,8 +84,19 @@ void KeTimerInit()
 }
 void IrqTimer()
 {
+	//LogMsg("Timer!");
 	WritePort(0x20, 0x20);
 	WritePort(0xA0, 0x20);
+}
+void IsrSoftware()
+{
+	LogMsg("SYSCALL!");
+}
+unsigned long idtPtr[2];
+extern void IsrSoftwareA();
+void KeIdtLoad1(IdtPointer *ptr)
+{
+	__asm__ ("lidt %0" :: "m"(*ptr));
 }
 void KeIdtInit()
 {
@@ -105,6 +125,8 @@ void KeIdtInit()
 	SetupExceptionInterrupt (0x0F, ISR0F);
 #endif
 	
+	SetupSoftInterrupt (0x80, IsrSoftwareA);
+	
 	//initialize the pics
 	WritePort (0x20, 0x11);
 	WritePort (0xa0, 0x11);
@@ -128,10 +150,15 @@ void KeIdtInit()
 	WritePort (0xA1, mask2);
 	
 	// Load the IDT
-	size_t idtAddr = (size_t)g_idt;
-	unsigned long idtPtr[2];
-	idtPtr[0] = (sizeof(IdtEntry) * IDT_SIZE) + ((idtAddr & 0xFFFF) << 16);
-	idtPtr[1] = idtAddr >> 16;
+	
+	IdtPointer ptr;
+	ptr.limit = (sizeof(IdtEntry) * IDT_SIZE);
+	ptr.base = (size_t)g_idt;
+	
 	g_interruptsAvailable = true;// sti was set in LoadIDT
-	KeIdtLoad (idtPtr);
+	KeIdtLoad1 (&ptr);
+	
+	KeTimerInit();
+	
+	sti;
 }

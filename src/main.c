@@ -17,12 +17,12 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 {
 	mbi += 0xc0000000;
 	MmFirstThingEver(mbi);
-	
-	//KeIdtInit();
 	PrInitialize();
 	
+	KeIdtInit();
+	
 	//print the hello text, to see if the os booted properly
-	LogMsg("iProgramInCpp's Operating System " VersionString "\nmultiboot parms:");
+	LogMsg("\niProgramInCpp's Operating System " VersionString "\nmultiboot parms:");
 	LogInt(magic);
 	LogInt(mbi);
 	LogMsg("\nHello world!\n\n");
@@ -68,20 +68,24 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	MmFree(c);
 	MmFree(d);
 	a = b = c = d = NULL;
+	elf_test();
 	
-	//KePrintSystemInfo();
+	KePrintSystemInfo();
 	
-	/*char test[2];
+	LogMsg("\nType something! >");
+	
+	char test[2];
 	test[1] = '\0';
-	while (2)
+	while (1)
 	{
 		char k = KbWaitForKeyAndGet();
 		test[0] = k;
 		LogMsg(test);
+		hlt;
 	}
-	*/
 	
-	elf_test();
+	//__asm__("int $0x80\n\t");
+	
 	
 	KeStopSystem();
 }

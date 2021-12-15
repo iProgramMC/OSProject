@@ -115,15 +115,16 @@ WriteFont16px:
 	ret
 
 global KeIdtLoad
+; requires a phys address.
 KeIdtLoad:
 	mov edx, [esp + 4]
-	and edx, 0x3FFFFFFF ; Turn this into a virtual address
 	lidt [edx]
 	sti
 	ret
 
 extern IrqTimer
 extern IrqKeyboard
+extern IsrSoftware
 global IrqTimerA
 IrqTimerA:
 	pusha
@@ -134,6 +135,12 @@ global IrqKeyboardA
 IrqKeyboardA:
 	pusha
 	call IrqKeyboard
+	popa
+	iretd
+global IsrSoftwareA
+IsrSoftwareA:
+	pusha
+	call IsrSoftware
 	popa
 	iretd
 

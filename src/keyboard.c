@@ -140,13 +140,16 @@ int KeyboardBufferBeg = 0, KeyboardBufferEnd = 0;
 void KbAddKeyToBuffer(char key)
 {
 	if (!key) return;
+	//LogMsg("Added key: ");LogIntDec(key);LogMsg("\n");
 	KeyboardBuffer[KeyboardBufferEnd++] = key;
 	while (KeyboardBufferEnd > KB_BUF_SIZE)
 		KeyboardBufferEnd -= KB_BUF_SIZE;
 }
 bool KbIsBufferEmpty()
 {
-	return (KeyboardBufferBeg != KeyboardBufferEnd);
+	bool e = (KeyboardBufferBeg == KeyboardBufferEnd);
+	//LogMsg("Buffer empty? "); LogIntDec(e); LogMsg("\n");
+	return e;
 }
 char KbGetKeyFromBuffer()
 {
@@ -181,6 +184,7 @@ bool ShiftPressed()
 
 void IrqKeyboard()
 {
+	//LogMsg("Keyboard!");
 	// acknowledge interrupt:
 	WritePort(0x20, 0x20);
 	WritePort(0xA0, 0x20);
