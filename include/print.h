@@ -1,5 +1,5 @@
-#ifndef _STRING_H
-#define _STRING_H
+#ifndef _PRINT_H
+#define _PRINT_H
 
 #include <main.h>
 
@@ -9,4 +9,4 @@ void LogIntDec (int i);
 void KePrintSystemInfo();
 void PrInitialize();
 
-#endif//_STRING_H
+#endif//_PRINT_H

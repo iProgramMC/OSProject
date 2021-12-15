@@ -10,7 +10,7 @@ typedef uint32_t EAddr;
 typedef uint32_t EWord;
 typedef  int32_t ESwrd;
 
-typedef void (*ElfEntry)(void);
+typedef int (*ElfEntry)(void);
 
 #define ELF_IDENT_SIZE 16
 typedef struct {

@@ -114,6 +114,29 @@ WriteFont16px:
 	out	dx, ax
 	ret
 
+global KeIdtLoad
+KeIdtLoad:
+	mov edx, [esp + 4]
+	and edx, 0x3FFFFFFF ; Turn this into a virtual address
+	lidt [edx]
+	sti
+	ret
+
+extern IrqTimer
+extern IrqKeyboard
+global IrqTimerA
+IrqTimerA:
+	pusha
+	call IrqTimer
+	popa
+	iretd
+global IrqKeyboardA
+IrqKeyboardA:
+	pusha
+	call IrqKeyboard
+	popa
+	iretd
+
 global MmStartupStuff
 MmStartupStuff:
 	mov ecx, dword [e_placement]

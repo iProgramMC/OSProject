@@ -5,7 +5,7 @@ ENTRY (main)
 
 SECTIONS 
 {
-	. = 10M; /*Load at 10M, until we get paging working*/
+	. = 12M; /*Load at 12M, until we get paging working*/
 	
 	/*text section*/
 	.text BLOCK(4K) : ALIGN(4K)

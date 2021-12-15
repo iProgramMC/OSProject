@@ -1,4 +1,3 @@
-#if 0
 #include <elf.h>
 #include <string.h>
 #include <memory.h>
@@ -8,7 +7,7 @@ struct ElfProcess
 	uint32_t* m_pageDirectory;
 	uint32_t* m_pageTables[64];
 	
-}
+};
 
 extern char g_testingElfStart, g_testingElfEnd;
 extern char g_testingElf;
@@ -40,7 +39,7 @@ int ElfIsSupported(ElfHeader* pHeader)
 uint32_t* ElfMakeNewPageDirectory(uint32_t* pPhys)
 {
 	// Make a new page directory:
-	uint32_t* pd = (uint32_t*)MmAllocate (4096);
+	uint32_t* pd = (uint32_t*)MmAllocateSinglePagePhy (pPhys);
 	
 	if (!pd) {
 		LogMsg("ERROR: Could not allocate new page directory\n");
@@ -48,35 +47,58 @@ uint32_t* ElfMakeNewPageDirectory(uint32_t* pPhys)
 	}
 	
 	// Clone the kernel's page dir to this one:
-	fast_memcpy (pd, MmGetKernelPageDir(), 4096);
-	
+	memcpy (pd, MmGetKernelPageDir(), 4096);
 	// Zero out all entries until 0xC0000000:
-	ZeroMemory (pd, 0, sizeof(uint32_t) * 768);
+	ZeroMemory (pd, sizeof(uint32_t) * 768);
 	
 	// Then return this page directory.
 	return pd;
 }
-
+#define TODO_Please_Make_It_So_We_Can_Clean_Up_After_Ourselves
 void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
 {
-	uint32_t pdIndex = (uint32_t)virt >> 22;
+	TODO_Please_Make_It_So_We_Can_Clean_Up_After_Ourselves /*!!!*/
+	
+	uint32_t pdIndex =  (uint32_t)virt >> 22;
+	uint32_t ptIndex = ((uint32_t)virt >> 12) & 0x3FF;
 	uint32_t size1 = size;
 	
 	// A page table maps 4 MB of memory, or (1 << 22) bytes.
 	uint32_t pageTablesNecessary = ((size1 - 1) >> 22) + 1;
+	uint32_t pagesNecessary = ((size1 - 1) >> 12) + 1;
+	
+	uint32_t* pointer = (uint32_t*)data;
+	LogInt(pdIndex);
+	LogInt(ptIndex);
 	
 	while (pageTablesNecessary)
 	{
 		uint32_t phys = 0;
-		void *pageVirt = KeAllocateSinglePagePhy(&phys);
+		PageEntry *pageTVirt = (PageEntry*)MmAllocateSinglePagePhy(&phys);
 		pageDir[pdIndex] = phys | 0x3; //present and read/write
-		ZeroMemory (pageVirt, 0, 4096);
+		ZeroMemory (pageTVirt, 4096);
 		
+		uint32_t min = 4096;
+		if (min > pagesNecessary)
+			min = pagesNecessary;
+		for (uint32_t i=ptIndex; i<min; i++)
+		{
+			uint32_t phys2 = 0;
+			void *pageVirt = MmAllocateSinglePagePhy(&phys2);
+			ZeroMemory (pageVirt, 4096);
+			pageTVirt[i].m_pAddress = phys2 >> 12;
+			pageTVirt[i].m_bPresent = true;
+			pageTVirt[i].m_bUserSuper = true;
+			pageTVirt[i].m_bReadWrite = true;
+			
+			memcpy (pageVirt, pointer, 4096);
+			pointer += 4096;
+		}
 		pageTablesNecessary--; 
+		pagesNecessary -= 4096-ptIndex;
+		ptIndex = 0;
 		pdIndex++;
 	}
-	
-	
 }
 
 int ElfExecute (void *pElfFile, size_t size)
@@ -88,19 +110,39 @@ int ElfExecute (void *pElfFile, size_t size)
 	int errCode = ElfIsSupported(pHeader);
 	if (errCode != 1) //not supported.
 	{
-		LogMsg("Got error %x while loading the elf.", errCode);
+		LogMsg("Got error ");LogInt(errCode);LogMsg("while loading the elf.\n");
 		return errCode;
 	}
 	
 	ElfProgHeader* pProgHeader = (ElfProgHeader*)(pElfData + pHeader->m_phOffs);
 	
 	// Allocate a new page directory for the elf:
-	uint32_t* newPageDir = ElfMakeNewPageDirectory();
+	uint32_t  newPageDirP;
+	uint32_t* newPageDir = ElfMakeNewPageDirectory(&newPageDirP);
 	
 	void *addr = (void*)pProgHeader->m_virtAddr;
 	size_t size1 = pProgHeader->m_memSize;
 	int offs = pProgHeader->m_offset;
 	
+	LogInt(addr);
 	ElfMapAddress (newPageDir, addr, size1, &pElfData[offs]);
+	
+	MmUsePageDirectory(newPageDir, newPageDirP);
+	
+	//now that we have switched, call the entry func:
+	ElfEntry entry = (ElfEntry)pHeader->m_entry;
+	
+	LogMsg("Loaded ELF successfully! Executing it now.");
+	int e = entry();
+	
+	LogMsg("Did we do it?! (TODO: Add freeing functions.)");
+	MmRevertToKernelPageDir();
+	
+	return ELF_ERROR_NONE;
 }
-#endif
+
+void elf_test()
+{
+	int sz = &g_testingElfEnd - &g_testingElfStart;
+	ElfExecute (&g_testingElf, sz);
+}

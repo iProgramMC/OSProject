@@ -2,7 +2,6 @@
 // Memory and string processing
 // Copyright (C) 2020 iProgramInCpp.
 //
-
 #ifndef _STRING_H
 #define _STRING_H
 #include <main.h>

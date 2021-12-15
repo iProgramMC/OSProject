@@ -1,6 +1,9 @@
 #include <main.h>
 #include <memory.h>
 #include <print.h>
+#include <idt.h>
+#include <keyboard.h>
+#include <elf.h>
 
 void KeStopSystem()
 {
@@ -15,6 +18,7 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	mbi += 0xc0000000;
 	MmFirstThingEver(mbi);
 	
+	//KeIdtInit();
 	PrInitialize();
 	
 	//print the hello text, to see if the os booted properly
@@ -65,7 +69,19 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	MmFree(d);
 	a = b = c = d = NULL;
 	
-	KePrintSystemInfo();
+	//KePrintSystemInfo();
+	
+	/*char test[2];
+	test[1] = '\0';
+	while (2)
+	{
+		char k = KbWaitForKeyAndGet();
+		test[0] = k;
+		LogMsg(test);
+	}
+	*/
+	
+	elf_test();
 	
 	KeStopSystem();
 }
