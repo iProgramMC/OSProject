@@ -122,27 +122,6 @@ KeIdtLoad:
 	sti
 	ret
 
-extern IrqTimer
-extern IrqKeyboard
-extern IsrSoftware
-global IrqTimerA
-IrqTimerA:
-	pusha
-	call IrqTimer
-	popa
-	iretd
-global IrqKeyboardA
-IrqKeyboardA:
-	pusha
-	call IrqKeyboard
-	popa
-	iretd
-global IsrSoftwareA
-IsrSoftwareA:
-	pusha
-	call IsrSoftware
-	popa
-	iretd
 
 global MmStartupStuff
 MmStartupStuff:

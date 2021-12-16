@@ -2,6 +2,7 @@
 #include <main.h>
 #include <idt.h>
 #include <keyboard.h>
+#include <syscall.h>
 
 #define KBDATA 0x60
 #define KBSTAT 0x64
@@ -94,6 +95,7 @@ void IsrSoftware()
 }
 unsigned long idtPtr[2];
 extern void IsrSoftwareA();
+extern void OnSyscallReceivedA();
 void KeIdtLoad1(IdtPointer *ptr)
 {
 	__asm__ ("lidt %0" :: "m"(*ptr));
@@ -125,7 +127,7 @@ void KeIdtInit()
 	SetupExceptionInterrupt (0x0F, ISR0F);
 #endif
 	
-	SetupSoftInterrupt (0x80, IsrSoftwareA);
+	SetupSoftInterrupt (0x80, OnSyscallReceivedA);
 	
 	//initialize the pics
 	WritePort (0x20, 0x11);

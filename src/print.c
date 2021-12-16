@@ -120,5 +120,5 @@ void KePrintSystemInfo()
 void PrInitialize()
 {
 	g_textX = g_textY = 0;
-	SwitchMode(0);
+	SwitchMode(1);
 }

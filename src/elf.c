@@ -68,8 +68,6 @@ void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
 	uint32_t pagesNecessary = ((size1 - 1) >> 12) + 1;
 	
 	uint32_t* pointer = (uint32_t*)data;
-	LogInt(pdIndex);
-	LogInt(ptIndex);
 	
 	while (pageTablesNecessary)
 	{
@@ -101,6 +99,10 @@ void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
 	}
 }
 
+void ElfDumpInfo(ElfHeader* pHeader)
+{
+}
+
 int ElfExecute (void *pElfFile, size_t size)
 {
 	uint8_t* pElfData = (uint8_t*)pElfFile; //to do arithmetic with this
@@ -113,26 +115,29 @@ int ElfExecute (void *pElfFile, size_t size)
 		LogMsg("Got error ");LogInt(errCode);LogMsg("while loading the elf.\n");
 		return errCode;
 	}
-	
-	ElfProgHeader* pProgHeader = (ElfProgHeader*)(pElfData + pHeader->m_phOffs);
-	
+	ElfDumpInfo(pHeader);
 	// Allocate a new page directory for the elf:
 	uint32_t  newPageDirP;
 	uint32_t* newPageDir = ElfMakeNewPageDirectory(&newPageDirP);
-	
-	void *addr = (void*)pProgHeader->m_virtAddr;
-	size_t size1 = pProgHeader->m_memSize;
-	int offs = pProgHeader->m_offset;
-	
-	LogInt(addr);
-	ElfMapAddress (newPageDir, addr, size1, &pElfData[offs]);
-	
+	for (int i = 0; i < pHeader->m_phNum; i++)
+	{
+		LogMsg("Loading section number:");LogIntDec(i);LogMsg("\n");
+		ElfProgHeader* pProgHeader = (ElfProgHeader*)(pElfData + pHeader->m_phOffs + i * pHeader->m_phEntSize);
+		
+		
+		void *addr = (void*)pProgHeader->m_virtAddr;
+		size_t size1 = pProgHeader->m_memSize;
+		int offs = pProgHeader->m_offset;
+		
+		LogInt(addr);
+		ElfMapAddress (newPageDir, addr, size1, &pElfData[offs]);
+	}
 	MmUsePageDirectory(newPageDir, newPageDirP);
 	
 	//now that we have switched, call the entry func:
 	ElfEntry entry = (ElfEntry)pHeader->m_entry;
 	
-	LogMsg("Loaded ELF successfully! Executing it now.");
+	LogMsg("Loaded ELF successfully! Executing it now.\n");
 	int e = entry();
 	
 	LogMsg("Did we do it?! (TODO: Add freeing functions.)");
