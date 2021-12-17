@@ -2,12 +2,13 @@
 #include <string.h>
 #include <memory.h>
 
-struct ElfProcess
+typedef struct 
 {
 	uint32_t* m_pageDirectory;
-	uint32_t* m_pageTables[64];
-	
-};
+	uint32_t  m_pageDirectoryPhys;
+	uint32_t* m_pageTablesList[1024];
+}
+ElfProcess;
 
 extern char g_testingElfStart, g_testingElfEnd;
 extern char g_testingElf;
@@ -55,9 +56,12 @@ uint32_t* ElfMakeNewPageDirectory(uint32_t* pPhys)
 	return pd;
 }
 #define TODO_Please_Make_It_So_We_Can_Clean_Up_After_Ourselves
-void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
+void ElfMapAddress(ElfProcess* pProc, uint32_t* pageDir, void *virt, size_t size, void* data)
 {
 	TODO_Please_Make_It_So_We_Can_Clean_Up_After_Ourselves /*!!!*/
+	
+	size = (((size-1) >> 12) + 1) << 12;
+	LogMsg("size:%x, data:%x,  virt:%x",size,data,virt);
 	
 	uint32_t pdIndex =  (uint32_t)virt >> 22;
 	uint32_t ptIndex = ((uint32_t)virt >> 12) & 0x3FF;
@@ -72,13 +76,22 @@ void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
 	while (pageTablesNecessary)
 	{
 		uint32_t phys = 0;
-		PageEntry *pageTVirt = (PageEntry*)MmAllocateSinglePagePhy(&phys);
-		pageDir[pdIndex] = phys | 0x3; //present and read/write
-		ZeroMemory (pageTVirt, 4096);
+		PageEntry *pageTVirt;
+		if (pProc->m_pageTablesList[pdIndex])
+		{
+			pageTVirt = (PageEntry*)pProc->m_pageTablesList[pdIndex];
+		}
+		else 
+		{
+			pageTVirt = (PageEntry*)MmAllocateSinglePagePhy(&phys);
+			pageDir[pdIndex] = phys | 0x3; //present and read/write
+			pProc->m_pageTablesList[pdIndex] = (uint32_t)pageTVirt;
+			ZeroMemory (pageTVirt, 4096);
+		}
 		
 		uint32_t min = 4096;
-		if (min > pagesNecessary)
-			min = pagesNecessary;
+		if (min > pagesNecessary+ptIndex)
+			min = pagesNecessary+ptIndex;
 		for (uint32_t i=ptIndex; i<min; i++)
 		{
 			uint32_t phys2 = 0;
@@ -90,7 +103,8 @@ void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
 			pageTVirt[i].m_bReadWrite = true;
 			
 			memcpy (pageVirt, pointer, 4096);
-			pointer += 4096;
+			//LogMsg("Copied section, need some more?");
+			pointer += 1024;
 		}
 		pageTablesNecessary--; 
 		pagesNecessary -= 4096-ptIndex;
@@ -101,10 +115,15 @@ void ElfMapAddress(uint32_t* pageDir, void *virt, size_t size, void* data)
 
 void ElfDumpInfo(ElfHeader* pHeader)
 {
+	LogMsg("ELF info:");
+	LogMsg("entry: %x  phoff:  %x  shoff:   %x  phnum: %x", pHeader->m_entry, pHeader->m_phOffs, pHeader->m_shOffs,    pHeader->m_phNum);
+	LogMsg("flags: %x  ehsize: %x  phentsz: %x  shnum: %x", pHeader->m_flags, pHeader->m_ehSize, pHeader->m_phEntSize, pHeader->m_shNum);
 }
 
 int ElfExecute (void *pElfFile, size_t size)
 {
+	ElfProcess proc;
+	memset (&proc, 0, sizeof(proc));
 	uint8_t* pElfData = (uint8_t*)pElfFile; //to do arithmetic with this
 	//check the header.
 	ElfHeader* pHeader = (ElfHeader*)pElfFile;
@@ -112,32 +131,52 @@ int ElfExecute (void *pElfFile, size_t size)
 	int errCode = ElfIsSupported(pHeader);
 	if (errCode != 1) //not supported.
 	{
-		LogMsg("Got error ");LogInt(errCode);LogMsg("while loading the elf.\n");
+		LogMsg("Got error %d while loading the elf.", errCode);
 		return errCode;
 	}
 	ElfDumpInfo(pHeader);
 	// Allocate a new page directory for the elf:
 	uint32_t  newPageDirP;
 	uint32_t* newPageDir = ElfMakeNewPageDirectory(&newPageDirP);
+	
+	proc.m_pageDirectory     = newPageDir;
+	proc.m_pageDirectoryPhys = newPageDirP;
+	
 	for (int i = 0; i < pHeader->m_phNum; i++)
 	{
-		LogMsg("Loading section number:");LogIntDec(i);LogMsg("\n");
+		//LogMsg("Loading section number: %d", i);
 		ElfProgHeader* pProgHeader = (ElfProgHeader*)(pElfData + pHeader->m_phOffs + i * pHeader->m_phEntSize);
-		
 		
 		void *addr = (void*)pProgHeader->m_virtAddr;
 		size_t size1 = pProgHeader->m_memSize;
 		int offs = pProgHeader->m_offset;
+		LogMsg("PROGRAM HEADER:");
+		LogMsg("type: %x  offs: %x  viad: %x  phad: %x  fisz: %x  mesz: %x  flgs: %x  algn: %x",
+			pProgHeader->m_type, pProgHeader->m_offset, pProgHeader->m_virtAddr, pProgHeader->m_physAddr,
+			pProgHeader->m_fileSize, pProgHeader->m_memSize, pProgHeader->m_flags, pProgHeader->m_align);
 		
-		LogInt(addr);
-		ElfMapAddress (newPageDir, addr, size1, &pElfData[offs]);
+		ElfMapAddress (&proc, newPageDir, addr, size1, &pElfData[offs]);
+		MmUsePageDirectory(newPageDir, newPageDirP);
+		LogMsg("TEST!");
+		MmRevertToKernelPageDir();
 	}
-	MmUsePageDirectory(newPageDir, newPageDirP);
+	for (int i = 0; i < pHeader->m_shNum; i++)
+	{
+		ElfSectHeader* pSectHeader = (ElfSectHeader*)(pElfData + pHeader->m_shOffs + i * pHeader->m_shEntSize);
+		/*LogMsg("SECTION HEADER:");
+		LogMsg("name: %x  type: %x  flags: %x\naddr: %x  offs: %x  shsiz: %x\nslnk: %x  sinf: %x  shesz: %x\nadal: %x", 
+			pSectHeader->m_name, pSectHeader->m_type, pSectHeader->m_flags,
+			pSectHeader->m_addr, pSectHeader->m_offset, pSectHeader->m_shSize,
+			pSectHeader->m_shLink, pSectHeader->m_shInfo, pSectHeader->m_shEntSize,
+			pSectHeader->m_shAddrAlign);
+		KbWaitForKeyAndGet();*/
+	}
 	
 	//now that we have switched, call the entry func:
 	ElfEntry entry = (ElfEntry)pHeader->m_entry;
+	MmUsePageDirectory(newPageDir, newPageDirP);
 	
-	LogMsg("Loaded ELF successfully! Executing it now.\n");
+	LogMsg("Loaded ELF successfully! Executing it now.");
 	int e = entry();
 	
 	LogMsg("Did we do it?! (TODO: Add freeing functions.)");

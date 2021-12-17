@@ -2,10 +2,9 @@
 
 void DumpRegisters (Registers* pRegs)
 {
-	LogMsg("Registers:\n");
-	LogMsg(  "EAX="); LogInt(pRegs->eax); LogMsg("CS="); LogInt(pRegs->cs); LogMsg("EIP="); LogInt(pRegs->eip); LogMsg("EFLGS="); LogInt(pRegs->eflags);
-	LogMsg("\nEBX="); LogInt(pRegs->ebx); LogMsg("              ");         LogMsg("ESP="); LogInt(pRegs->esp); LogMsg("EBP="); LogInt(pRegs->ebp);
-	LogMsg("\nEBX="); LogInt(pRegs->ecx); LogMsg("              ");         LogMsg("ESI="); LogInt(pRegs->esi);
-	LogMsg("\nEBX="); LogInt(pRegs->edx); LogMsg("              ");         LogMsg("EDI="); LogInt(pRegs->edi);
-	LogMsg("\n");
+	LogMsg("Registers:");
+	LogMsg("EAX=%x CS=%x "    "EIP=%x EFLGS=%x", pRegs->eax, pRegs->cs, pRegs->eip, pRegs->eflags);
+	LogMsg("EBX=%x             ESP=%x EBP=%x",   pRegs->ebx,            pRegs->esp, pRegs->ebp);
+	LogMsg("EBX=%x             ESI=%x", pRegs->ecx,            pRegs->esi);
+	LogMsg("EBX=%x             EDI=%x", pRegs->edx,            pRegs->edi);
 }

@@ -45,6 +45,21 @@ typedef struct {
 __attribute__((packed))
 ElfProgHeader;
 
+typedef struct {
+	EWord m_name;
+	EWord m_type;
+	EWord m_flags;
+	EAddr m_addr;
+	EOffs m_offset;
+	EWord m_shSize;
+	EWord m_shLink;
+	EWord m_shInfo;
+	EWord m_shAddrAlign;
+	EWord m_shEntSize;
+}
+__attribute__((packed))
+ElfSectHeader;
+
 enum {
 	EI_MAG0 = 0, 	//0x7f
 	EI_MAG1,		//'E'

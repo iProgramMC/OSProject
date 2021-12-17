@@ -37,7 +37,7 @@ void MmFirstThingEver(unsigned long mbiAddr);
 /**
  * Initializes the memory manager and heap.
  */
-void MmInitMemoryManager();
+void MmInit();
 
 /**
  * Allocates a single page (4096 bytes).

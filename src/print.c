@@ -1,88 +1,151 @@
 #include <print.h>
+#include <string.h>
 #include <vga.h>
 
-uint16_t* g_pBufferBase = (uint16_t*)(KERNEL_MEM_START + 0xB8000);
-uint16_t* g_pBuffer = (uint16_t*)(KERNEL_MEM_START + 0xB8000);
-
-int g_textX, g_textY;
-int g_textWidth = 80, g_textHeight = 25;
-
-void LogMsg(const char* pText)
-{
-	while (*pText)
-	{
-		if (*pText == '\n')
-		{
-			g_textX = 0;
-			g_textY++;
-			if (g_textY == g_textHeight)
-			{
-				g_textY = 0;
-			}
-			pText++;
-			continue;
-		}
-		g_pBuffer[g_textY * g_textWidth + g_textX] = *pText | 0x1F00;
-		pText++;
-		g_textX++;
-		if (g_textX == g_textWidth)
-		{
-			g_textX = 0;
-			g_textY++;
-			if (g_textY == g_textHeight)
-			{
-				g_textY = 0;
-			}
-		}
-	}
+void ___swap(char*a, char*b) {
+	char e;e=*a;*a=*b;*b=e;
 }
-void LogInt(uint32_t toPrint)
-{
-	char test[12];
-	test[0] = '0', test[1] = 'x';
-	char* memory = test + 2;
-	
-	uint32_t power = (15 << 28), pt = 28;
-	for (; power != 0; power >>= 4, pt -= 4) {
-		uint32_t p = toPrint & power;
-		p >>= pt;
-		*memory = "0123456789abcdef"[p];
-		memory++;
+
+void vsprintf(char* memory, const char* format, va_list list) {
+	while (*format) {
+		char m = *format;
+		format++;
+		if (m == '%') {
+			m = *format++;
+			// parse the m
+			if (m == 0) return;
+			switch (m) {
+				case 's': {
+					char* stringToPrint = va_arg(list, char*);
+					if (stringToPrint == NULL) stringToPrint = "(null)";
+					int length = strlen(stringToPrint);
+					memcpy(memory, stringToPrint, length);
+					memory += length;
+					continue;
+				}
+				case 'c': {
+					int chrToPrint = va_arg(list, int);
+					*memory++ = chrToPrint;
+					continue;
+				}
+				case 'd':case'i': {
+					int32_t num = va_arg(list, int32_t);
+					char str[14] = {0, };
+					int i = 0;
+					bool isNegative = false;
+					if (num == 0) {
+						str[i++] = '0'; 
+						str[i] = '\0'; 
+						goto skip1;
+					}
+					if (num == -2147483648) {
+						char* e = "-2147483648";
+						int length = strlen(e);
+						memcpy(memory, e, length);
+						memory += length;
+						goto skip3;
+					}
+					
+					// In standard itoa(), negative numbers are handled only with  
+					// base 10. Otherwise numbers are considered unsigned. 
+					if (num < 0) {
+						isNegative = true;
+						num = -num;
+					}
+					int base = 10;
+					// Process individual digits 
+					while (num != 0) 
+					{ 
+						int rem = num % base; 
+						str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0'; 
+						num = num/base; 
+					} 
+					// If number is negative, append '-' 
+					if (isNegative) 
+						str[i++] = '-'; 
+					str[i] = '\0'; // Append string terminator 
+					int start = 0; 
+					int end = i -1; 
+					while (start < end) 
+					{ 
+						___swap((str+start), (str+end)); 
+						start++; 
+						end--; 
+					} 
+				skip1:;
+					int length = i;
+					memcpy(memory, str, length);
+					memory += length;
+				skip3:;
+					continue;
+				}
+				case 'u': {
+					uint32_t num = va_arg(list, uint32_t);
+					char str[14] = {0, };
+					int i = 0;
+					if (num == 0) {
+						str[i++] = '0'; 
+						str[i] = '\0'; 
+						goto skip2;
+					}
+					int base = 10;
+					// Process individual digits 
+					while (num != 0) 
+					{ 
+						int rem = num % base; 
+						str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0'; 
+						num = num/base; 
+					} 
+					str[i] = '\0'; // Append string terminator 
+					int start = 0; 
+					int end = i -1; 
+					while (start < end) 
+					{ 
+						___swap((str+start), (str+end)); 
+						start++; 
+						end--; 
+					} 
+				skip2:;
+					int length = i;
+					memcpy(memory, str, length);
+					memory += length;
+					continue;
+				}
+				case 'x': {
+					uint32_t toPrint = va_arg(list, uint32_t);
+					uint32_t power = (15 << 28), pt = 28;
+					for (; power != 0; power >>= 4, pt -= 4) {
+						uint32_t p = toPrint & power;
+						p >>= pt;
+						*memory = "0123456789abcdef"[p];
+						memory++;
+					}
+					continue;
+				}
+				case 'X': {
+					uint32_t toPrint = va_arg(list, uint32_t);
+					uint32_t power = (15 << 28), pt = 28;
+					for (; power != 0; power >>= 4, pt -= 4) {
+						uint32_t p = toPrint & power;
+						p >>= pt;
+						*memory = "0123456789ABCDEF"[p];
+						memory++;
+					}
+					continue;
+				}
+			}
+		} else {
+			*memory++ = m;
+		}
 	}
-	*memory++ = ' ';
-	*memory++ = '\0';
-	
-	LogMsg(test);
+	*memory = '\0';
+	return;
 }
-void LogIntDec(int toPrint)
-{
-	if (toPrint < 0)
-	{
-		LogMsg("-");
-		toPrint = -toPrint;
-	}
-	if (!toPrint) {
-		LogMsg("0 ");
-		return;
-	}
-	uint32_t new = 0;
-	while (toPrint)
-	{
-		new = new * 10 + toPrint % 10;
-		toPrint /= 10;
-	}
-	
-	char test [11];
-	int index = 0;
-	while (new)
-	{
-		test[index++] = '0' + (new % 10);
-		new /= 10;
-	}
-	test[index++] = ' ';
-	test[index++] = '\0';
-	
-	LogMsg(test);
+void sprintf(char*a, const char*c, ...) {
+	va_list list;
+	va_start(list, c);
+	vsprintf(a, c, list);
+	va_end(list);
 }
 
 typedef struct
@@ -107,18 +170,17 @@ extern CPUIDFeatureBits g_cpuidFeatureBits;
 void KePrintSystemInfo()
 {
 	KeCPUID();
-	LogMsg("Information about the system:\n");
-	LogMsg("CPU Type: "); LogMsg(g_cpuidNameEBX);
-	LogMsg("\nFeature bits: "); LogInt(*((int*)&g_cpuidFeatureBits));
-	LogMsg("\nx86 Family "); LogIntDec(g_cpuidFeatureBits.m_familyID);
-	LogMsg("Model "); LogIntDec(g_cpuidFeatureBits.m_model);
-	LogMsg("Stepping "); LogIntDec(g_cpuidFeatureBits.m_steppingID);
-	LogMsg("\ng_cpuidLastLeaf: "); LogIntDec(g_cpuidLastLeaf);
-	LogMsg("\n\n");
+	LogMsg("Information about the system:");
+	LogMsg("CPU Type: %x", g_cpuidNameEBX);
+	LogMsg("Feature bits: %x", *((int*)&g_cpuidFeatureBits));
+	LogMsgNoCr("x86 Family %d", g_cpuidFeatureBits.m_familyID);
+	LogMsgNoCr("Model %d", g_cpuidFeatureBits.m_model);
+	LogMsg("Stepping %d", g_cpuidFeatureBits.m_steppingID);
+	LogMsg("g_cpuidLastLeaf: %d", g_cpuidLastLeaf);
 }
-
+extern int g_textX, g_textY;
 void PrInitialize()
 {
-	g_textX = g_textY = 0;
 	SwitchMode(1);
+	CoInitAsText(&g_debugConsole);
 }

@@ -4,18 +4,18 @@
 
 void OnSyscallReceived (Registers* pRegs)
 {
-	LogMsg("Got syscall!\n");
+	LogMsg("Got syscall!");
 	DumpRegisters(pRegs);
-	LogMsg("Syscall ID: "); LogInt(pRegs->esi); LogMsg("\n");
+	LogMsg("Syscall ID: %d", pRegs->esi);
 	switch (pRegs->esi)
 	{
 		case LOGMSG:
-			LogMsg("LOGMSG syscall!\n");
+			LogMsg("LOGMSG syscall!");
 			LogMsg((char*)pRegs->eax);
 			break;
 		default:
-			LogMsg("UND syscall!\n");
-			LogMsg("warning: undefined syscall\n");
+			LogMsg("UND syscall!");
+			LogMsg("warning: undefined syscall");
 			break;
 	}
 }

@@ -88,7 +88,7 @@ static uint32_t MmFindFreeFrame()
 		//no, continue
 	}
 	//what
-	LogMsg("WARNING: No more free memory?!\n");
+	LogMsg("WARNING: No more free memory?!");
 	return 0xffffffffu/*ck you*/;
 }
 
@@ -115,7 +115,7 @@ void MmInitializeDefaultPages()
 	MmTlbInvalidate();
 }
 int g_offset = 0;
-void MmInitMemoryManager()
+void MmInit()
 {
 	e_placement += 0x1000;
 	e_placement &= ~0xFFF;
@@ -174,7 +174,7 @@ void* MmAllocateSinglePagePhy(uint32_t* pPhysOut)
 		}
 	}
 	// No more page frames?!
-	LogMsg("WARNING: No more page entries\n");
+	LogMsg("WARNING: No more page entries");
 	return NULL;
 }
 void* MmAllocateSinglePage()
