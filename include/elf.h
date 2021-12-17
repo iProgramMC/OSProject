@@ -100,5 +100,6 @@ enum {
 	ELF_RELOCATE_ERROR,
 };
 
+void ElfPerformTest();
 
 #endif//_ELF_H

@@ -43,6 +43,10 @@ int       g_pageEntriesNum   = 0;
 // (unless you used MmAllocageSinglePage to allocate it)
 int g_memoryAllocationSize[PAGE_ENTRY_TOTAL];
 
+//if debug only
+const char* g_memoryAllocationAuthor[PAGE_ENTRY_TOTAL];
+int  g_memoryAllocationAuthorLine[PAGE_ENTRY_TOTAL];
+
 #define PAGE_BITS 0X3 //present and read/write
 #define PAGE_ALLOCATION_BASE 0x800000
 
@@ -135,7 +139,7 @@ void MmInvalidateSinglePage(uintptr_t add)
 	MmTlbInvalidate();
 }
 
-void* MmSetupPage(int i, uint32_t* pPhysOut)
+void* MmSetupPage(int i, uint32_t* pPhysOut, const char* callFile, int callLine)
 {
 	uint32_t frame = MmFindFreeFrame();
 	if (frame == 0xffffffffu/*ck you*/)
@@ -150,6 +154,8 @@ void* MmSetupPage(int i, uint32_t* pPhysOut)
 	g_pageEntries[i].m_pAddress = frame + g_offset;
 	
 	g_memoryAllocationSize[i] = 0;
+	g_memoryAllocationAuthor[i] = callFile;
+	g_memoryAllocationAuthorLine[i] = callLine;
 	
 	// if pPhysOut is not null, we would probably want that too:
 	if (pPhysOut)
@@ -160,7 +166,7 @@ void* MmSetupPage(int i, uint32_t* pPhysOut)
 	
 	return (void*)retaddr;
 }
-void* MmAllocateSinglePagePhy(uint32_t* pPhysOut)
+void* MmAllocateSinglePagePhyD(uint32_t* pPhysOut, const char* callFile, int callLine)
 {
 	// find a free pageframe.
 	// For 4096 bytes we can use ANY hole in the pageframes list, and we
@@ -170,16 +176,16 @@ void* MmAllocateSinglePagePhy(uint32_t* pPhysOut)
 	{
 		if (!g_pageEntries[i].m_bPresent) // A non-allocated pageframe?
 		{
-			return MmSetupPage(i, pPhysOut);
+			return MmSetupPage(i, pPhysOut, callFile, callLine);
 		}
 	}
 	// No more page frames?!
 	LogMsg("WARNING: No more page entries");
 	return NULL;
 }
-void* MmAllocateSinglePage()
+void* MmAllocateSinglePageD(const char* callFile, int callLine)
 {
-	return MmAllocateSinglePagePhy(NULL);
+	return MmAllocateSinglePagePhyD(NULL, callFile, callLine);
 }
 void MmFreePage(void* pAddr)
 {
@@ -198,10 +204,10 @@ void MmFreePage(void* pAddr)
 	g_pageEntries[addr].m_bPresent = false;
 	g_memoryAllocationSize[addr] = 0;
 }
-void *MmAllocate (size_t size)
+void *MmAllocateD (size_t size, const char* callFile, int callLine)
 {
 	if (size <= 0x1000) //worth one page:
-		return MmAllocateSinglePage();
+		return MmAllocateSinglePageD(callFile, callLine);
 	else {
 		//more than one page, take matters into our own hands:
 		int numPagesNeeded = ((size - 1) >> 12) + 1;
@@ -228,14 +234,14 @@ void *MmAllocate (size_t size)
 					}
 				}
 				// Nope! We have space here!  Let's map all the pages, and return the address of the first one.
-				void* pointer = MmSetupPage(i, NULL);
+				void* pointer = MmSetupPage(i, NULL, callFile, callLine);
 				
 				// Not to forget, set the memory allocation size below:
 				g_memoryAllocationSize[i] = numPagesNeeded - 1;
 				
 				for (int j = i+1; j < jfinal; j++)
 				{
-					MmSetupPage (j, NULL);
+					MmSetupPage (j, NULL, callFile, callLine);
 				}
 				return pointer;
 			}

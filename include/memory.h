@@ -46,7 +46,8 @@ void MmInit();
  * pPhysOut may be NULL or not, in the case where it's not, the physical address 
  * of the page is returned.
  */
-void* MmAllocateSinglePagePhy(uint32_t* pPhysOut);
+void* MmAllocateSinglePagePhyD(uint32_t* pPhysOut, const char* callFile, int callLine);
+#define MmAllocateSinglePagePhy(physOut) MmAllocateSinglePagePhyD(physOut, __FILE__, __LINE__)
 
 /**
  * Allocates a single page (4096 bytes).
@@ -54,7 +55,8 @@ void* MmAllocateSinglePagePhy(uint32_t* pPhysOut);
  * This returns the address of the new page, or NULL if we ran out of memory.
  * Use MmAllocateSinglePagePhy if you also want the physical address of the page.
  */
-void* MmAllocateSinglePage();
+void* MmAllocateSinglePageD(const char* callFile, int callLine);
+#define MmAllocateSinglePage() MmAllocateSinglePageD(__FILE__, __LINE__)
 
 /**
  * Frees a single memory page. A NULL pointer is carefully ignored.
@@ -77,7 +79,8 @@ void MmFreePage(void* pAddr);
  *
  * See: MmFree
  */
-void* MmAllocate(size_t size);
+void* MmAllocateD(size_t size, const char* callFile, int callLine);
+#define MmAllocate(size) MmAllocateD(size, __FILE__, __LINE__)
 
 /**
  * Frees a memory range allocated with MmAllocate. A NULL pointer is carefully ignored.

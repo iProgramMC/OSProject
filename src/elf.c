@@ -7,6 +7,9 @@ typedef struct
 	uint32_t* m_pageDirectory;
 	uint32_t  m_pageDirectoryPhys;
 	uint32_t* m_pageTablesList[1024];
+	#define MAX_PAGE_ALLOC_COUNT 4096
+	uint32_t  m_pageAllocationCount;
+	uint32_t* m_pagesAllocated[MAX_PAGE_ALLOC_COUNT];
 }
 ElfProcess;
 
@@ -55,13 +58,24 @@ uint32_t* ElfMakeNewPageDirectory(uint32_t* pPhys)
 	// Then return this page directory.
 	return pd;
 }
-#define TODO_Please_Make_It_So_We_Can_Clean_Up_After_Ourselves
-void ElfMapAddress(ElfProcess* pProc, uint32_t* pageDir, void *virt, size_t size, void* data)
+void ElfCleanup (ElfProcess* pProcess)
 {
-	TODO_Please_Make_It_So_We_Can_Clean_Up_After_Ourselves /*!!!*/
-	
+	MmFree (pProcess->m_pageDirectory);
+	pProcess->m_pageDirectory = NULL;
+	for (int i=0; i<1024; i++) {
+		MmFree (pProcess->m_pageTablesList[i]);
+		pProcess->m_pageTablesList[i] = 0;
+	}
+	for (uint32_t i=0; i<pProcess->m_pageAllocationCount; i++)
+	{
+		MmFree (pProcess->m_pagesAllocated[i]);
+		pProcess->m_pagesAllocated[i] = NULL;
+	}
+}
+void ElfMapAddress(ElfProcess* pProc, void *virt, size_t size, void* data)
+{
+	uint32_t* pageDir = pProc->m_pageDirectory;
 	size = (((size-1) >> 12) + 1) << 12;
-	LogMsg("size:%x, data:%x,  virt:%x",size,data,virt);
 	
 	uint32_t pdIndex =  (uint32_t)virt >> 22;
 	uint32_t ptIndex = ((uint32_t)virt >> 12) & 0x3FF;
@@ -85,7 +99,7 @@ void ElfMapAddress(ElfProcess* pProc, uint32_t* pageDir, void *virt, size_t size
 		{
 			pageTVirt = (PageEntry*)MmAllocateSinglePagePhy(&phys);
 			pageDir[pdIndex] = phys | 0x3; //present and read/write
-			pProc->m_pageTablesList[pdIndex] = (uint32_t)pageTVirt;
+			pProc->m_pageTablesList[pdIndex] = (uint32_t*)pageTVirt;
 			ZeroMemory (pageTVirt, 4096);
 		}
 		
@@ -101,6 +115,9 @@ void ElfMapAddress(ElfProcess* pProc, uint32_t* pageDir, void *virt, size_t size
 			pageTVirt[i].m_bPresent = true;
 			pageTVirt[i].m_bUserSuper = true;
 			pageTVirt[i].m_bReadWrite = true;
+			
+			//register our new page in the elfprocess:
+			pProc->m_pagesAllocated[pProc->m_pageAllocationCount++] = pageVirt;
 			
 			memcpy (pageVirt, pointer, 4096);
 			//LogMsg("Copied section, need some more?");
@@ -122,6 +139,7 @@ void ElfDumpInfo(ElfHeader* pHeader)
 
 int ElfExecute (void *pElfFile, size_t size)
 {
+	size += 0; //to circumvent unused warning
 	ElfProcess proc;
 	memset (&proc, 0, sizeof(proc));
 	uint8_t* pElfData = (uint8_t*)pElfFile; //to do arithmetic with this
@@ -144,32 +162,22 @@ int ElfExecute (void *pElfFile, size_t size)
 	
 	for (int i = 0; i < pHeader->m_phNum; i++)
 	{
-		//LogMsg("Loading section number: %d", i);
 		ElfProgHeader* pProgHeader = (ElfProgHeader*)(pElfData + pHeader->m_phOffs + i * pHeader->m_phEntSize);
 		
 		void *addr = (void*)pProgHeader->m_virtAddr;
 		size_t size1 = pProgHeader->m_memSize;
 		int offs = pProgHeader->m_offset;
-		LogMsg("PROGRAM HEADER:");
-		LogMsg("type: %x  offs: %x  viad: %x  phad: %x  fisz: %x  mesz: %x  flgs: %x  algn: %x",
-			pProgHeader->m_type, pProgHeader->m_offset, pProgHeader->m_virtAddr, pProgHeader->m_physAddr,
-			pProgHeader->m_fileSize, pProgHeader->m_memSize, pProgHeader->m_flags, pProgHeader->m_align);
 		
-		ElfMapAddress (&proc, newPageDir, addr, size1, &pElfData[offs]);
+		ElfMapAddress (&proc, addr, size1, &pElfData[offs]);
 		MmUsePageDirectory(newPageDir, newPageDirP);
 		LogMsg("TEST!");
 		MmRevertToKernelPageDir();
 	}
 	for (int i = 0; i < pHeader->m_shNum; i++)
 	{
-		ElfSectHeader* pSectHeader = (ElfSectHeader*)(pElfData + pHeader->m_shOffs + i * pHeader->m_shEntSize);
-		/*LogMsg("SECTION HEADER:");
-		LogMsg("name: %x  type: %x  flags: %x\naddr: %x  offs: %x  shsiz: %x\nslnk: %x  sinf: %x  shesz: %x\nadal: %x", 
-			pSectHeader->m_name, pSectHeader->m_type, pSectHeader->m_flags,
-			pSectHeader->m_addr, pSectHeader->m_offset, pSectHeader->m_shSize,
-			pSectHeader->m_shLink, pSectHeader->m_shInfo, pSectHeader->m_shEntSize,
-			pSectHeader->m_shAddrAlign);
-		KbWaitForKeyAndGet();*/
+		//ElfSectHeader* pSectHeader = (ElfSectHeader*)(pElfData + pHeader->m_shOffs + i * pHeader->m_shEntSize);
+		
+		//! Don't actually need to process the pSectHeader, but if we do do it here
 	}
 	
 	//now that we have switched, call the entry func:
@@ -179,13 +187,14 @@ int ElfExecute (void *pElfFile, size_t size)
 	LogMsg("Loaded ELF successfully! Executing it now.");
 	int e = entry();
 	
-	LogMsg("Did we do it?! (TODO: Add freeing functions.)");
+	LogMsg("(executable returned: %d)", e);
 	MmRevertToKernelPageDir();
+	ElfCleanup (&proc);
 	
 	return ELF_ERROR_NONE;
 }
 
-void elf_test()
+void ElfPerformTest()
 {
 	int sz = &g_testingElfEnd - &g_testingElfStart;
 	ElfExecute (&g_testingElf, sz);

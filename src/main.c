@@ -51,7 +51,7 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	MmFree(c);
 	MmFree(d);
 	a = b = c = d = NULL;
-	elf_test();
+	ElfPerformTest();
 	
 	KePrintSystemInfo();
 	
