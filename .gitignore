@@ -7,6 +7,7 @@ cp/*
 lol/*
 keep/*
 tools/*
+sdk1/*
 sdk/nsmake/.vs/*
 sdk/nsmake/*.suo
 sdk/nsmake/nsmake/*.filters
