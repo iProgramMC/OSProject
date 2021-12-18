@@ -5,6 +5,15 @@
 build/*
 cp/*
 lol/*
-srcc/*
+keep/*
 tools/*
-tools2/*
+sdk/nsmake/.vs/*
+sdk/nsmake/*.suo
+sdk/nsmake/nsmake/*.filters
+sdk/nsmake/nsmake/*.user
+sdk/nsmake/nsmake/x64/*
+sdk/nsmake/nsmake/Debug/*
+sdk/nsmake/nsmake/Release/*
+sdk/nsmake/x64/*
+sdk/nsmake/Debug/*
+sdk/nsmake/Release/*

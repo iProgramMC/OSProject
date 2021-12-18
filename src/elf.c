@@ -152,7 +152,7 @@ int ElfExecute (void *pElfFile, size_t size)
 		LogMsg("Got error %d while loading the elf.", errCode);
 		return errCode;
 	}
-	ElfDumpInfo(pHeader);
+	//ElfDumpInfo(pHeader);
 	// Allocate a new page directory for the elf:
 	uint32_t  newPageDirP;
 	uint32_t* newPageDir = ElfMakeNewPageDirectory(&newPageDirP);
@@ -169,9 +169,9 @@ int ElfExecute (void *pElfFile, size_t size)
 		int offs = pProgHeader->m_offset;
 		
 		ElfMapAddress (&proc, addr, size1, &pElfData[offs]);
-		MmUsePageDirectory(newPageDir, newPageDirP);
-		LogMsg("TEST!");
-		MmRevertToKernelPageDir();
+		//MmUsePageDirectory(newPageDir, newPageDirP);
+		//LogMsg("TEST!");
+		//MmRevertToKernelPageDir();
 	}
 	for (int i = 0; i < pHeader->m_shNum; i++)
 	{

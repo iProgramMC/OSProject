@@ -89,6 +89,11 @@ void CoScrollUpByOne(Console *this) {
 	}
 	if (this->type == CONSOLE_TYPE_TEXT) {
 		memcpy (this->textBuffer, &this->textBuffer[this->width], this->width * (this->height - 1) * sizeof(short));
+		//uint16_t* p = &this->textBuffer[this->width * (this->height - 1) * sizeof(short)];
+		for (int i=0; i<this->width; i++)
+		{
+			CoPlotChar (this, i, this->height - 1, 0);
+		}
 	}
 	else {
 	}

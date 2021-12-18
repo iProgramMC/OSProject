@@ -115,5 +115,10 @@ uint32_t* MmGetKernelPageDir();
  */
 uint32_t MmGetKernelPageDirP();
 
+/**
+ * Dumps all information about the memory manager to the console.  Useful for debugging
+ */
+void MmDebugDump();
+
 
 #endif//_MEMORY_H

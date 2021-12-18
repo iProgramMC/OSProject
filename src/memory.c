@@ -279,4 +279,31 @@ uint32_t MmGetKernelPageDirP()
 {
 	return (uint32_t)g_pageDirectory - BASE_ADDRESS;
 }
-
+void MmDebugDump()
+{
+	int entryCount = 0;
+	LogMsg("MmDebugDump: dumping memory allocations:");
+	for(int i=0;i<PAGE_ENTRY_TOTAL;i++)
+	{
+		if (g_pageEntries[i].m_bPresent) {
+			//S: subsequent mempages, A: author file, AL: author line
+			LogMsg("%x:  phys address:%x  P%s%s%s%s S:%d A:%s AL:%d",
+				i,
+				g_pageEntries[i].m_pAddress<<12,
+				&" \0W\0"[g_pageEntries[i].m_bReadWrite<<1],
+				&" \0S\0"[g_pageEntries[i].m_bUserSuper<<1],
+				&" \0A\0"[g_pageEntries[i].m_bAccessed<<1],
+				&" \0D\0"[g_pageEntries[i].m_bDirty<<1],
+				g_memoryAllocationSize[i],
+				g_memoryAllocationAuthor[i],
+				g_memoryAllocationAuthorLine[i]
+			);
+			entryCount++;
+		}
+	}
+	LogMsgNoCr("There are %d unfreed allocations.", entryCount);
+	if (entryCount)
+		LogMsg("");
+	else
+		LogMsg("Either you're leak-free or you haven't actually allocated anything.");
+}

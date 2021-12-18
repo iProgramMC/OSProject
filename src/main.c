@@ -37,14 +37,14 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	*((uint32_t*)a) = 0xAAAA;
 	*((uint32_t*)b) = 0xBBBB;
 	
-	LogMsg("A: 0x%x, B: 0x%x, Aval: 0x%x, Bval: 0x%x", a, b, *((uint32_t*)a), *((uint32_t*)b));
+	LogMsg("A: 0x%x, B: 0x%x, Av: 0x%x, Bv: 0x%x", a, b, *((uint32_t*)a), *((uint32_t*)b));
 	
 	MmFree(a);
 	void *c = MmAllocate(12000); //3 pages, should not have same address as a
 	void *d = MmAllocate (4000); //only one page, it should have the same addr as a
 	*((uint32_t*)c) = 0xCCCC;
 	*((uint32_t*)d) = 0xDDDD;
-	LogMsg("C: 0x%x, D: 0x%x, Cval: 0x%x, Dval: 0x%x, Bval: 0x%x", a, b, *((uint32_t*)c), *((uint32_t*)d), *((uint32_t*)b));
+	LogMsg("C: 0x%x, D: 0x%x, Cv: 0x%x, Dv: 0x%x, Bv: 0x%x", a, b, *((uint32_t*)c), *((uint32_t*)d), *((uint32_t*)b));
 	
 	MmFree(a);
 	MmFree(b);
@@ -52,8 +52,9 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	MmFree(d);
 	a = b = c = d = NULL;
 	ElfPerformTest();
+	MmDebugDump();
 	
-	KePrintSystemInfo();
+	//KePrintSystemInfo();
 	
 	LogMsgNoCr("\nType something! >");
 	
@@ -63,7 +64,7 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	{
 		char k = KbWaitForKeyAndGet();
 		test[0] = k;
-		LogMsg(test);
+		LogMsgNoCr(test);
 		hlt;
 	}
 	
