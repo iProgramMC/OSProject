@@ -3,6 +3,7 @@
 #include <idt.h>
 #include <keyboard.h>
 #include <syscall.h>
+#include <debug.h>
 
 #define KBDATA 0x60
 #define KBSTAT 0x64
@@ -46,27 +47,43 @@ void SetupExceptionInterrupt (int intNum, void* isrHandler)
 	pEntry->type_attr = INTGATE;
 	pEntry->selector = KECODESEG;
 }
+#define HAS_EXCEPTION_HANDLERS
 #ifdef HAS_EXCEPTION_HANDLERS
-void ISRCommon(int lol) {
-	LogMsg("Got exception: %d", lol);
-	PANICR("got exception: ");
+void IsrExceptionCommon(int code, Registers* pRegs) {
+	KeBugCheck((BugCheckReason)code, pRegs);
 }
-void ISR00() {ISRCommon(0x00);}
-void ISR01() {ISRCommon(0x01);}
-void ISR02() {ISRCommon(0x02);}
-void ISR03() {ISRCommon(0x03);}
-void ISR04() {ISRCommon(0x04);}
-void ISR05() {ISRCommon(0x05);}
-void ISR06() {ISRCommon(0x06);}
-void ISR07() {ISRCommon(0x07);}
-void ISR08() {ISRCommon(0x08);}
-void ISR09() {ISRCommon(0x09);}
-void ISR0A() {ISRCommon(0x0A);}
-void ISR0B() {ISRCommon(0x0B);}
-void ISR0C() {ISRCommon(0x0C);}
-void ISR0D() {ISRCommon(0x0D);}
-void ISR0E() {ISRCommon(0x0E);}
-void ISR0F() {ISRCommon(0x0F);}
+extern void IsrStub0 ();
+extern void IsrStub1 ();
+extern void IsrStub2 ();
+extern void IsrStub3 ();
+extern void IsrStub4 ();
+extern void IsrStub5 ();
+extern void IsrStub6 ();
+extern void IsrStub7 ();
+extern void IsrStub8 ();
+extern void IsrStub9 ();
+extern void IsrStub10();
+extern void IsrStub11();
+extern void IsrStub12();
+extern void IsrStub13();
+extern void IsrStub14();
+extern void IsrStub15();
+extern void IsrStub16();
+extern void IsrStub17();
+extern void IsrStub18();
+extern void IsrStub19();
+extern void IsrStub20();
+extern void IsrStub21();
+extern void IsrStub22();
+extern void IsrStub23();
+extern void IsrStub24();
+extern void IsrStub25();
+extern void IsrStub26();
+extern void IsrStub27();
+extern void IsrStub28();
+extern void IsrStub29();
+extern void IsrStub30();
+extern void IsrStub31();
 #endif
 
 void KeTimerInit() 
@@ -109,22 +126,38 @@ void KeIdtInit()
 	SetupInterrupt (&mask1, &mask2, 0x2, NULL); // IRQ2: Cascade. Never triggered
 	
 #ifdef HAS_EXCEPTION_HANDLERS
-	SetupExceptionInterrupt (0x00, ISR00);
-	SetupExceptionInterrupt (0x01, ISR01);
-	SetupExceptionInterrupt (0x02, ISR02);
-	SetupExceptionInterrupt (0x03, ISR03);
-	SetupExceptionInterrupt (0x04, ISR04);
-	SetupExceptionInterrupt (0x05, ISR05);
-	SetupExceptionInterrupt (0x06, ISR06);
-	SetupExceptionInterrupt (0x07, ISR07);
-	SetupExceptionInterrupt (0x08, ISR08);
-	SetupExceptionInterrupt (0x09, ISR09);
-	SetupExceptionInterrupt (0x0A, ISR0A);
-	SetupExceptionInterrupt (0x0B, ISR0B);
-	SetupExceptionInterrupt (0x0C, ISR0C);
-	SetupExceptionInterrupt (0x0D, ISR0D);
-	SetupExceptionInterrupt (0x0E, ISR0E);
-	SetupExceptionInterrupt (0x0F, ISR0F);
+	SetupExceptionInterrupt (0x00, IsrStub0 );
+	SetupExceptionInterrupt (0x01, IsrStub1 );
+	SetupExceptionInterrupt (0x02, IsrStub2 );
+	SetupExceptionInterrupt (0x03, IsrStub3 );
+	SetupExceptionInterrupt (0x04, IsrStub4 );
+	SetupExceptionInterrupt (0x05, IsrStub5 );
+	SetupExceptionInterrupt (0x06, IsrStub6 );
+	SetupExceptionInterrupt (0x07, IsrStub7 );
+	SetupExceptionInterrupt (0x08, IsrStub8 );
+	SetupExceptionInterrupt (0x09, IsrStub9 );
+	SetupExceptionInterrupt (0x0A, IsrStub10);
+	SetupExceptionInterrupt (0x0B, IsrStub11);
+	SetupExceptionInterrupt (0x0C, IsrStub12);
+	SetupExceptionInterrupt (0x0D, IsrStub13);
+	SetupExceptionInterrupt (0x0E, IsrStub14);
+	SetupExceptionInterrupt (0x0F, IsrStub15);
+	SetupExceptionInterrupt (0x10, IsrStub16);
+	SetupExceptionInterrupt (0x11, IsrStub17);
+	SetupExceptionInterrupt (0x12, IsrStub18);
+	SetupExceptionInterrupt (0x13, IsrStub19);
+	SetupExceptionInterrupt (0x14, IsrStub20);
+	SetupExceptionInterrupt (0x15, IsrStub21);
+	SetupExceptionInterrupt (0x16, IsrStub22);
+	SetupExceptionInterrupt (0x17, IsrStub23);
+	SetupExceptionInterrupt (0x18, IsrStub24);
+	SetupExceptionInterrupt (0x19, IsrStub25);
+	SetupExceptionInterrupt (0x1A, IsrStub26);
+	SetupExceptionInterrupt (0x1B, IsrStub27);
+	SetupExceptionInterrupt (0x1C, IsrStub28);
+	SetupExceptionInterrupt (0x1D, IsrStub29);
+	SetupExceptionInterrupt (0x1E, IsrStub30);
+	SetupExceptionInterrupt (0x1F, IsrStub31);
 #endif
 	
 	SetupSoftInterrupt (0x80, OnSyscallReceivedA);

@@ -29,6 +29,7 @@ extern unsigned char ReadPort(unsigned short port);
 extern void WritePortW(unsigned short port, unsigned short data);
 extern unsigned short ReadPortW(unsigned short port);
 
+
 void KeStopSystem();
 void KePrintSystemVersion();
 

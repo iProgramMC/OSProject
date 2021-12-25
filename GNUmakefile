@@ -14,7 +14,9 @@ IDIR=./include
 # C Compiler and flags
 CC=i686-elf-gcc
 CFLAGS_BEG=-DTEST
-CFLAGS=-I$(IDIR) -ffreestanding -g -Wall -Wextra -fno-exceptions -std=c99
+
+# TODO: not sure what -O1 and -O2 breaks, but it keeps triplefaulting somewhere
+CFLAGS=-I$(IDIR) -ffreestanding -O0 -Wall -Wextra -fno-exceptions -std=c99
 
 # Special flags for linker
 CLFLAGS_BEG=-T ./link.ld 

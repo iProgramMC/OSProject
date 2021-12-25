@@ -17,6 +17,7 @@ void ShellExecuteCommand(char* p)
 	{
 		LogMsg("NanoShell Shell Help");
 		LogMsg("cls        - clear screen");
+		LogMsg("crash      - attempt to crash the kernel");
 		LogMsg("color XX   - change the screen color");
 		LogMsg("help       - shows this list");
 		LogMsg("lm         - list memory allocations");
@@ -36,6 +37,11 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "lm") == 0)
 	{
 		MmDebugDump();
+	}
+	else if (strcmp (token, "crash") == 0)
+	{
+		LogMsg("OK");
+		*((uint32_t*)0xFFFFFFFF) = 0;
 	}
 	else if (strcmp (token, "mode") == 0)
 	{

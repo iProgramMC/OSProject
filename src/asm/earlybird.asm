@@ -25,6 +25,7 @@ KeEntry:
 	cli					; Block all interrupts.  We don't have them setup yet
 	
 	; We don't actually need a stack at this stage
+	xor ebp, ebp
 	
 	mov [VIRT_TO_PHYS(e_temporary1)], eax	; Make a backup of the multiboot parameters.
 	mov [VIRT_TO_PHYS(e_temporary2)], ebx
