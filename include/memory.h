@@ -31,6 +31,25 @@ typedef struct {
 	uint32_t   m_pThisPhysical;
 } PageDirectory;
 
+#define PAGE_ENTRIES_PHYS_MAX_SIZE 128
+typedef struct
+{
+	uint32_t *m_pageDirectory;
+	PageEntry* m_pageEntries;
+	int* m_memoryAllocSize;
+	const char** m_memoryAllocAuthor;
+	int *m_memoryAllocAuthorLine;
+	
+	uint32_t m_pageEntriesPhysical[PAGE_ENTRIES_PHYS_MAX_SIZE];
+	
+	//note: everything will be allocated dynamically about this heap, so let's add a size var too:
+	int m_pageEntrySize;
+	
+	uint32_t m_pageDirectoryPhys;
+}
+Heap;
+
+
 void MmFirstThingEver(unsigned long mbiAddr);
 
 
@@ -119,6 +138,34 @@ uint32_t MmGetKernelPageDirP();
  * Dumps all information about the memory manager to the console.  Useful for debugging
  */
 void MmDebugDump();
+
+/**
+ * Creates a new heap.  You can also allocate this heap on the stack, it's not a problem.
+ */
+bool AllocateHeapD (Heap* pHeap, int size, const char* callerFile, int callerLine);
+#define AllocateHeap(pHeap, size) AllocateHeapD(pHeap, size, "[HEAP] " __FILE__, __LINE__);
+
+/**
+ * Get how many pages we can allocate on this heap.
+ */
+int GetHeapSize();
+
+/**
+ * Use this heap pointer as our heap.  
+ */
+void UseHeap (Heap* pHeap);
+
+/**
+ * Revert back to kernel heap.  Need to do this if you want to get rid of the heap.
+ */
+void ResetToKernelHeap();
+
+/**
+ * Gets rid of a heap.  Does not delete the pointer, but it deinitializes the heap within.
+ */
+void FreeHeap(Heap* pHeap);
+
+
 
 
 #endif//_MEMORY_H

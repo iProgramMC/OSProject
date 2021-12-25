@@ -7,9 +7,10 @@
 @echo off
 set backupPath=%path%
 set path=%cd%
+set laptopshit=C:\Program Files (x86)\GnuWin32\bin
 cd /d %path%
 set NSPath=%path%
-set path=%backupPath%;%NSPath%\tools\i686-gcc\bin;%NSPath%\tools\nasm
+set path=%backupPath%;%NSPath%\tools\i686-gcc\bin;%NSPath%\tools\nasm;%NSPath%\tools;%laptopshit%
 
 make
 

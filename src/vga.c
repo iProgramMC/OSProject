@@ -120,18 +120,27 @@ void VidWriteRegs(unsigned char *regs)
 	outportb(VGA_AC_INDEX, 0x20);
 }
 extern int g_textWidth, g_textHeight;
+
+void SwitchFont (const uint8_t* pFont)
+{
+	if (pFont[1] == 0x08)
+		WriteFont8px(pFont+2);
+	else
+		WriteFont16px(pFont+2);
+}
+
 void SwitchMode(bool _80x50)
 {
 	if (_80x50)
 	{
 		VidWriteRegs(g_80x50_text);
-		WriteFont8px(FamiSans8x8);
+		SwitchFont(g_FamiSans8x8);
 		g_textWidth = 80, g_textHeight = 50;
 	}
 	else
 	{
 		VidWriteRegs(g_80x25_text);
-		WriteFont16px(PaperMFont8x16);
+		SwitchFont(g_TamsynRegu8x16);
 		g_textWidth = 80, g_textHeight = 25;
 	}
 }

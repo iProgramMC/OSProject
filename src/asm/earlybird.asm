@@ -5,7 +5,7 @@ bits 32
 %define VIRT_TO_PHYS(k) ((k) - BASE_ADDRESS)
 	
 ; variables to load from other c/asm files
-extern g_pageDirectory
+extern g_kernelPageDirectory
 extern g_pageTableArray
 extern e_placement
 extern e_frameBitsetSize
@@ -52,13 +52,13 @@ KeEntry:
 .label3:
 	
 	; Map the one and only pagetable (TODO) to both virtual addresses 0x0 and 0xC0000000
-	mov dword [VIRT_TO_PHYS(g_pageDirectory) +   0*4], VIRT_TO_PHYS(g_pageTableArray+0000) + 0x03
-	mov dword [VIRT_TO_PHYS(g_pageDirectory) +   1*4], VIRT_TO_PHYS(g_pageTableArray+4096) + 0x03
-	mov dword [VIRT_TO_PHYS(g_pageDirectory) + 768*4], VIRT_TO_PHYS(g_pageTableArray+0000) + 0x03
-	mov dword [VIRT_TO_PHYS(g_pageDirectory) + 769*4], VIRT_TO_PHYS(g_pageTableArray+4096) + 0x03
+	mov dword [VIRT_TO_PHYS(g_kernelPageDirectory) +   0*4], VIRT_TO_PHYS(g_pageTableArray+0000) + 0x03
+	mov dword [VIRT_TO_PHYS(g_kernelPageDirectory) +   1*4], VIRT_TO_PHYS(g_pageTableArray+4096) + 0x03
+	mov dword [VIRT_TO_PHYS(g_kernelPageDirectory) + 768*4], VIRT_TO_PHYS(g_pageTableArray+0000) + 0x03
+	mov dword [VIRT_TO_PHYS(g_kernelPageDirectory) + 769*4], VIRT_TO_PHYS(g_pageTableArray+4096) + 0x03
 	
-	; Set CR3 to the physical address of the g_pageDirectory
-	mov ecx, VIRT_TO_PHYS(g_pageDirectory)
+	; Set CR3 to the physical address of the g_kernelPageDirectory
+	mov ecx, VIRT_TO_PHYS(g_kernelPageDirectory)
 	mov cr3, ecx
 	
 	; Set PG and WP bit
@@ -73,7 +73,7 @@ KeEntry:
 section .text
 KeHigherHalfEntry:
 	; Unmap the identity mapping, we don't need it anymore
-	mov dword [g_pageDirectory], 0
+	mov dword [g_kernelPageDirectory], 0
 	
 	; Reload CR3 to force a TLB flush (we updated the PDT but TLB isn't aware of that)
 	; NOTE: you can probably also use invlpg.  We won't use that

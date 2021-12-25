@@ -2,7 +2,9 @@
 
 @echo off
 
-set NSPath=Z:\NanoshellV3
+set NSPath=%CD%
+set BackupPath = %path%
 set path=%path%;%NSPath%;%NSPath%\tools\i686-gcc\bin
 
 i686-elf-gdb kernel.bin
+set path = %BackupPath%

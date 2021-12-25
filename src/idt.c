@@ -133,6 +133,13 @@ void KeIdtInit()
 	WritePort (0x20, 0x11);
 	WritePort (0xa0, 0x11);
 	
+	//flush the PICs
+	for (int i=0; i<16; i++)
+	{
+		WritePort(0x20, 0x20);
+		WritePort(0xA0, 0x20);
+	}
+	
 	//set int num offsets, because fault offsets are hardcoded
 	//inside the CPU. We dont want a crash triggering a keyboard
 	//interrupt do we?!

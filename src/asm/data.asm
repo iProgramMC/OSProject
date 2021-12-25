@@ -1,7 +1,7 @@
 
 section .data
 	
-global g_pageDirectory
+global g_kernelPageDirectory
 global e_placement
 global e_frameBitsetSize
 global e_frameBitsetVirt
@@ -16,7 +16,7 @@ e_placement dd 0x400000
 section .bss
 
 	align 4096
-g_pageDirectory:
+g_kernelPageDirectory:
 	resd 1024 ; reserve 1024 Page Directory Entries.
 	
 	; When the PG bit is set in CR0, any and all reads and writes from the CPU 

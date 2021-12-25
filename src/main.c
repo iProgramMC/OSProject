@@ -4,6 +4,7 @@
 #include <idt.h>
 #include <keyboard.h>
 #include <elf.h>
+#include <multiboot.h>
 
 void KeStopSystem()
 {
@@ -13,19 +14,9 @@ void KeStopSystem()
 }
 
 extern uint32_t e_placement;
-void KeStartupSystem (unsigned long magic, unsigned long mbi)
+
+void TestAllocFunctions()
 {
-	mbi += 0xc0000000;
-	MmFirstThingEver(mbi);
-	PrInitialize();
-	
-	KeIdtInit();
-	
-	//print the hello text, to see if the os booted properly
-	LogMsg("iProgramInCpp's Operating System " VersionString "\nmultiboot parms: %x %x", magic, mbi);
-	
-	MmInit();
-	
 	void *pPage = MmAllocateSinglePage();
 	LogMsg("pPage address: 0x%x", pPage);
 	MmFreePage(pPage);
@@ -51,11 +42,34 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 	MmFree(c);
 	MmFree(d);
 	a = b = c = d = NULL;
-	ElfPerformTest();
+}
+void TestHeapFunctions()
+{
+	// print a hello string, so we know that the 0xC0000000 memory range (where kernel is located) is ok
+	LogMsg("Testing out the heap functions!  Heap size: %d", GetHeapSize());
+	
+	// let's try allocating something:
+	void* aa = MmAllocate (1024);
+	LogMsg("   Got pointer: 0x%x", aa);
+	
+	// print out what we've allocated so far
 	MmDebugDump();
 	
-	//KePrintSystemInfo();
+	// try writing to there
+	*((uint32_t*)aa + 50) = 0x12345678;
 	
+	// and reading
+	LogMsg("   What we just wrote at 0x%x: 0x%x", aa, *((uint32_t*)aa + 50));
+	
+	// and finally, free the thing:
+	MmFree(aa);
+}
+
+
+
+
+void FreeTypeThing()
+{
 	LogMsgNoCr("\nType something! >");
 	
 	char test[2];
@@ -67,7 +81,54 @@ void KeStartupSystem (unsigned long magic, unsigned long mbi)
 		LogMsgNoCr(test);
 		hlt;
 	}
+}
+
+void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
+{
+	PrInitialize();
+	if (magic != 0x2badb002)
+	{
+		LogMsg("Sorry, this ain't a compatible multiboot bootloader.");
+		KeStopSystem();
+	}
+	mbaddr += 0xc0000000; //turn it virtual straight away
 	
+	multiboot_info_t *mbi = (multiboot_info_t*)mbaddr;
+	
+	MmFirstThingEver(mbi->mem_upper);
+	
+	int nKbExtRam = mbi->mem_upper; //TODO: use multiboot_info_t struct
+	
+	if (nKbExtRam < 8192)
+	{
+		LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
+		KeStopSystem();
+	}
+	KeIdtInit();
+	
+	//print the hello text, to see if the os booted properly
+	LogMsg("iProgramInCpp's Operating System " VersionString);
+	LogMsg("[%d Kb System Memory]", nKbExtRam);
+	
+	MmInit();
+	
+	TestAllocFunctions();
+	//ElfPerformTest();
+	//KePrintSystemInfo();
+	
+	Heap testHeap;
+	// make the heap
+	AllocateHeap (&testHeap, 64);
+	// use the heap
+	UseHeap (&testHeap);
+	// perform our tests via this function:
+	TestHeapFunctions();
+	// then free the heap
+	FreeHeap (&testHeap);
+	
+	MmDebugDump();
+	
+	FreeTypeThing();
 	//__asm__("int $0x80\n\t");
 	
 	
