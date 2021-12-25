@@ -64,10 +64,14 @@ void TestHeapFunctions()
 	// and finally, free the thing:
 	MmFree(aa);
 }
-
-
-
-
+void TestHeap()
+{
+	Heap testHeap;
+	AllocateHeap (&testHeap, 64);
+	UseHeap (&testHeap);
+	TestHeapFunctions();
+	FreeHeap (&testHeap);
+}
 void FreeTypeThing()
 {
 	LogMsgNoCr("\nType something! >");
@@ -85,7 +89,10 @@ void FreeTypeThing()
 
 void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 {
+	// Initialise the terminal.
 	PrInitialize();
+	
+	// Check the multiboot stuff
 	if (magic != 0x2badb002)
 	{
 		LogMsg("Sorry, this ain't a compatible multiboot bootloader.");
@@ -107,30 +114,19 @@ void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 	KeIdtInit();
 	
 	//print the hello text, to see if the os booted properly
-	LogMsg("iProgramInCpp's Operating System " VersionString);
+	LogMsg("NanoShell (TM), December 2021 - " VersionString);
 	LogMsg("[%d Kb System Memory]", nKbExtRam);
 	
 	MmInit();
 	
-	TestAllocFunctions();
-	//ElfPerformTest();
+	//TestAllocFunctions();
+	ElfPerformTest();
 	//KePrintSystemInfo();
+	//TestHeap();
 	
-	Heap testHeap;
-	// make the heap
-	AllocateHeap (&testHeap, 64);
-	// use the heap
-	UseHeap (&testHeap);
-	// perform our tests via this function:
-	TestHeapFunctions();
-	// then free the heap
-	FreeHeap (&testHeap);
+	//MmDebugDump();
+	//FreeTypeThing();
 	
-	MmDebugDump();
-	
-	FreeTypeThing();
-	//__asm__("int $0x80\n\t");
-	
-	
+	LogMsg("Kernel done executing.");
 	KeStopSystem();
 }
