@@ -1,10 +1,12 @@
 #include <main.h>
 #include <memory.h>
+#include <vga.h>
 #include <print.h>
 #include <idt.h>
 #include <keyboard.h>
 #include <elf.h>
 #include <multiboot.h>
+#include <shell.h>
 
 void KeStopSystem()
 {
@@ -14,7 +16,13 @@ void KeStopSystem()
 }
 
 extern uint32_t e_placement;
+int g_nKbExtRam = 0;
 
+void KePrintSystemVersion()
+{
+	LogMsg("NanoShell (TM), December 2021 - " VersionString);
+	LogMsg("[%d Kb System Memory]", g_nKbExtRam);
+}
 void TestAllocFunctions()
 {
 	void *pPage = MmAllocateSinglePage();
@@ -90,6 +98,8 @@ void FreeTypeThing()
 void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 {
 	// Initialise the terminal.
+	g_debugConsole.color = DefaultConsoleColor;//default
+	SwitchMode(0);
 	PrInitialize();
 	
 	// Check the multiboot stuff
@@ -102,11 +112,10 @@ void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 	
 	multiboot_info_t *mbi = (multiboot_info_t*)mbaddr;
 	
-	MmFirstThingEver(mbi->mem_upper);
+	g_nKbExtRam = mbi->mem_upper;
+	MmFirstThingEver(g_nKbExtRam);
 	
-	int nKbExtRam = mbi->mem_upper; //TODO: use multiboot_info_t struct
-	
-	if (nKbExtRam < 8192)
+	if (g_nKbExtRam < 8192)
 	{
 		LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
 		KeStopSystem();
@@ -114,8 +123,7 @@ void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 	KeIdtInit();
 	
 	//print the hello text, to see if the os booted properly
-	LogMsg("NanoShell (TM), December 2021 - " VersionString);
-	LogMsg("[%d Kb System Memory]", nKbExtRam);
+	KePrintSystemVersion();
 	
 	MmInit();
 	
@@ -127,6 +135,7 @@ void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 	//MmDebugDump();
 	//FreeTypeThing();
 	
-	LogMsg("Kernel done executing.");
+	ShellRun();
+	LogMsg("Kernel ready to shutdown.");
 	KeStopSystem();
 }

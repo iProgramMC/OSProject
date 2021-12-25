@@ -119,4 +119,7 @@ char KbWaitForKeyAndGet();
 void KbFlushBuffer();
 KeyState KbGetKeyState(unsigned char keycode);
 
+// max_size is not optional, contrary to popular belief :)
+void KbGetString(char* buffer, int max_size);
+
 #endif//_KEYBOARD_H

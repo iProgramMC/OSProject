@@ -143,7 +143,7 @@ void MmDebugDump();
  * Creates a new heap.  You can also allocate this heap on the stack, it's not a problem.
  */
 bool AllocateHeapD (Heap* pHeap, int size, const char* callerFile, int callerLine);
-#define AllocateHeap(pHeap, size) AllocateHeapD(pHeap, size, "[HEAP] " __FILE__, __LINE__);
+#define AllocateHeap(pHeap, size) AllocateHeapD(pHeap, size, "[HEAP] " __FILE__, __LINE__)
 
 /**
  * Get how many pages we can allocate on this heap.

@@ -171,16 +171,15 @@ void KePrintSystemInfo()
 {
 	KeCPUID();
 	LogMsg("Information about the system:");
-	LogMsg("CPU Type: %x", g_cpuidNameEBX);
+	LogMsg("CPU Type: %s", g_cpuidNameEBX);
 	LogMsg("Feature bits: %x", *((int*)&g_cpuidFeatureBits));
-	LogMsgNoCr("x86 Family %d", g_cpuidFeatureBits.m_familyID);
-	LogMsgNoCr("Model %d", g_cpuidFeatureBits.m_model);
+	LogMsgNoCr("x86 Family %d ", g_cpuidFeatureBits.m_familyID);
+	LogMsgNoCr("Model %d ", g_cpuidFeatureBits.m_model);
 	LogMsg("Stepping %d", g_cpuidFeatureBits.m_steppingID);
 	LogMsg("g_cpuidLastLeaf: %d", g_cpuidLastLeaf);
 }
 extern int g_textX, g_textY;
 void PrInitialize()
 {
-	SwitchMode(0);
 	CoInitAsText(&g_debugConsole);
 }

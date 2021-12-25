@@ -8,16 +8,19 @@
 
 echo NanoShell Application Build
 
+set laptopshit=C:\Program Files (x86)\GnuWin32\bin
 set backupPath=%path%
 set path=%cd%
 cd /d %path%
 set NSPath=%path%
-set path=%backupPath%;%NSPath%\..\..\tools\i686-gcc\bin;%NSPath%\..\..\tools\nasm
+set path=%backupPath%;%NSPath%\..\..\tools\i686-gcc\bin;%NSPath%\..\..\tools\nasm;%laptopshit%
 
 make
 
 : to be able to detect a kernel rebuild
-touch ../../src/asm/builtin.asm
+rem touch ../../src/asm/builtin.asm
+
+:copy /b ..\..\src\asm\builtin.asm +,,
 
 set path=%backupPath%
 

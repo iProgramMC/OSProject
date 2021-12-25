@@ -57,7 +57,6 @@ void CoInitAsText(Console *this) {
 	this->height = g_textHeight;
 	this->type = CONSOLE_TYPE_TEXT;
 	this->textBuffer = g_pBufferBase;
-	this->color = DefaultConsoleColor;//default
 	this->pushOrWrap = 0;//push
 	uint16_t lolo = TextModeMakeChar(this->color, ' ');
 	for (int i = 0; i < this->width*this->height; i++) this->textBuffer[i] = lolo;

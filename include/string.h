@@ -29,4 +29,14 @@ void fmemcpy32 (void* restrict dest, const void* restrict src, size_t size);
 //requires 4 byte aligned size.
 void ZeroMemory (void* bufptr1, size_t size);
 
+//BetterStrTok: https://github.com/iProgramMC/BetterStrTok
+typedef struct {
+    bool m_bInitted;
+    char*m_pContinuation;
+    char*m_pReturnValue;
+} TokenState;
+
+char* Tokenize (TokenState* pState, char* pString, char* separator);
+
+
 #endif//_STRING_H

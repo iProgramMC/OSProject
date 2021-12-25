@@ -10,11 +10,15 @@ typedef uint8_t bool;
 #define false 0
 #define true 1
 
-void DoSyscall(int type_esi, int eax, int ebx, int ecx, int edx);
+//returns the value in eax
+int DoSyscall(int type_esi, int eax, int ebx, int ecx, int edx);
 
 // syscalls:
 enum {
 	LOGMSG = 1,
+	MALLOC = 2,
+	FREE   = 3,
+	DUMPMEM= 4,
 };
 
 void PutString(const char* text);

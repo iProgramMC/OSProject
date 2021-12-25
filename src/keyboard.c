@@ -171,6 +171,42 @@ void KbFlushBuffer()
 {
 	KeyboardBufferBeg = KeyboardBufferEnd = 0;
 }
+
+// max_size is not optional, contrary to popular belief :)
+void KbGetString(char* buffer, int max_size)
+{
+	int index = 0, max_length = max_size - 1;
+	//index represents where the next character we type would go
+	while (index < max_length)
+	{
+		//! has to stall
+		char k = KbWaitForKeyAndGet();
+		if (k == '\n')
+		{
+			//return:
+			LogMsgNoCr("%c", k);
+			buffer[index++] = 0;
+			return;
+		}
+		else if (k == '\b')
+		{
+			if (index > 0)
+			{
+				LogMsgNoCr("%c", k);
+				index--;
+				buffer[index] = 0;
+			}
+		}
+		else
+		{
+			buffer[index++] = k;
+			LogMsgNoCr("%c", k);
+		}
+	}
+	LogMsg("");
+	buffer[index] = 0;
+}
+
 KeyState KbGetKeyState(unsigned char keycode)
 {
 	if (keycode >= 128 && keycode <= 0) return KEY_RELEASED;

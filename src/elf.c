@@ -10,6 +10,8 @@ typedef struct
 	#define MAX_PAGE_ALLOC_COUNT 4096
 	uint32_t  m_pageAllocationCount;
 	uint32_t* m_pagesAllocated[MAX_PAGE_ALLOC_COUNT];
+	
+	Heap m_heap;
 }
 ElfProcess;
 
@@ -40,27 +42,9 @@ int ElfIsSupported(ElfHeader* pHeader)
 	return true;
 }
 
-uint32_t* ElfMakeNewPageDirectory(uint32_t* pPhys)
-{
-	// Make a new page directory:
-	uint32_t* pd = (uint32_t*)MmAllocateSinglePagePhy (pPhys);
-	
-	if (!pd) {
-		LogMsg("ERROR: Could not allocate new page directory\n");
-		return NULL; // Why didn't we manage to do this?
-	}
-	
-	// Clone the kernel's page dir to this one:
-	memcpy (pd, MmGetKernelPageDir(), 4096);
-	// Zero out all entries until 0xC0000000:
-	ZeroMemory (pd, sizeof(uint32_t) * 768);
-	
-	// Then return this page directory.
-	return pd;
-}
 void ElfCleanup (ElfProcess* pProcess)
 {
-	MmFree (pProcess->m_pageDirectory);
+	FreeHeap (&pProcess->m_heap);
 	pProcess->m_pageDirectory = NULL;
 	for (int i=0; i<1024; i++) {
 		MmFree (pProcess->m_pageTablesList[i]);
@@ -141,7 +125,8 @@ int ElfExecute (void *pElfFile, size_t size)
 {
 	size += 0; //to circumvent unused warning
 	ElfProcess proc;
-	memset (&proc, 0, sizeof(proc));
+	memset(&proc, 0, sizeof(proc));
+	
 	uint8_t* pElfData = (uint8_t*)pElfFile; //to do arithmetic with this
 	//check the header.
 	ElfHeader* pHeader = (ElfHeader*)pElfFile;
@@ -154,8 +139,12 @@ int ElfExecute (void *pElfFile, size_t size)
 	}
 	//ElfDumpInfo(pHeader);
 	// Allocate a new page directory for the elf:
-	uint32_t  newPageDirP;
-	uint32_t* newPageDir = ElfMakeNewPageDirectory(&newPageDirP);
+	
+	if (!AllocateHeap (&proc.m_heap, 256))
+		return ELF_CANT_MAKE_HEAP;
+	
+	uint32_t* newPageDir = proc.m_heap.m_pageDirectory,
+			  newPageDirP= proc.m_heap.m_pageDirectoryPhys;
 	
 	proc.m_pageDirectory     = newPageDir;
 	proc.m_pageDirectoryPhys = newPageDirP;
@@ -173,22 +162,18 @@ int ElfExecute (void *pElfFile, size_t size)
 		//LogMsg("TEST!");
 		//MmRevertToKernelPageDir();
 	}
-	for (int i = 0; i < pHeader->m_shNum; i++)
-	{
-		//ElfSectHeader* pSectHeader = (ElfSectHeader*)(pElfData + pHeader->m_shOffs + i * pHeader->m_shEntSize);
-		
-		//! Don't actually need to process the pSectHeader, but if we do do it here
-	}
 	
 	//now that we have switched, call the entry func:
 	ElfEntry entry = (ElfEntry)pHeader->m_entry;
-	MmUsePageDirectory(newPageDir, newPageDirP);
+	//MmUsePageDirectory(newPageDir, newPageDirP);
+	
+	UseHeap (&proc.m_heap);
 	
 	LogMsg("Loaded ELF successfully! Executing it now.");
 	int e = entry();
 	
 	LogMsg("(executable returned: %d)", e);
-	MmRevertToKernelPageDir();
+	ResetToKernelHeap();
 	ElfCleanup (&proc);
 	
 	return ELF_ERROR_NONE;

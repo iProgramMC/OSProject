@@ -12,6 +12,13 @@ int main ()
 		addtobss  //should print 1
 	);
 	
+	LogMsg("Attempting to allocate some memory.");
+	void *ptr = Allocate (50);
+	
+	*((uint8_t*)ptr + 49) = 0xBE;
+	MmDebugDump();
+	Free (ptr);
+	
 	return 42;//The answer to everything
 }
 
