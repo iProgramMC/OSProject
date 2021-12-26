@@ -8,7 +8,7 @@ copy kernel.bin D:\boot\kernel.bin
 cd /d c:\Program Files\qemu
 set path=%path%;%NSPath%
 
-qemu-system-i386 -m 16M -drive file=\\.\PHYSICALDRIVE1,format=raw
+qemu-system-i386 -m 16M -drive file=\\.\PHYSICALDRIVE1,format=raw -debugcon stdio
 rem -s -S 
 
 rem go back

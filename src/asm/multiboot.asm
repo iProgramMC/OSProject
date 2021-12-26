@@ -1,5 +1,8 @@
 
 ; main multiboot header
+
+%define vbe
+
 section .multibootdata
 	;multiboot V1 spec
 	align 4
@@ -16,14 +19,14 @@ section .multibootdata
 	dd 0
 	dd 0
 	dd 0
-	%ifdef vbe
+%ifdef vbe
 	dd 0
 	dd 1024
 	dd 768
 	dd 32
-	%else
+%else
 	dd 0
 	dd 0
 	dd 0
 	dd 0
-	%endif
+%endif

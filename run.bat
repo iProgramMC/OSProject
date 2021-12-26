@@ -7,7 +7,7 @@ set NSPath=%CD%
 cd /d c:\Program Files\qemu
 set path=%path%;%NSPath%
 
-qemu-system-i386.exe -d cpu_reset -m 16M -serial stdio -kernel %nspath%/kernel.bin
+qemu-system-i386.exe -d cpu_reset -m 16M -serial stdio -kernel %nspath%/kernel.bin -debugcon stdio
 :qemu-system-i386 -m 16M -drive file=\\.\PHYSICALDRIVE1,format=raw
 rem -s -S 
 

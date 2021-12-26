@@ -8,6 +8,7 @@ enum ConsoleType {
 	CONSOLE_TYPE_TEXT, // always full screen
 	CONSOLE_TYPE_FRAMEBUFFER, // can either be the entire screen or just a portion of it. TODO
 	CONSOLE_TYPE_SERIAL, // just plain old serial
+	CONSOLE_TYPE_E9HACK, // Port E9 hack - qemu and bochs support this.
 };
 
 typedef struct ConsoleStruct {
@@ -32,6 +33,7 @@ void CoPrintString (Console* this, const char *c);
 void CoInitAsText (Console* this);
 void CoInitAsGraphics (Console* this);
 void CoInitAsSerial (Console* this);
+void CoInitAsE9Hack (Console *this);
 void LogMsg (const char* fmt, ...);
 void LogMsgNoCr (const char* fmt, ...);
 void SLogMsg (const char* fmt, ...);

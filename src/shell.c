@@ -6,7 +6,9 @@
 #include <vga.h>
 #include <print.h>
 #include <memory.h>
+#include <misc.h>
 
+char g_lastCommandExecuted[256] = {0};
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -27,7 +29,7 @@ void ShellExecuteCommand(char* p)
 	}
 	else if (strcmp (token, "cls") == 0)
 	{
-		PrInitialize();
+		//PrInitialize();
 		//CoClearScreen (&g_debugConsole);
 	}
 	else if (strcmp (token, "ver") == 0)
@@ -43,6 +45,15 @@ void ShellExecuteCommand(char* p)
 		LogMsg("OK");
 		*((uint32_t*)0xFFFFFFFF) = 0;
 	}
+	else if (strcmp (token, "rdtsc") == 0)
+	{
+		int hi, lo;
+		GetTimeStampCounter(&hi, &lo);
+		LogMsg("Timestamp counter: %x%x (%d, %d)", hi, lo, hi, lo);
+		
+		int tkc = GetTickCount(), rtkc = GetRawTickCount();
+		LogMsg("Tick count: %d, Raw tick count: %d", tkc, rtkc);
+	}
 	else if (strcmp (token, "mode") == 0)
 	{
 		char* modeNum = Tokenize (&state, NULL, " ");
@@ -57,7 +68,7 @@ void ShellExecuteCommand(char* p)
 		else
 		{
 			SwitchMode (*modeNum - '0');
-			PrInitialize();
+			//PrInitialize();
 		}
 	}
 	else if (strcmp (token, "color") == 0)
@@ -106,6 +117,7 @@ void ShellRun()
 		LogMsgNoCr("\nshell>");
 		char buffer[256];
 		KbGetString (buffer, 256);
+		memcpy (g_lastCommandExecuted, buffer, 256);
 		
 		ShellExecuteCommand (buffer);
 	}

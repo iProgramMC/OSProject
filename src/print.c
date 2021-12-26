@@ -179,7 +179,4 @@ void KePrintSystemInfo()
 	LogMsg("g_cpuidLastLeaf: %d", g_cpuidLastLeaf);
 }
 extern int g_textX, g_textY;
-void PrInitialize()
-{
-	CoInitAsText(&g_debugConsole);
-}
+

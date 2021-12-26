@@ -20,6 +20,8 @@ typedef unsigned uint;
 #define Version 10
 #define VersionString "V0.10"
 
+#define UNUSED __attribute__((unused))
+
 #define crash __asm__("int $0x10\n\t") // Int 0x10 doesn't work in pmode! Might as well make use of it.
 
 #define KERNEL_MEM_START 0xC0000000

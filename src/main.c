@@ -1,6 +1,7 @@
 #include <main.h>
 #include <memory.h>
 #include <vga.h>
+#include <video.h>
 #include <print.h>
 #include <idt.h>
 #include <keyboard.h>
@@ -8,6 +9,7 @@
 #include <multiboot.h>
 #include <shell.h>
 
+__attribute__((noreturn))
 void KeStopSystem()
 {
 	cli;
@@ -95,17 +97,19 @@ void FreeTypeThing()
 	}
 }
 
+__attribute__((noreturn))
 void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 {
+	CoInitAsE9Hack (&g_debugConsole);
 	// Initialise the terminal.
 	g_debugConsole.color = DefaultConsoleColor;//default
-	SwitchMode(0);
-	PrInitialize();
+	//SwitchMode(0);
+	//PrInitialize();
 	
 	// Check the multiboot stuff
 	if (magic != 0x2badb002)
 	{
-		LogMsg("Sorry, this ain't a compatible multiboot bootloader.");
+		//LogMsg("Sorry, this ain't a compatible multiboot bootloader. %x", magic);
 		KeStopSystem();
 	}
 	mbaddr += 0xc0000000; //turn it virtual straight away
@@ -117,7 +121,7 @@ void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 	
 	if (g_nKbExtRam < 8192)
 	{
-		LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
+		//LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
 		KeStopSystem();
 	}
 	KeIdtInit();
@@ -127,15 +131,17 @@ void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
 	
 	MmInit();
 	
+	VidInitialize (mbi);
+	
 	//TestAllocFunctions();
-	ElfPerformTest();
+	//ElfPerformTest();
 	//KePrintSystemInfo();
 	//TestHeap();
 	
 	//MmDebugDump();
 	//FreeTypeThing();
 	
-	ShellRun();
+	//ShellRun();
 	LogMsg("Kernel ready to shutdown.");
 	KeStopSystem();
 }

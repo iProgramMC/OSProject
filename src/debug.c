@@ -5,8 +5,8 @@ void DumpRegisters (Registers* pRegs)
 	LogMsg("Registers:");
 	LogMsg("EAX=%x CS=%x "    "EIP=%x EFLGS=%x", pRegs->eax, pRegs->cs, pRegs->eip, pRegs->eflags);
 	LogMsg("EBX=%x             ESP=%x EBP=%x",   pRegs->ebx,            pRegs->esp, pRegs->ebp);
-	LogMsg("EBX=%x             ESI=%x", pRegs->ecx,            pRegs->esi);
-	LogMsg("EBX=%x             EDI=%x", pRegs->edx,            pRegs->edi);
+	LogMsg("ECX=%x             ESI=%x", pRegs->ecx,            pRegs->esi);
+	LogMsg("EDX=%x             EDI=%x", pRegs->edx,            pRegs->edi);
 }
 
 const char* g_pBugCheckReasonText[] = {
@@ -76,6 +76,8 @@ void KeBugCheck (BugCheckReason reason, Registers* pRegs)
 		LogMsg("");
 		stk = stk->ebp;
 	}
+	LogMsg("DEBUG: Use 'addr2line' to figure out the calls.");
+	LogMsg("You can type 'addr2line -e kernel.bin', then type in each of these addresses.");
 	
 	
 	cli;

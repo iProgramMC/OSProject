@@ -4,6 +4,7 @@
 #include <keyboard.h>
 #include <syscall.h>
 #include <debug.h>
+#include <misc.h>
 
 #define KBDATA 0x60
 #define KBSTAT 0x64
@@ -47,6 +48,10 @@ void SetupExceptionInterrupt (int intNum, void* isrHandler)
 	pEntry->type_attr = INTGATE;
 	pEntry->selector = KECODESEG;
 }
+
+/**
+ * Exception handlers.  They cause a bugcheck when we get 'em.
+ */
 #define HAS_EXCEPTION_HANDLERS
 #ifdef HAS_EXCEPTION_HANDLERS
 void IsrExceptionCommon(int code, Registers* pRegs) {
@@ -86,6 +91,9 @@ extern void IsrStub30();
 extern void IsrStub31();
 #endif
 
+/**
+ * PIT initializer routine.
+ */
 void KeTimerInit() 
 {
 	WritePort(0x43, 0x34); // generate frequency
@@ -100,19 +108,26 @@ void KeTimerInit()
 	WritePort(0x40, (uint8_t)( pit_frequency       & 0xff));
 	WritePort(0x40, (uint8_t)((pit_frequency >> 8) & 0xff));
 }
+/**
+ * PIT interrupt routine
+ */
 void IrqTimer()
 {
 	//LogMsg("Timer!");
 	WritePort(0x20, 0x20);
 	WritePort(0xA0, 0x20);
 }
-void IsrSoftware()
-{
-	LogMsg("SYSCALL!");
-}
 unsigned long idtPtr[2];
-extern void IsrSoftwareA();
+
+// some forward declarations
+extern void IrqClockA();
+extern void IrqCascadeA();
 extern void OnSyscallReceivedA();
+void KeClockInit();
+
+/**
+ * IDT initializer routines.  Also sets up the system call interrupt.
+ */
 void KeIdtLoad1(IdtPointer *ptr)
 {
 	__asm__ ("lidt %0" :: "m"(*ptr));
@@ -123,7 +138,8 @@ void KeIdtInit()
 	
 	SetupInterrupt (&mask1, &mask2, 0x0, IrqTimerA);
 	SetupInterrupt (&mask1, &mask2, 0x1, IrqKeyboardA);
-	SetupInterrupt (&mask1, &mask2, 0x2, NULL); // IRQ2: Cascade. Never triggered
+	SetupInterrupt (&mask1, &mask2, 0x2, IrqClockA); // IRQ2: Cascade. Never triggered
+	SetupInterrupt (&mask1, &mask2, 0x8, IrqClockA);
 	
 #ifdef HAS_EXCEPTION_HANDLERS
 	SetupExceptionInterrupt (0x00, IsrStub0 );
@@ -201,6 +217,49 @@ void KeIdtInit()
 	KeIdtLoad1 (&ptr);
 	
 	KeTimerInit();
+	KeClockInit();
 	
 	sti;
+}
+
+/**
+ * RTC initialization routine.
+ */
+void KeClockInit()
+{
+	cli;
+	WritePort(0x70, 0x8A);
+	WritePort(0x71, 0x20);
+	
+	WritePort(0x70, 0x8B);
+	char flags = ReadPort(0x71);
+	WritePort(0x70, 0x8B);
+	WritePort(0x71, flags | 0x40);
+	
+	//32768>>(5-1) = 2048 hz.  The fastest you can pick is a division rate of
+	//3, which gets you a 8192Hz interrupt rate.
+	int divisionRate = 5;
+	WritePort(0x70, 0x8A);
+	flags = ReadPort(0x71);
+	WritePort(0x70, 0x8A);
+	WritePort(0x71, (flags & 0xF0) | divisionRate);
+	
+	//sti;
+}
+
+extern int g_nRtcTicks;//misc.c
+/**
+ * RTC interrupt routine.
+ */
+void IrqClock()
+{
+	g_nRtcTicks++;
+	//acknowledge interrupt
+	WritePort(0x20, 0x20);
+	WritePort(0xA0, 0x20);
+	//also read register C, may be useful later:
+	WritePort(0x70, 0x0C);
+	__attribute__((unused)) char flags = ReadPort(0x71);
+	//LogMsgNoCr("R");
+	g_nRtcTicks++;
 }

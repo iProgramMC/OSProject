@@ -3,10 +3,12 @@ SECTION .text
 
 
 extern IrqTimer
+extern IrqClock
 extern IrqKeyboard
 extern OnSyscallReceived
 extern IsrSoftware
 global IrqTimerA
+global IrqClockA
 global OnSyscallReceivedA
 IrqTimerA:
 	pusha
@@ -19,11 +21,14 @@ IrqKeyboardA:
 	call IrqKeyboard
 	popa
 	iretd
-global IsrSoftwareA
-IsrSoftwareA:
+global IrqClockA
+IrqClockA:
 	pusha
-	call IsrSoftware
+	call IrqClock
 	popa
+	iretd
+global IrqCascadeA
+IrqCascadeA:
 	iretd
 global OnSyscallReceivedA
 OnSyscallReceivedA:

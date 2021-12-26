@@ -95,12 +95,9 @@ GDTPostSetup:
 	push eax
 	
 	; Enter the high-level kernel now.
+	; Please note that it's marked __attribute__((noreturn)), so 
+	; returning from this crashes the OS.
 	call KeStartupSystem
-	
-	; Infinite loop, guess KeStartupSystem returned something:
-	cli
-loop: hlt
-	jmp loop
 
 
 GDTStart:

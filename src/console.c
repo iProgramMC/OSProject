@@ -61,9 +61,19 @@ void CoInitAsText(Console *this) {
 	uint16_t lolo = TextModeMakeChar(this->color, ' ');
 	for (int i = 0; i < this->width*this->height; i++) this->textBuffer[i] = lolo;
 }
+void CoInitAsE9Hack(Console *this) {
+	this->curX = this->curY = 0;
+	this->width  = 0;
+	this->height = 0;
+	this->type = CONSOLE_TYPE_E9HACK;
+	this->textBuffer = NULL;
+	this->pushOrWrap = 0;//push
+	uint16_t lolo = TextModeMakeChar(this->color, ' ');
+	for (int i = 0; i < this->width*this->height; i++) this->textBuffer[i] = lolo;
+}
 void CoMoveCursor(Console* this) {
-	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
-	if (this->type == CONSOLE_TYPE_TEXT && this->textBuffer == g_pBufferBase) {
+	if (this->type != CONSOLE_TYPE_TEXT) return; // Not Initialized
+	if (this->textBuffer == g_pBufferBase) {
 		uint16_t cursorLocation = this->curY * this->width + this->curX;
 		WritePort(0x3d4, 14);
 		WritePort(0x3d5, cursorLocation >> 8);
@@ -72,7 +82,7 @@ void CoMoveCursor(Console* this) {
 	}
 }
 void CoPlotChar (Console *this, int x, int y, char c) {
-	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
+	if (this->type != CONSOLE_TYPE_TEXT) return; // Not Initialized
 	if (this->type == CONSOLE_TYPE_TEXT) {
 		uint16_t chara = TextModeMakeChar (this->color, c);
 		// TODO: add bounds check
@@ -80,7 +90,7 @@ void CoPlotChar (Console *this, int x, int y, char c) {
 	}
 }
 void CoScrollUpByOne(Console *this) {
-	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
+	if (this->type != CONSOLE_TYPE_TEXT) return; // Not Initialized
 	if (this->pushOrWrap) {
 		//CoClearScreen(this);
 		this->curX = this->curY = 0;
@@ -99,6 +109,10 @@ void CoScrollUpByOne(Console *this) {
 }
 bool g_shouldntUpdateCursor = false;
 void CoPrintChar (Console* this, char c) {
+	if (this->type == CONSOLE_TYPE_E9HACK) {
+		WritePort(0xE9, c);
+		return; // Not Initialized
+	}
 	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
 	switch (c) {
 		case '\b':
