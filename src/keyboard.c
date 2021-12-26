@@ -164,7 +164,10 @@ char KbGetKeyFromBuffer()
 }
 char KbWaitForKeyAndGet()
 {
-	while (KbIsBufferEmpty()) hlt;
+	while (KbIsBufferEmpty()) 
+	{
+		hlt; hlt; hlt; hlt;
+	}
 	return KbGetKeyFromBuffer();
 }
 void KbFlushBuffer()

@@ -97,51 +97,64 @@ void FreeTypeThing()
 	}
 }
 
-__attribute__((noreturn))
-void KeStartupSystem (unsigned long magic, unsigned long mbaddr)
+void KiPerformRamCheck()
 {
-	CoInitAsE9Hack (&g_debugConsole);
-	// Initialise the terminal.
-	g_debugConsole.color = DefaultConsoleColor;//default
-	//SwitchMode(0);
-	//PrInitialize();
-	
-	// Check the multiboot stuff
-	if (magic != 0x2badb002)
-	{
-		//LogMsg("Sorry, this ain't a compatible multiboot bootloader. %x", magic);
-		KeStopSystem();
-	}
-	mbaddr += 0xc0000000; //turn it virtual straight away
-	
-	multiboot_info_t *mbi = (multiboot_info_t*)mbaddr;
-	
-	g_nKbExtRam = mbi->mem_upper;
-	MmFirstThingEver(g_nKbExtRam);
-	
 	if (g_nKbExtRam < 8192)
 	{
-		//LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
+		SwitchMode(0);
+		CoInitAsText(&g_debugConsole);
+		LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
 		KeStopSystem();
 	}
+}
+
+__attribute__((noreturn))
+void KeStartupSystem (unsigned long check, unsigned long mbaddr)
+{
+	//TODO: Serial debugging?
+	
+	// Initially, both debug consoles are initialized as E9 hacks/serial.
+	CoInitAsE9Hack (&g_debugConsole);
+	CoInitAsE9Hack (&g_debugSerialConsole);
+	
+	// Initialise the terminal.
+	g_debugConsole.color = DefaultConsoleColor;
+	
+	// Check the multiboot checknum
+	if (check != 0x2badb002)
+	{
+		SwitchMode(0);
+		CoInitAsText(&g_debugConsole);
+		LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
+		KeStopSystem();
+	}
+	
+	// Read the multiboot data:
+	multiboot_info_t *mbi = (multiboot_info_t*)(mbaddr + BASE_ADDRESS);
+	
+	g_nKbExtRam = mbi->mem_upper;
+	KiPerformRamCheck();
+	MmFirstThingEver(g_nKbExtRam);
+	
+	// Initialize the IDT
 	KeIdtInit();
-	
-	//print the hello text, to see if the os booted properly
-	KePrintSystemVersion();
-	
+	// Initialize the Memory Management Subsystem
 	MmInit();
-	
+	// Initialize the video subsystem
 	VidInitialize (mbi);
 	
-	//TestAllocFunctions();
-	//ElfPerformTest();
-	//KePrintSystemInfo();
-	//TestHeap();
+	//print the hello text, to see if the OS booted ok
+	KePrintSystemVersion();
+	
+	TestAllocFunctions();
+	ElfPerformTest();
+	KePrintSystemInfo();
+	TestHeap();
 	
 	//MmDebugDump();
 	//FreeTypeThing();
 	
-	//ShellRun();
+	ShellRun();
 	LogMsg("Kernel ready to shutdown.");
 	KeStopSystem();
 }

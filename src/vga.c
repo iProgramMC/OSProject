@@ -1,8 +1,6 @@
 #include <main.h>
 #include <vga.h>
 
-#include "extra/fonts.h"
-
 unsigned char g_80x25_text[] =
 {
 /* MISC */
@@ -129,6 +127,8 @@ void SwitchFont (const uint8_t* pFont)
 		WriteFont16px(pFont+2);
 }
 
+extern const unsigned char g_FamiSans8x8[];
+extern const unsigned char g_TamsynRegu8x16[];
 void SwitchMode(bool _80x50)
 {
 	if (_80x50)

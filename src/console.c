@@ -3,6 +3,7 @@
 #include <string.h>
 #include <print.h>
 #include <console.h>
+#include <video.h>
 
 //note: important system calls are preceded by cli and succeeded by sti
 
@@ -32,6 +33,7 @@ uint32_t g_vgaColorsToRGB[] = {
 
 extern bool g_uses8by16Font;
 Console g_debugConsole; // for LogMsg
+Console g_debugSerialConsole; // for SLogMsg
 
 Console* g_currentConsole = &g_debugConsole;
 
@@ -45,10 +47,13 @@ void ResetConsole() {
 	g_currentConsole = &g_debugConsole;
 }
 void CoClearScreen(Console *this) {
-	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
 	if (this->type == CONSOLE_TYPE_TEXT) {
 		uint16_t lolo = TextModeMakeChar(this->color, ' ');
 		for (int i = 0; i < this->width*this->height; i++) this->textBuffer[i] = lolo;
+	}
+	else if (this->type == CONSOLE_TYPE_FRAMEBUFFER)
+	{
+		VidFillScreen (g_vgaColorsToRGB[this->color >> 4]);
 	}
 }
 void CoInitAsText(Console *this) {
@@ -71,6 +76,15 @@ void CoInitAsE9Hack(Console *this) {
 	uint16_t lolo = TextModeMakeChar(this->color, ' ');
 	for (int i = 0; i < this->width*this->height; i++) this->textBuffer[i] = lolo;
 }
+void CoInitAsGraphics(Console *this) {
+	this->curX = this->curY = 0;
+	this->width = GetScreenSizeX() / 8;
+	this->height = GetScreenSizeY() / (g_uses8by16Font ? 16 : 8);
+	this->type = CONSOLE_TYPE_FRAMEBUFFER;
+	this->color = DefaultConsoleColor;//default
+	this->pushOrWrap = 0;//push
+	CoClearScreen (this);
+}
 void CoMoveCursor(Console* this) {
 	if (this->type != CONSOLE_TYPE_TEXT) return; // Not Initialized
 	if (this->textBuffer == g_pBufferBase) {
@@ -82,21 +96,23 @@ void CoMoveCursor(Console* this) {
 	}
 }
 void CoPlotChar (Console *this, int x, int y, char c) {
-	if (this->type != CONSOLE_TYPE_TEXT) return; // Not Initialized
 	if (this->type == CONSOLE_TYPE_TEXT) {
 		uint16_t chara = TextModeMakeChar (this->color, c);
 		// TODO: add bounds check
 		this->textBuffer [x + y * this->width] = chara;
 	}
+	else if (this->type == CONSOLE_TYPE_FRAMEBUFFER)
+	{
+		VidPlotChar (c, x << 3, y << (3 + (g_uses8by16Font)), g_vgaColorsToRGB[this->color & 0xF], g_vgaColorsToRGB[this->color >> 4]);
+	}
 }
 void CoScrollUpByOne(Console *this) {
-	if (this->type != CONSOLE_TYPE_TEXT) return; // Not Initialized
-	if (this->pushOrWrap) {
-		//CoClearScreen(this);
-		this->curX = this->curY = 0;
-		return;
-	}
 	if (this->type == CONSOLE_TYPE_TEXT) {
+		if (this->pushOrWrap) {
+			//CoClearScreen(this);
+			this->curX = this->curY = 0;
+			return;
+		}
 		memcpy (this->textBuffer, &this->textBuffer[this->width], this->width * (this->height - 1) * sizeof(short));
 		//uint16_t* p = &this->textBuffer[this->width * (this->height - 1) * sizeof(short)];
 		for (int i=0; i<this->width; i++)
@@ -104,14 +120,27 @@ void CoScrollUpByOne(Console *this) {
 			CoPlotChar (this, i, this->height - 1, 0);
 		}
 	}
-	else {
+	else if (this->type != CONSOLE_TYPE_E9HACK)
+	{
+		if (this->pushOrWrap)
+		{
+			CoClearScreen(this);
+			this->curX = this->curY = 0;
+		}
+		else
+		{
+			int htChar = 1 << (3 + g_uses8by16Font);
+			VidShiftScreen (htChar);
+			VidFillRect (g_vgaColorsToRGB[this->color >> 4], 0, (this->height - 1) * htChar, GetScreenSizeX() - 1, GetScreenSizeY() - 1);
+		}
 	}
 }
 bool g_shouldntUpdateCursor = false;
 void CoPrintChar (Console* this, char c) {
-	if (this->type == CONSOLE_TYPE_E9HACK) {
+	if (this->type != CONSOLE_TYPE_FRAMEBUFFER) 
+	{
 		WritePort(0xE9, c);
-		return; // Not Initialized
+		//return; // Not Initialized
 	}
 	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
 	switch (c) {
@@ -177,6 +206,28 @@ void LogMsgNoCr (const char* fmt, ...) {
 	va_start(list, fmt);
 	vsprintf(cr, fmt, list);
 	CoPrintString(g_currentConsole, cr);
+	
+	va_end(list);
+}
+void SLogMsg (const char* fmt, ...) {
+	////allocate a buffer well sized
+	char cr[8192];
+	va_list list;
+	va_start(list, fmt);
+	vsprintf(cr, fmt, list);
+	
+	sprintf (cr + strlen(cr), "\n");
+	CoPrintString(&g_debugSerialConsole, cr);
+	
+	va_end(list);
+}
+void SLogMsgNoCr (const char* fmt, ...) {
+	////allocate a buffer well sized
+	char cr[8192];
+	va_list list;
+	va_start(list, fmt);
+	vsprintf(cr, fmt, list);
+	CoPrintString(&g_debugSerialConsole, cr);
 	
 	va_end(list);
 }

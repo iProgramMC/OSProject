@@ -4,6 +4,7 @@
 #include <string.h>
 #include <console.h>
 #include <vga.h>
+#include <video.h>
 #include <print.h>
 #include <memory.h>
 #include <misc.h>
@@ -14,7 +15,10 @@ void ShellExecuteCommand(char* p)
 	TokenState state;
 	state.m_bInitted = 0;
 	char* token = Tokenize (&state, p, " ");
-	
+	if (!token)
+		return;
+	if (*token == 0)
+		return;
 	if (strcmp (token, "help") == 0)
 	{
 		LogMsg("NanoShell Shell Help");
@@ -25,12 +29,13 @@ void ShellExecuteCommand(char* p)
 		LogMsg("lm         - list memory allocations");
 		LogMsg("mode X     - change the screen mode");
 		LogMsg("sysinfo    - dump system information");
+		LogMsg("time       - get timing information");
 		LogMsg("ver        - print system version");
 	}
 	else if (strcmp (token, "cls") == 0)
 	{
-		//PrInitialize();
-		//CoClearScreen (&g_debugConsole);
+		CoClearScreen (&g_debugConsole);
+		g_debugConsole.curX = g_debugConsole.curY = 0;
 	}
 	else if (strcmp (token, "ver") == 0)
 	{
@@ -45,7 +50,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("OK");
 		*((uint32_t*)0xFFFFFFFF) = 0;
 	}
-	else if (strcmp (token, "rdtsc") == 0)
+	else if (strcmp (token, "time") == 0)
 	{
 		int hi, lo;
 		GetTimeStampCounter(&hi, &lo);
@@ -56,6 +61,11 @@ void ShellExecuteCommand(char* p)
 	}
 	else if (strcmp (token, "mode") == 0)
 	{
+		if (VidIsAvailable())
+		{
+			LogMsg("Must use emergency text-mode shell to change mode.");
+			return;
+		}
 		char* modeNum = Tokenize (&state, NULL, " ");
 		if (!modeNum)
 		{
@@ -68,6 +78,26 @@ void ShellExecuteCommand(char* p)
 		else
 		{
 			SwitchMode (*modeNum - '0');
+			//PrInitialize();
+		}
+	}
+	else if (strcmp (token, "font") == 0)
+	{
+		char* fontNum = Tokenize (&state, NULL, " ");
+		if (!fontNum)
+		{
+			LogMsg("Expected mode number");
+		}
+		else if (*fontNum == 0)
+		{
+			LogMsg("Expected font number");
+		}
+		else
+		{
+			VidSetFont (*fontNum - '0');
+			LogMsg("the quick brown fox jumps over the lazy dog");
+			LogMsg("THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG");
+			LogMsg("Font testing done.");
 			//PrInitialize();
 		}
 	}
@@ -114,11 +144,13 @@ void ShellRun()
 {
 	while (1) 
 	{
-		LogMsgNoCr("\nshell>");
+		LogMsgNoCr("shell>");
 		char buffer[256];
 		KbGetString (buffer, 256);
 		memcpy (g_lastCommandExecuted, buffer, 256);
 		
 		ShellExecuteCommand (buffer);
+		
+		hlt; hlt; hlt; hlt;
 	}
 }

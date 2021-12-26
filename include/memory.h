@@ -120,6 +120,11 @@ void MmFree(void* pAddr);
 void MmUsePageDirectory(uint32_t* curPageDir, uint32_t phys);
 
 /**
+ * Reloads CR3, invalidating the TLB.
+ */
+void MmTlbInvalidate();
+
+/**
  * Reverts to the kernel's default page directory.  Useful if you're returning from an ELF executable.
  */
 void MmRevertToKernelPageDir();
