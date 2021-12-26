@@ -2,6 +2,7 @@
 #include <vga.h>
 #include <video.h>
 #include <memory.h>
+#include <string.h>
 
 //! TODO: perhaps merge vga.c with this?
 #include "extra/fonts.h"
@@ -218,12 +219,18 @@ void VidShiftScreen (int howMuch)
 		int a = g_vbeData.m_width * 4;
 		for (int i = howMuch, j = 0, k = 0; i < GetScreenSizeY(); i++, j += g_vbeData.m_pitch, k += a)
 		{
-			fmemcpy512(((uint8_t*)g_vbeData.m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData.m_width], a);
-			fmemcpy512(((uint8_t*)g_framebufferCopy         + k), &g_framebufferCopy[i * g_vbeData.m_width], a);
+			fast_memcpy(((uint8_t*)g_vbeData.m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData.m_width], a);
+			fast_memcpy(((uint8_t*)g_framebufferCopy         + k), &g_framebufferCopy[i * g_vbeData.m_width], a);
 		}
 	}
-	else;//unhandled
+	else
+	{
+		;//unhandled
+	}
 }
+
+//present, read/write, user/supervisor, writethrough
+#define VBE_PAGE_BITS (1 | 2 | 4 | 8)
 void VidInitialize(multiboot_info_t* pInfo)
 {
 	cli;
@@ -247,7 +254,7 @@ void VidInitialize(multiboot_info_t* pInfo)
 		//LogMsg("Bitdepth: %d", pInfo->framebuffer_bpp);
 		for (int i = 0; i < MAX_VIDEO_PAGES; i++)
 		{
-			g_vbePageEntries[i] = pointer | 0X3;
+			g_vbePageEntries[i] = pointer | VBE_PAGE_BITS;
 			pointer += 0x1000;
 		}
 		for (int i = 0; i < MAX_VIDEO_PAGES; i += 1024)
@@ -255,7 +262,7 @@ void VidInitialize(multiboot_info_t* pInfo)
 			//LogMsg("Mapping %d-%d to %dth page table pointer", i,i+1023, index);
 			uint32_t pageTable = ((uint32_t)&g_vbePageEntries[i]) - BASE_ADDRESS;
 			
-			g_curPageDir[index] = pageTable | 0X3;
+			g_curPageDir[index] = pageTable | VBE_PAGE_BITS;
 			index++;
 		}
 		

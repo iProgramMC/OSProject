@@ -24,6 +24,7 @@ void strtolower(char* as);
 void strtoupper(char* as);
 int strcmp(const char* as, const char* bs);
 void strcat(char* dest, char* after);
+void fast_memcpy(void* restrict dest, const void* restrict src, int size);
 void fmemcpy32 (void* restrict dest, const void* restrict src, int size);
 void fmemcpy128(void* restrict dest, const void* restrict src, int size);
 void fmemcpy256(void* restrict dest, const void* restrict src, int size);

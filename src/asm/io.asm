@@ -30,6 +30,52 @@ WritePortW:
 	mov ax, [esp + 8]
 	out dx, ax
 	ret
+	
+	
+extern fast_memcpy
+extern not_fast_memcpy
+; Not Fast
+not_fast_memcpy:
+	mov esi, [esp + 8]
+	mov edi, [esp + 4]
+	mov ecx, [esp + 12]
+	rep movsb
+	ret
+	
+fast_memcpy:
+	mov esi, [esp + 8]
+	mov edi, [esp + 4]
+	mov ecx, [esp + 12]
+	
+	push ebp
+	prefetchnta [esi]
+	.some_loop:
+		prefetchnta [esi+32]
+		mov eax, [esi]
+		mov ebx, [esi+4]
+		mov edx, [esi+8]
+		mov ebp, [esi+12]
+		mov [edi   ], eax
+		mov [edi+4 ], ebx
+		mov [edi+8 ], edx
+		mov [edi+12], ebp
+		mov eax, [esi+16]
+		mov ebx, [esi+16+4]
+		mov edx, [esi+16+8]
+		mov ebp, [esi+16+12]
+		mov [edi+16   ], eax
+		mov [edi+16+4 ], ebx
+		mov [edi+16+8 ], edx
+		mov [edi+16+12], ebp
+		add esi, 32
+		add edi, 32
+		sub ecx, 32
+		jnz .some_loop
+		
+	; done!
+	pop ebp
+	ret
+	
 
 ; Functions for DRIVERS/VGA.H
 ; https://wiki.osdev.org/VGA_Fonts#Get_from_VGA_RAM_directly
