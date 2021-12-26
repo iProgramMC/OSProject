@@ -110,7 +110,6 @@ void VidPrintTestingPattern()
 			int pixel = (x + y) * 0x010101;
 			VidPlotPixel(x, y, pixel);
 		}
-		
 	}
 }
 void VidFillScreen(unsigned color)
@@ -208,20 +207,33 @@ void VidShiftScreen (int howMuch)
 {
 	if (howMuch >= GetScreenSizeY())
 		return;
-	for (int i = howMuch; i < GetScreenSizeY(); i++) {
+	/*for (int i = howMuch; i < GetScreenSizeY(); i++) {
 		for (int k = 0; k < GetScreenSizeX(); k++) {
 			VidPlotPixel (k, i-howMuch, VidReadPixel (k, i));
 		}
+	}*/
+	
+	if (g_vbeData.m_bitdepth == 2)
+	{
+		int a = g_vbeData.m_width * 4;
+		for (int i = howMuch, j = 0, k = 0; i < GetScreenSizeY(); i++, j += g_vbeData.m_pitch, k += a)
+		{
+			fmemcpy512(((uint8_t*)g_vbeData.m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData.m_width], a);
+			fmemcpy512(((uint8_t*)g_framebufferCopy         + k), &g_framebufferCopy[i * g_vbeData.m_width], a);
+		}
 	}
+	else;//unhandled
 }
 void VidInitialize(multiboot_info_t* pInfo)
 {
+	cli;
 	g_vbeData.m_available = false;
 	if (pInfo->flags & MULTIBOOT_INFO_VIDEO_INFO)
 	{
 		if (pInfo->framebuffer_type != 1)
 		{
 			LogMsg("Need direct RGB framebuffer!");
+			sti;
 			return;
 		}
 		// map shit to 0xE0000000
@@ -260,11 +272,13 @@ void VidInitialize(multiboot_info_t* pInfo)
 		VidSetFont (FONT_TAMSYN_BOLD);
 		//LogMsg("Re-initializing debug console with graphics");
 		CoInitAsGraphics(&g_debugConsole);
+		sti;
 	}
 	else
 	{
 		SwitchMode (0);
 		CoInitAsText(&g_debugConsole);
 		LogMsg("Warning: no VBE mode specified.");
+		sti;
 	}
 }

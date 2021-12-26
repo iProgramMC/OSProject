@@ -104,7 +104,7 @@ void KeTimerInit()
 	//note that the PIT frequency divider has been hardcoded to 65535
 	//for testing.
 	
-	int pit_frequency = 65535;//(pitMaxFreq / 10);
+	int pit_frequency = 65536/4;//(pitMaxFreq / 10);
 	WritePort(0x40, (uint8_t)( pit_frequency       & 0xff));
 	WritePort(0x40, (uint8_t)((pit_frequency >> 8) & 0xff));
 }

@@ -28,13 +28,53 @@ void* memcpy(void* restrict dstptr, const void* restrict srcptr, size_t size)
 	return dstptr;
 }
 // Moves in increments of four
-void fmemcpy32 (void* restrict dest, const void* restrict src, size_t size) {
+void fmemcpy32 (void* restrict dest, const void* restrict src, int size) {
 	uint32_t* dst = (uint32_t*)dest;
 	uint32_t* ser = (uint32_t*)src;
 	
 	while (size > 0) {
 		//! Should be somewhat fast. Needs to copy 3 145 728 bytes for a 1024x768x32 screen
 		*(dst++) = *(ser++); 
+		size -= 4;
+	}
+}
+void fmemcpy128 (void* restrict dest, const void* restrict src, int size) {
+	uint32_t* dst = (uint32_t*)dest;
+	uint32_t* ser = (uint32_t*)src;
+	
+	while (size > 0) {
+		//! Should be somewhat fast. Needs to copy 3 145 728 bytes for a 1024x768x32 screen
+		*(dst++) = *(ser++); 
+		*(dst++) = *(ser++); 
+		*(dst++) = *(ser++); 
+		*(dst++) = *(ser++); 
+		size -= 16;
+	}
+}
+void fmemcpy256(void* restrict dest, const void* restrict src, int size) {
+	uint32_t* dst = (uint32_t*)dest;
+	uint32_t* ser = (uint32_t*)src;
+	
+	while (size > 0) {
+		//! Should be somewhat fast. Needs to copy 3 145 728 bytes for a 1024x768x32 screen
+		*(dst++) = *(ser++); *(dst++) = *(ser++);
+		*(dst++) = *(ser++); *(dst++) = *(ser++);
+		*(dst++) = *(ser++); *(dst++) = *(ser++);
+		*(dst++) = *(ser++); *(dst++) = *(ser++);
+		size -= 32;
+	}
+}
+void fmemcpy512(void* restrict dest, const void* restrict src, int size) {
+	uint32_t* dst = (uint32_t*)dest;
+	uint32_t* ser = (uint32_t*)src;
+	
+	while (size > 0) {
+		//! Should be somewhat fast. Needs to copy 3 145 728 bytes for a 1024x768x32 screen
+		*(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++);
+		*(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++);
+		*(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++);
+		*(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++); *(dst++) = *(ser++);
+		size -= 64;
 	}
 }
 void* memmove(void* restrict dstptr, const void* restrict srcptr, size_t size)

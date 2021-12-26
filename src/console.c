@@ -180,11 +180,13 @@ void CoPrintChar (Console* this, char c) {
 	if (!g_shouldntUpdateCursor) CoMoveCursor(this);
 }
 void CoPrintString (Console* this, const char *c) {
+	cli;
 	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
 	g_shouldntUpdateCursor = true;
 	while (*c) CoPrintChar(this, *c++);
 	g_shouldntUpdateCursor = false;
 	CoMoveCursor(this);
+	sti;
 }
 
 void LogMsg (const char* fmt, ...) {
