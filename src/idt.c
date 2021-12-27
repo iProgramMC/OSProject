@@ -59,7 +59,16 @@ void SetupExceptionInterrupt (int intNum, void* isrHandler)
  */
 #define HAS_EXCEPTION_HANDLERS
 #ifdef HAS_EXCEPTION_HANDLERS
+
+
+bool g_hasAlreadyThrownException = false;
 void IsrExceptionCommon(int code, Registers* pRegs) {
+	if (g_hasAlreadyThrownException)
+	{
+		LogMsg("SEVERE ERROR: Already threw an exception.");
+		KeStopSystem();
+	}
+	g_hasAlreadyThrownException = true;
 	KeBugCheck((BugCheckReason)code, pRegs);
 }
 extern void IsrStub0 ();
@@ -109,7 +118,7 @@ void KeTimerInit()
 	//note that the PIT frequency divider has been hardcoded to 65535
 	//for testing.
 	
-	int pit_frequency = 65536/4;//(pitMaxFreq / 10);
+	int pit_frequency = 65536/4096;//~ 74.573875 KHz
 	WritePort(0x40, (uint8_t)( pit_frequency       & 0xff));
 	WritePort(0x40, (uint8_t)((pit_frequency >> 8) & 0xff));
 }
@@ -125,6 +134,7 @@ void IrqTimer()
 unsigned long idtPtr[2];
 
 // some forward declarations
+extern void IrqTaskA();
 extern void IrqClockA();
 extern void IrqCascadeA();
 extern void OnSyscallReceivedA();
@@ -137,11 +147,11 @@ void KeIdtLoad1(IdtPointer *ptr)
 {
 	__asm__ ("lidt %0" :: "m"(*ptr));
 }
-void KeIdtInit()
+void KiIdtInit()
 {
 	uint8_t mask1 = 0xff, mask2 = 0xff;
 	
-	SetupInterrupt (&mask1, &mask2, 0x0, IrqTimerA);
+	SetupInterrupt (&mask1, &mask2, 0x0, IrqTaskA);//IrqTimerA);
 	SetupInterrupt (&mask1, &mask2, 0x1, IrqKeyboardA);
 	SetupInterrupt (&mask1, &mask2, 0x2, IrqClockA); // IRQ2: Cascade. Never triggered
 	SetupInterrupt (&mask1, &mask2, 0x8, IrqClockA);
@@ -187,13 +197,6 @@ void KeIdtInit()
 	WritePort (0x20, 0x11);
 	WritePort (0xa0, 0x11);
 	
-	//flush the PICs
-	for (int i=0; i<16; i++)
-	{
-		WritePort(0x20, 0x20);
-		WritePort(0xA0, 0x20);
-	}
-	
 	//set int num offsets, because fault offsets are hardcoded
 	//inside the CPU. We dont want a crash triggering a keyboard
 	//interrupt do we?!
@@ -223,6 +226,13 @@ void KeIdtInit()
 	
 	KeTimerInit();
 	KeClockInit();
+	
+	//flush the PICs
+	for (int i=0; i<64; i++)
+	{
+		WritePort(0x20, 0x20);
+		WritePort(0xA0, 0x20);
+	}
 	
 	sti;
 }

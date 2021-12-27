@@ -13,6 +13,7 @@
 #include <keyboard.h>
 #include <elf.h>
 #include <multiboot.h>
+#include <task.h>
 #include <shell.h>
 
 __attribute__((noreturn))
@@ -115,7 +116,7 @@ void KiPerformRamCheck()
 }
 
 __attribute__((noreturn))
-void KeStartupSystem (unsigned long check, unsigned long mbaddr)
+void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 {
 	//TODO: Serial debugging?
 	
@@ -142,12 +143,21 @@ void KeStartupSystem (unsigned long check, unsigned long mbaddr)
 	KiPerformRamCheck();
 	MmFirstThingEver(g_nKbExtRam);
 	
-	// Initialize the IDT
-	KeIdtInit();
+	KiIdtInit();
+	cli;
 	// Initialize the Memory Management Subsystem
 	MmInit();
 	// Initialize the video subsystem
 	VidInitialize (mbi);
+	// Initialize the task scheduler
+	KiTaskSystemInitialize();
+	sti;
+	
+	//LogMsg("C_MAX_TASKS: %d", C_MAX_TASKS);
+	//LogMsg("Sizeof Task: %d", sizeof(Task)); <-- Currently 80 bytes.
+	
+	// Initialize the IDT, after all the stuff that may not be interrupted
+	// got executed.
 	
 	//print the hello text, to see if the OS booted ok
 	KePrintSystemVersion();

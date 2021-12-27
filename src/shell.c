@@ -14,8 +14,42 @@
 #include <print.h>
 #include <memory.h>
 #include <misc.h>
+#include <task.h>
 
 char g_lastCommandExecuted[256] = {0};
+
+void ShellTaskTest(int arg)
+{
+	while (1)	
+	{
+		SLogMsg("Task %d!", arg);
+		for (int i = 0; i < 100; i++)
+			hlt;
+	}
+}
+
+void ShellTaskTest2(int arg)
+{
+	//This is the entry point of the new thread.
+	//You can pass any 32-bit parm in the StartTask call. `arg` is one of them.
+	//var represents the next color to set
+	int var = 0;
+	while (1)	
+	{
+		// set a 100 pixel tall column at that position:
+		for (int y = 100; y < 200; y++)
+			VidPlotPixel (arg%GetScreenSizeX(), y+arg/GetScreenSizeX(), var);
+		
+		//increment color by 32
+		var += 32;
+		
+		//wait for 5 interrupts
+		for (int i = 0; i < 5; i++)
+			hlt;
+	}
+}
+
+int g_nextTaskNum = 0;
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -33,10 +67,14 @@ void ShellExecuteCommand(char* p)
 		LogMsg("color XX   - change the screen color");
 		LogMsg("help       - shows this list");
 		LogMsg("lm         - list memory allocations");
+		LogMsg("lt         - list currently running threads (pauses them during the print)");
 		LogMsg("mode X     - change the screen mode");
 		LogMsg("sysinfo    - dump system information");
 		LogMsg("time       - get timing information");
 		LogMsg("ver        - print system version");
+		LogMsg("st         - spawns a single thread that makes a random line forever");
+		LogMsg("tt         - spawns 64 threads that makes random lines forever");
+		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
 	}
 	else if (strcmp (token, "cls") == 0)
 	{
@@ -50,6 +88,35 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "lm") == 0)
 	{
 		MmDebugDump();
+	}
+	else if (strcmp (token, "lt") == 0)
+	{
+		KeTaskDebugDump();
+	}
+	else if (strcmp (token, "st") == 0)
+	{
+		int errorCode = 0;
+		Task* task = KeStartTask(ShellTaskTest2, g_nextTaskNum++, &errorCode);
+		LogMsg("Task %d (%x) spawned.  Error code: %x", g_nextTaskNum - 1, task, errorCode);
+	}
+	else if (strcmp (token, "tt") == 0)
+	{
+		int errorCode = 0;
+		for (int i = 0; i < 64; i++)
+		{
+			KeStartTask(ShellTaskTest2, g_nextTaskNum++, &errorCode);
+		}
+		LogMsg("Tasks have been spawned.");
+		//LogMsg("Task %d (%x) spawned.  Error code: %x", g_nextTaskNum - 1, task, errorCode);
+	}
+	else if (strcmp (token, "tte") == 0)
+	{
+		int errorCode = 0;
+		for (int i = 0; i < 1024; i++)
+		{
+			KeStartTask(ShellTaskTest2, g_nextTaskNum++, &errorCode);
+		}
+		LogMsg("Tasks have been spawned.");
 	}
 	else if (strcmp (token, "crash") == 0)
 	{

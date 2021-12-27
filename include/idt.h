@@ -25,7 +25,7 @@ typedef struct
 __attribute__((packed))
 IdtPointer;
 
-extern void KeIdtInit();
+extern void KiIdtInit();
 extern void KeTimerInit();
 extern void IrqKeyboardA(void);
 extern void IrqTimerA(void);

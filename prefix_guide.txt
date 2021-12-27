@@ -1,0 +1,10 @@
+Prefixes:
+
+Ke - KErnel misc
+Ki - Kernel Initialization
+Co - COnsole
+Vid - VIDeo
+Kb - KeyBoard
+Isr - Interrupt Service Request (exceptions)
+Irq - Interrupt ReQuest
+Elf - ELF related

@@ -14,7 +14,7 @@ extern e_temporary1
 extern e_temporary2
 
 ; functions to load from other c/asm files
-extern KeStartupSystem
+extern KiStartupSystem
 
 ; things that aren't static and exclusive to this object file 
 global KeEntry
@@ -97,7 +97,7 @@ GDTPostSetup:
 	; Enter the high-level kernel now.
 	; Please note that it's marked __attribute__((noreturn)), so 
 	; returning from this crashes the OS.
-	call KeStartupSystem
+	call KiStartupSystem
 
 
 GDTStart:
