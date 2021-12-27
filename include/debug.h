@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+       Debugging module header file
+******************************************/
 #ifndef _DEBUG_H
 #define _DEBUG_H
 

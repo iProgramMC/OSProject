@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+    Userspace syscalls enum header file
+******************************************/
 #ifndef _USERSPACE_SYSCALLS_H
 #define _USERSPACE_SYSCALLS_H
 

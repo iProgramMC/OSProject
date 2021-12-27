@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+              Console module
+******************************************/
 #include <stdint.h>
 #include <main.h>
 #include <string.h>

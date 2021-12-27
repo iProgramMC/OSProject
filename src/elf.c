@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+           ELF Executable module
+******************************************/
 #include <elf.h>
 #include <string.h>
 #include <memory.h>

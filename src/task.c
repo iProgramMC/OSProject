@@ -2,11 +2,8 @@
 		NanoShell Operating System
 		  (C) 2021 iProgramInCpp
 
-  Command line kernel shell module header
+          Task Scheduler  module
 ******************************************/
-#ifndef _SHELL_H
-#define _SHELL_H
+#include <task.h>
 
-void ShellRun();
-
-#endif//_SHELL_H
+// ...

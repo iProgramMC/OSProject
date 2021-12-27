@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+        Console module header file
+******************************************/
 #ifndef _CONSOLE_H
 #define _CONSOLE_H
 

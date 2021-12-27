@@ -1,7 +1,9 @@
-//
-// Memory and string processing
-// Copyright (C) 2020 iProgramInCpp.
-//
+/*****************************************
+		NanoShell Operating System
+	   (C) 2020-2021 iProgramInCpp
+
+  String manipulation module header file
+******************************************/
 #ifndef _STRING_H
 #define _STRING_H
 #include <main.h>

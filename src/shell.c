@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+     Command line kernel shell module
+******************************************/
 #include <main.h>
 #include <shell.h>
 #include <keyboard.h>

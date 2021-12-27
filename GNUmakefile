@@ -39,11 +39,13 @@ O_FILES := $(patsubst $(BUILD)/$(SRC)/%.o, $(BUILD)/%.o, $(foreach file,$(C_FILE
 TARGET := kernel.bin
 
 default: $(O_FILES)
+	$(info Linking...)
 	$(CC) $(CLFLAGS_BEG) -o $(TARGET) $(CLFLAGS_MID) $(O_FILES) $(CLFLAGS_END)
 		
 # Kernel src files
 $(BUILD)/%.o: $(SRC)/%.asm
 	$(AS) $(AFLAGS) $< -o $@
+	
 $(BUILD)/%.o: $(SRC)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 

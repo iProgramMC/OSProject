@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+		  
+    Interrupt system module header file
+******************************************/
 #ifndef _IDT_H
 #define _IDT_H
 

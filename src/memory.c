@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+           Memory Manager module
+******************************************/
 #include <memory.h>
 #include <print.h>
 #include <string.h>

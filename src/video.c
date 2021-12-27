@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+             VBE Video module
+******************************************/
 #include <main.h>
 #include <vga.h>
 #include <video.h>

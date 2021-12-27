@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+      Printing and formatting module
+******************************************/
 #include <print.h>
 #include <string.h>
 #include <vga.h>

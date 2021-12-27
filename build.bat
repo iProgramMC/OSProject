@@ -5,6 +5,11 @@
 @rem I'm not sure we even need this?
 
 @echo off
+
+echo NanoShell Operating System Build Script
+echo (C) 2021 iProgramInCpp
+echo.
+echo Please wait.
 set backupPath=%path%
 set path=%cd%
 set laptopshit=C:\Program Files (x86)\GnuWin32\bin

@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+    Memory Manager module header file
+******************************************/
 #ifndef _MEMORY_H
 #define _MEMORY_H
 

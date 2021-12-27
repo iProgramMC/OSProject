@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+    NanoShell Main module header file
+******************************************/
 #ifndef _MAIN_H
 #define _MAIN_H
 

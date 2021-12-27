@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+     ELF Executable module header file
+******************************************/
 #ifndef _ELF_H
 #define _ELF_H
 

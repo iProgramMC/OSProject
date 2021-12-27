@@ -1,4 +1,9 @@
-// IDT Handler
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+	      Interrupt system module
+******************************************/
 #include <main.h>
 #include <idt.h>
 #include <keyboard.h>

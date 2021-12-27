@@ -1,7 +1,9 @@
-//
-// Memory and string processing
-// Copyright (C) 2020 iProgramInCpp.
-//
+/*****************************************
+		NanoShell Operating System
+	   (C) 2020-2021 iProgramInCpp
+
+        String manipulation module
+******************************************/
 #include <string.h>
 
 int memcmp(const void* ap, const void* bp, size_t size)

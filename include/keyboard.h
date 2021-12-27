@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+       Keyboard module header file
+******************************************/
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 

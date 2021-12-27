@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+       VGA Video module header file
+******************************************/
 #ifndef _VGA_H
 #define _VGA_H
 

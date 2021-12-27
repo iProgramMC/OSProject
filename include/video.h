@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+         Video module header file
+******************************************/
 #ifndef _VIDEO_H
 #define _VIDEO_H
 

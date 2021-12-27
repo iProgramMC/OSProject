@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+ Kernel initialization and startup module
+******************************************/
 #include <main.h>
 #include <memory.h>
 #include <vga.h>

@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+	   (C) 2020-2021 iProgramInCpp
+
+   Printing and Formatting module header
+******************************************/
 #ifndef _PRINT_H
 #define _PRINT_H
 

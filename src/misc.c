@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+           Misc - timing module
+******************************************/
 #include <main.h>
 #include <misc.h>
 

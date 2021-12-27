@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+		  (C) 2021 iProgramInCpp
+
+             Debugging module
+******************************************/
 #include <debug.h>
 
 void DumpRegisters (Registers* pRegs)
