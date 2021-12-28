@@ -29,7 +29,7 @@ g_kernelPageDirectory:
 	; The page directory array's address is stored in CR3, along with some flags.
 	
 g_pageTableArray:
-	resd 2048
+	resd 8192
 	
 e_temporary1 resd 1
 e_temporary2 resd 1

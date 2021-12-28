@@ -33,8 +33,8 @@ KeEntry:
 	; First address to map is 0x00000000
 	xor esi, esi
 
-	; Map 2048 pages.
-	mov ecx, 2048
+	; Map 8192 pages.
+	mov ecx, 8192
 	
 	; Get physical address of the boot page table.
 	mov edi, VIRT_TO_PHYS (g_pageTableArray)

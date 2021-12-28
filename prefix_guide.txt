@@ -3,6 +3,7 @@ Prefixes:
 Ke - KErnel misc
 Ki - Kernel Initialization
 Co - COnsole
+St - STorage
 Vid - VIDeo
 Kb - KeyBoard
 Isr - Interrupt Service Request (exceptions)

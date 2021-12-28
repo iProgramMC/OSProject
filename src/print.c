@@ -117,6 +117,28 @@ void vsprintf(char* memory, const char* format, va_list list) {
 					memory += length;
 					continue;
 				}
+				case 'b': {
+					uint32_t toPrint = va_arg(list, uint32_t);
+					uint32_t power = (15 << 28), pt = 4;
+					for (; power != 0; power >>= 4, pt -= 4) {
+						uint32_t p = toPrint & power;
+						p >>= pt;
+						*memory = "0123456789abcdef"[p];
+						memory++;
+					}
+					continue;
+				}
+				case 'B': {
+					uint32_t toPrint = va_arg(list, uint32_t);
+					uint32_t power = (15 << 4), pt = 4;
+					for (; power != 0; power >>= 4, pt -= 4) {
+						uint32_t p = toPrint & power;
+						p >>= pt;
+						*memory = "0123456789ABCDEF"[p];
+						memory++;
+					}
+					continue;
+				}
 				case 'x': {
 					uint32_t toPrint = va_arg(list, uint32_t);
 					uint32_t power = (15 << 28), pt = 28;

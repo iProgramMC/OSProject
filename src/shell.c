@@ -15,6 +15,7 @@
 #include <memory.h>
 #include <misc.h>
 #include <task.h>
+#include <storabs.h>
 
 char g_lastCommandExecuted[256] = {0};
 
@@ -50,6 +51,8 @@ void ShellTaskTest2(int arg)
 }
 
 int g_nextTaskNum = 0;
+bool g_ramDiskMounted = 0;
+int g_ramDiskID = 0;
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -69,12 +72,70 @@ void ShellExecuteCommand(char* p)
 		LogMsg("lm         - list memory allocations");
 		LogMsg("lt         - list currently running threads (pauses them during the print)");
 		LogMsg("mode X     - change the screen mode");
+		LogMsg("mrd        - mounts a testing RAM Disk");
+		LogMsg("rd         - reads and dumps a sector from the RAM Disk");
 		LogMsg("sysinfo    - dump system information");
 		LogMsg("time       - get timing information");
-		LogMsg("ver        - print system version");
 		LogMsg("st         - spawns a single thread that makes a random line forever");
 		LogMsg("tt         - spawns 64 threads that makes random lines forever");
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
+		LogMsg("ver        - print system version");
+	}
+	else if (strcmp (token, "mrd") == 0)
+	{
+		if (g_ramDiskMounted)
+		{
+			LogMsg("Have a ramdisk mounted already.");
+			return;
+		}
+		g_ramDiskID = StMountTestRamDisk();
+		g_ramDiskMounted = true;
+	}
+	else if (strcmp (token, "rd") == 0)
+	{
+		if (!g_ramDiskMounted)
+		{
+			LogMsg("Must mount a ramdisk first.  Please use \"mrd\".");
+			return;
+		}
+		char* secNum = Tokenize (&state, NULL, " ");
+		if (!secNum)
+		{
+			LogMsg("Expected sector number");
+		}
+		else if (*secNum == 0)
+		{
+			LogMsg("Expected sector number");
+		}
+		else
+		{
+			int e = atoi (secNum);
+			
+			char sector[512];
+			DriveStatus f = StDeviceRead(e, sector, g_ramDiskID, 1);
+			LogMsg("Printing sector number %d.  The returned %x.", e, f);
+			
+			for (int i = 0; i < SECTOR_SIZE; i += 16)
+			{
+				LogMsgNoCr(" %x:", i);
+				for (int j = 0; j < 16; j++)
+				{
+					LogMsgNoCr(" %B", sector[i+j]);
+				}
+				LogMsgNoCr("   ");
+				for (int j = 0; j < 16; j++)
+				{
+					char e = sector[i+j];
+					/**/ if (e == 0x00) e = ' ';
+					else if (e <  0x20) e = '.';
+					else if (e >= 0x7F) e = '.';
+					LogMsgNoCr("%c", e);
+				}
+				LogMsg("");
+			}
+			
+			//PrInitialize();
+		}
 	}
 	else if (strcmp (token, "cls") == 0)
 	{
