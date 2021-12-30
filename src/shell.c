@@ -51,6 +51,27 @@ void ShellTaskTest2(int arg)
 	}
 }
 
+void GraphicsTest()
+{
+	CoClearScreen(&g_debugConsole);
+	
+	//demonstrate some of the apis that the kernel provides:
+	VidFillRect(0xFF0000, 10, 150, 210, 310);
+	VidDrawRect(0x00FF00, 100, 150, 250, 250);
+	
+	//lines, triangles, polygons, circles perhaps?
+	VidDrawHLine (0xEE00FF, 100, 500, 400);
+	VidDrawVLine (0xEE00FF, 150, 550, 15);
+	
+	VidPlotChar('A', 200, 100, 0xFF, 0xFF00);
+	VidTextOut("Hello, opaque background world.\nI support newlines too!", 300, 150, 0xFFE, 0xAEBAEB);
+	VidTextOut("Hello, transparent background world.\nI support newlines too!", 300, 182, 0xFFFFFF, TRANSPARENT);
+	VidShiftScreen(10);
+	
+	LogMsg("Test complete.  Strike a key to exit.");
+	KbWaitForKeyAndGet();
+}
+
 int g_nextTaskNum = 0;
 bool g_ramDiskMounted = 0;
 int g_ramDiskID = 0;
@@ -70,6 +91,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("crash      - attempt to crash the kernel");
 		LogMsg("color XX   - change the screen color");
 		LogMsg("help       - shows this list");
+		LogMsg("gt         - run a graphical test");
 		LogMsg("lm         - list memory allocations");
 		LogMsg("lt         - list currently running threads (pauses them during the print)");
 		LogMsg("mode X     - change the screen mode");
@@ -82,6 +104,10 @@ void ShellExecuteCommand(char* p)
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
+	}
+	else if (strcmp (token, "gt") == 0)
+	{
+		GraphicsTest();
 	}
 	else if (strcmp (token, "w") == 0)
 	{

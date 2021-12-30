@@ -21,12 +21,14 @@ enum {
 	FONT_LAST,
 };
 
+#define TRANSPARENT 0xFFFFFFFF
+
 #define CLICK_INFO_MAX 256
 typedef struct
 {
 	uint16_t width, height;
 	int16_t leftOffs, topOffs;
-	int32_t* bitmap;
+	uint32_t* bitmap;
 }
 Cursor;
 
@@ -112,6 +114,16 @@ void VidPlotPixel(unsigned x, unsigned y, unsigned color);
 void VidFillScreen(unsigned color);
 
 /**
+ * Draws a vertical line of 1px thickness.
+ */
+void VidDrawVLine(unsigned color, int top, int bottom, int x);
+
+/**
+ * Draws a horizontal line of 1px thickness.
+ */
+void VidDrawHLine(unsigned color, int left, int right, int y);
+
+/**
  * Sets the current screen font.
  */
 void VidSetFont(unsigned fontType);
@@ -120,6 +132,11 @@ void VidSetFont(unsigned fontType);
  * Draws a character in "colorFg" with an optional colorBg (if it's 0xFFFFFFFF we don't draw any).
  */
 void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/);
+
+/**
+ * Prints a string in "colorFg" with an optional colorBg (if it's 0xFFFFFFFF we don't draw any).
+ */
+void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/);
 
 /**
  * Shifts the screen up, by a certain amount of pixels.  Anything larger than the screen height will
@@ -134,10 +151,22 @@ void VidShiftScreen (int amount);
 void VidFillRect(unsigned color, int left, int top, int right, int bottom);
 
 /**
+ * Draws a rectangle's contour on the screen.  The ranges of pixels are all inclusive, so
+ * pixels[right][bottom] is also getting drawn.
+ */
+void VidDrawRect(unsigned color, int left, int top, int right, int bottom);
+
+/**
  * Fills a rectangle on the screen.  The ranges of pixels are all inclusive, so
  * pixels[rect.right][rect.bottom] is also getting drawn.
  */
 void VidFillRectangle(unsigned color, Rectangle rect);
+
+/**
+ * Draws a rectangle's contour on the screen.  The ranges of pixels are all inclusive, so
+ * pixels[rect.right][rect.bottom] is also getting drawn.
+ */
+void VidDrawRectangle(unsigned color, Rectangle rect);
 
 /**
  * Checks if the video subsystem is available and has been initialized correctly.

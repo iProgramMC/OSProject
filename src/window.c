@@ -326,7 +326,7 @@ void OnUILeftClickDrag (int mouseX, int mouseY)
 			g_windowDragCursor.height   = window->m_vbeData.m_height;
 			g_windowDragCursor.leftOffs = mouseX - window->m_rect.left;
 			g_windowDragCursor.topOffs  = mouseY - window->m_rect.top;
-			g_windowDragCursor.bitmap   = (int32_t*)window->m_vbeData.m_framebuffer32;//cast to fix warning
+			g_windowDragCursor.bitmap   = window->m_vbeData.m_framebuffer32;//cast to fix warning
 			
 			SetCursor (&g_windowDragCursor);
 		}
@@ -542,7 +542,24 @@ void PostQuitMessage (Window* pWindow)
 }
 void PaintWindowBackgroundAndBorder(__attribute__((unused)) Window* pWindow)
 {
-	//...
+	VidFillScreen(0xFFAAAAAA);
+	
+	Rectangle recta = pWindow->m_rect;
+	recta.right  -= recta.left; recta.left = 0;
+	recta.bottom -= recta.top;  recta.top  = 0;
+	recta.right--;
+	recta.bottom--;
+	
+	VidDrawRectangle(0, recta);
+	
+	//give it a little dropshadow (X adjusts thickness):
+#define X 4
+	for (int i = 0; i < X; i++) {
+		recta.right--;
+		recta.bottom--;
+		VidDrawRectangle(0, recta);
+	}
+#undef X
 }
 void DefaultWindowProc (Window* pWindow, int messageType)
 {
