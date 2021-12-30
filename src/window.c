@@ -10,6 +10,8 @@
 #define MULTITASKED_WINDOW_MANAGER
 #endif
 
+#define DebugLogMsg  SLogMsg
+
 #include <window.h>
 #include <task.h>
 
@@ -105,7 +107,7 @@ void WindowRegisterEvent (Window* pWindow, short eventType)
 		pWindow->m_eventQueue[pWindow->m_eventQueueSize++] = eventType;
 	}
 	else
-		SLogMsg("Could not register event %d for window %x", eventType, pWindow);
+		DebugLogMsg("Could not register event %d for window %x", eventType, pWindow);
 	
 	FREE_LOCK (pWindow->m_eventQueueLock);
 }
@@ -158,7 +160,7 @@ void HideWindow (Window* pWindow)
 	// We've added the windows to the list, so draw them. We don't need to worry
 	// about windows above them, as the way we're drawing them makes it so pixels
 	// over the window aren't overwritten.
-	//LogMsg("Drawing %d windows below this one", sz);
+	//DebugLogMsg("Drawing %d windows below this one", sz);
 	for (int i=0; i<sz; i++) 
 		WindowRegisterEvent (windowDrawList[i], EVENT_PAINT);
 	
@@ -316,18 +318,16 @@ void OnUILeftClickDrag (int mouseX, int mouseY)
 		{
 			window->m_isBeingDragged = true;
 			
-			LogMsgNoCr("Hiding Window  ");
+			
 			HideWindow(window);
 			
 			//change cursor:
-			LogMsgNoCr("Updating Cursor  ");
 			g_windowDragCursor.width    = window->m_vbeData.m_width;
 			g_windowDragCursor.height   = window->m_vbeData.m_height;
 			g_windowDragCursor.leftOffs = mouseX - window->m_rect.left;
 			g_windowDragCursor.topOffs  = mouseY - window->m_rect.top;
 			g_windowDragCursor.bitmap   = (int32_t*)window->m_vbeData.m_framebuffer32;//cast to fix warning
 			
-			LogMsg("Updated Cursor!");
 			SetCursor (&g_windowDragCursor);
 		}
 	}
@@ -340,7 +340,6 @@ void OnUILeftClickRelease (int mouseX, int mouseY)
 	
 	ACQUIRE_LOCK (g_windowLock);
 	
-	LogMsg("RELEASE!");
 	g_prevMouseX = (int)mouseX;
 	g_prevMouseY = (int)mouseY;
 	
@@ -420,10 +419,10 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 #else
 	int errorCode = 0;
 	Task* pTask = KeStartTask(TestProgramTask, 0, &errorCode);
-	LogMsg("Created test task 1. pointer returned:%x, errorcode:%x", pTask, errorCode);
+	DebugLogMsg("Created test task 1. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	errorCode = 0;
 	pTask = KeStartTask(TestProgramTask1, 0, &errorCode);
-	LogMsg("Created test task 2. pointer returned:%x, errorcode:%x", pTask, errorCode);
+	DebugLogMsg("Created test task 2. pointer returned:%x, errorcode:%x", pTask, errorCode);
 #endif
 	
 	while (g_windowManagerRunning)
@@ -506,7 +505,6 @@ bool HandleMessages(Window* pWindow)
 	ACQUIRE_LOCK (g_windowLock);
 	ACQUIRE_LOCK (pWindow->m_eventQueueLock);
 	
-	SLogMsg("Handling messages (HandleMessages)");
 	int size = pWindow->m_eventQueueSize;
 	pWindow->m_eventQueueSize = 0;
 	for (int i = 0; i < size; i++)
@@ -521,15 +519,10 @@ bool HandleMessages(Window* pWindow)
 		
 		//if the contents of this window have been modified, redraw them:
 		if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
-		{
-			SLogMsg("Window dirty, redrawing");
 			RenderWindow(pWindow);
-			SLogMsg("Redraw done.");
-		}
 		
 		if (pWindow->m_eventQueue[i] == EVENT_DESTROY) return false;
 	}
-	SLogMsg("Event queue now sized %d", size);
 	
 	FREE_LOCK (pWindow->m_eventQueueLock);
 	FREE_LOCK (g_windowLock);
@@ -552,7 +545,6 @@ void DefaultHandler (Window* pWindow, int messageType)
 #if 1
 void CALLBACK TestProgramProc (__attribute__((unused)) Window* pWindow, int messageType)
 {
-	//SLogMsg("Handling messages (TestProgramProc)");
 	DefaultHandler(pWindow, messageType);
 	switch (messageType)
 	{
@@ -580,55 +572,41 @@ void CALLBACK TestProgramProc (__attribute__((unused)) Window* pWindow, int mess
 			VidPlotChar(')',(a++)*8+50,50,0x101010,0xE0E0E0);
 			break;
 		case EVENT_DESTROY:
-			LogMsg("Bye cruel world!");
+			DebugLogMsg("Bye cruel world!");
 			break;
 	}
 }
 
 void TestProgramTask (__attribute__((unused)) int argument)
 {
-	SLogMsg("Creating window");
 	// create ourself a window:
 	Window* pWindow = CreateWindow ("Hello World", 100, 100, 320, 240, TestProgramProc);
 	
 	if (!pWindow)
-		SLogMsg("Hey, the window couldn't be created");
+		DebugLogMsg("Hey, the window couldn't be created");
 	
 	// setup:
-	SLogMsg("Showing window");
 	//ShowWindow(pWindow);
 	
 	// event loop:
 #if THREADING_ENABLED
-	SLogMsg("Handling message");
-	while (HandleMessages (pWindow)) {
-		//LogMsgNoCr("A");
-	}
-	
-	LogMsg("Bye bye");
+	while (HandleMessages (pWindow));
 #endif
 }
 void TestProgramTask1 (__attribute__((unused)) int argument)
 {
-	SLogMsg("Creating window");
 	// create ourself a window:
 	Window* pWindow = CreateWindow ("Hello World", 300, 200, 320, 240, TestProgramProc);
 	
 	if (!pWindow)
-		SLogMsg("Hey, the window couldn't be created");
+		DebugLogMsg("Hey, the window couldn't be created");
 	
 	// setup:
-	SLogMsg("Showing window");
 	//ShowWindow(pWindow);
 	
 	// event loop:
 #if THREADING_ENABLED
-	SLogMsg("Handling message");
-	while (HandleMessages (pWindow)) {
-		//LogMsgNoCr("B");
-	}
-	
-	LogMsg("Bye bye");
+	while (HandleMessages (pWindow));
 #endif
 }
 #endif
