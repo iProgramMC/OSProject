@@ -532,48 +532,75 @@ bool HandleMessages(Window* pWindow)
 	return true;
 }
 
-void DefaultHandler (Window* pWindow, int messageType)
+void PostQuitMessage (Window* pWindow)
 {
-	//! TODO!
-	pWindow += 0;
-	if (messageType == EVENT_CREATE || messageType == EVENT_PAINT)
-		VidFillScreen(0xFFAAAAAA);
+	ReadyToDestroyWindow(pWindow);
+	
+	#if THREADING_ENABLED
+	KeExit();
+	#endif
+}
+void PaintWindowBackgroundAndBorder(__attribute__((unused)) Window* pWindow)
+{
+	//...
+}
+void DefaultWindowProc (Window* pWindow, int messageType)
+{
+	switch (messageType)
+	{
+		case EVENT_CREATE:
+			//VidFillScreen(0xFFAAAAAA);
+			
+			//paint window border:
+			PaintWindowBackgroundAndBorder(pWindow);
+			//also call an EVENT_PAINT
+			pWindow->m_callback(pWindow, EVENT_PAINT);
+			break;
+		case EVENT_PAINT:
+			//nope, user should handle this themselves
+			//Actually EVENT_PAINT just requests a paint event,
+			//so just mark this as dirty
+			pWindow->m_vbeData.m_dirty = 1;
+			break;
+		case EVENT_DESTROY:
+			PostQuitMessage(pWindow);//exits
+			break;
+		default:
+			break;
+	}
 }
 #endif
 
 // Test program
 #if 1
-void CALLBACK TestProgramProc (__attribute__((unused)) Window* pWindow, int messageType)
+void CALLBACK TestProgramProc (Window* pWindow, int messageType)
 {
-	DefaultHandler(pWindow, messageType);
 	switch (messageType)
 	{
-		case EVENT_CREATE:
 		case EVENT_PAINT:
 			VidFillRect (0xFF00FF, 10, 10, 100, 50);
 			int a = 0;
-			VidPlotChar('h',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('e',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('y',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar(' ',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('g',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('u',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('y',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('s',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar(' ',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('i',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('t',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('s',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar(' ',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('m',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar('e',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar(' ',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar(':',(a++)*8+50,50,0x101010,0xE0E0E0);
-			VidPlotChar(')',(a++)*8+50,50,0x101010,0xE0E0E0);
+			VidPlotChar('h',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('e',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('y',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar(' ',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('g',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('u',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('y',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('s',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar(' ',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('i',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('t',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('s',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar(' ',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('m',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar('e',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar(' ',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar(':',(a++)*8+50,50,0xF01010,0xE0E0E0);
+			VidPlotChar(')',(a++)*8+50,50,0xF01010,0xE0E0E0);
 			break;
-		case EVENT_DESTROY:
-			DebugLogMsg("Bye cruel world!");
-			break;
+		default:
+			DefaultWindowProc(pWindow, messageType);
 	}
 }
 
