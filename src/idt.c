@@ -10,6 +10,7 @@
 #include <syscall.h>
 #include <debug.h>
 #include <misc.h>
+#include <video.h>
 
 #define KBDATA 0x60
 #define KBSTAT 0x64

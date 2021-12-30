@@ -4,8 +4,15 @@
 
            Window Manager module
 ******************************************/
+#define THREADING_ENABLED 1 //0
+
+#if THREADING_ENABLED
+#define MULTITASKED_WINDOW_MANAGER
+#endif
+
 #include <window.h>
 #include <task.h>
+
 
 Window g_windows [WINDOWS_MAX];
 bool g_windowManagerRunning = false;
@@ -407,14 +414,17 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	UpdateDepthBuffer();
 	
 	//test:
-	/*int errorCode = 0;
+#if !THREADING_ENABLED
+	TestProgramTask (0);
+	TestProgramTask1(0);
+#else
+	int errorCode = 0;
 	Task* pTask = KeStartTask(TestProgramTask, 0, &errorCode);
 	LogMsg("Created test task 1. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	errorCode = 0;
 	pTask = KeStartTask(TestProgramTask1, 0, &errorCode);
-	LogMsg("Created test task 2. pointer returned:%x, errorcode:%x", pTask, errorCode);*/
-	TestProgramTask (0);
-	TestProgramTask1(0);
+	LogMsg("Created test task 2. pointer returned:%x, errorcode:%x", pTask, errorCode);
+#endif
 	
 	while (g_windowManagerRunning)
 	{
@@ -424,11 +434,15 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			if (!pWindow->m_used) continue;
 			
 			WindowRegisterEvent (pWindow, EVENT_UPDATE);
+			
+		#if !THREADING_ENABLED
 			if (!HandleMessages (pWindow))
 			{
 				ReadyToDestroyWindow(pWindow);
 				continue;
 			}
+		#endif
+			
 			if (pWindow->m_markedForDeletion)
 			{
 				//turn it off, because DestroyWindow sends an event here, 
@@ -455,7 +469,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		FREE_LOCK (g_screenLock);
 		FREE_LOCK (g_clickQueueLock);
 		
-		for (int i =0; i<6400; i++)
+		for (int i =0; i<2; i++)
 			hlt;
 	}
 	KillWindowDepthBuffer();
@@ -527,6 +541,8 @@ bool HandleMessages(Window* pWindow)
 
 void DefaultHandler (Window* pWindow, int messageType)
 {
+	//! TODO!
+	pWindow += 0;
 	if (messageType == EVENT_CREATE || messageType == EVENT_PAINT)
 		VidFillScreen(0xFFAAAAAA);
 }
@@ -583,10 +599,14 @@ void TestProgramTask (__attribute__((unused)) int argument)
 	//ShowWindow(pWindow);
 	
 	// event loop:
-	/*SLogMsg("Handling message");
-	while (HandleMessages (pWindow));
+#if THREADING_ENABLED
+	SLogMsg("Handling message");
+	while (HandleMessages (pWindow)) {
+		//LogMsgNoCr("A");
+	}
 	
-	LogMsg("Bye bye");*/
+	LogMsg("Bye bye");
+#endif
 }
 void TestProgramTask1 (__attribute__((unused)) int argument)
 {
@@ -602,9 +622,13 @@ void TestProgramTask1 (__attribute__((unused)) int argument)
 	//ShowWindow(pWindow);
 	
 	// event loop:
-	/*SLogMsg("Handling message");
-	while (HandleMessages (pWindow));
+#if THREADING_ENABLED
+	SLogMsg("Handling message");
+	while (HandleMessages (pWindow)) {
+		//LogMsgNoCr("B");
+	}
 	
-	LogMsg("Bye bye");*/
+	LogMsg("Bye bye");
+#endif
 }
 #endif
