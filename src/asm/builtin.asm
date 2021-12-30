@@ -14,7 +14,7 @@ global g_TestingFloppyImageStart, g_TestingFloppyImageEnd, g_TestingFloppyImage
 
 g_TestingFloppyImageStart:
 g_TestingFloppyImage:
-	incbin 'test.img'
+;	incbin 'test.img'
 g_TestingFloppyImageEnd:
 
 %endif

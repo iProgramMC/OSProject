@@ -145,7 +145,7 @@ DriveStatus StDeviceWrite(uint32_t lba, const void* pSrc, DriveID driveId, uint8
 extern uint8_t g_TestingFloppyImage[];
 DriveID StMountTestRamDisk ()
 {
-	int numDisk = -1;
+	/*int numDisk = -1;
 	for (int i = 0; i < RAMDISK_MAX; i++)
 	{
 		if (!StIsRamDiskMounted(i))
@@ -166,5 +166,6 @@ DriveID StMountTestRamDisk ()
 	pRD->m_CapacityBlocks = 1440 * 1024 / 512; //1440K = 2880 Blocks.
 	pRD->m_pDriveContents = g_TestingFloppyImage;
 	
-	return 0xF0 + numDisk;
+	return 0xF0 + numDisk;*/
+	return 0xAA;
 }

@@ -63,6 +63,8 @@ void SetupExceptionInterrupt (int intNum, void* isrHandler)
 
 bool g_hasAlreadyThrownException = false;
 void IsrExceptionCommon(int code, Registers* pRegs) {
+	cli;
+	VidSetVBEData(NULL);
 	if (g_hasAlreadyThrownException)
 	{
 		LogMsg("SEVERE ERROR: Already threw an exception.");
@@ -136,6 +138,7 @@ unsigned long idtPtr[2];
 // some forward declarations
 extern void IrqTaskA();
 extern void IrqClockA();
+extern void IrqMouseA();
 extern void IrqCascadeA();
 extern void OnSyscallReceivedA();
 void KeClockInit();
@@ -155,6 +158,7 @@ void KiIdtInit()
 	SetupInterrupt (&mask1, &mask2, 0x1, IrqKeyboardA);
 	SetupInterrupt (&mask1, &mask2, 0x2, IrqClockA); // IRQ2: Cascade. Never triggered
 	SetupInterrupt (&mask1, &mask2, 0x8, IrqClockA);
+	SetupInterrupt (&mask1, &mask2, 0xC, IrqMouseA);
 	
 #ifdef HAS_EXCEPTION_HANDLERS
 	SetupExceptionInterrupt (0x00, IsrStub0 );
@@ -225,7 +229,7 @@ void KiIdtInit()
 	KeIdtLoad1 (&ptr);
 	
 	KeTimerInit();
-	KeClockInit();
+	//KeClockInit();
 	
 	//flush the PICs
 	for (int i=0; i<64; i++)
@@ -268,6 +272,7 @@ extern int g_nRtcTicks;//misc.c
  */
 void IrqClock()
 {
+	LogMsg("Clock!");
 	g_nRtcTicks++;
 	//acknowledge interrupt
 	WritePort(0x20, 0x20);

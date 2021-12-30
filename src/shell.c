@@ -16,6 +16,7 @@
 #include <misc.h>
 #include <task.h>
 #include <storabs.h>
+#include <window.h>
 
 char g_lastCommandExecuted[256] = {0};
 
@@ -80,6 +81,11 @@ void ShellExecuteCommand(char* p)
 		LogMsg("tt         - spawns 64 threads that makes random lines forever");
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
 		LogMsg("ver        - print system version");
+		LogMsg("w          - start desktop manager");
+	}
+	else if (strcmp (token, "w") == 0)
+	{
+		WindowManagerTask(0);
 	}
 	else if (strcmp (token, "mrd") == 0)
 	{

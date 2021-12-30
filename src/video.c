@@ -13,6 +13,8 @@
 //! TODO: perhaps merge vga.c with this?
 #include "extra/fonts.h"
 
+// Basic definitions for video
+#if 1
 bool g_isVideoMode = false;
 uint32_t g_framebufferPhysical = 0;
 
@@ -24,55 +26,347 @@ extern uint32_t *g_curPageDir;
 uint32_t g_vbePageEntries[MAX_VIDEO_PAGES] __attribute__((aligned(4096))); 
 uint32_t* g_framebufferCopy = NULL;
 
-typedef struct
-{
-	bool     m_available;			    //if the vbe display is available
-	unsigned m_width, m_height, m_pitch;//bytes per row
-	int      m_bitdepth;                //bits per pixel, only values we support: 0=8, 1=16, 2=32
-	union {
-		uint32_t* m_framebuffer32; //for ease of addressing
-		uint16_t* m_framebuffer16;
-		uint8_t * m_framebuffer8;
+VBEData g_mainScreenVBEData;
+
+VBEData* g_vbeData = NULL;
+#endif
+
+// Mouse graphics stuff
+#if 1
+
+int g_mouseX = 0, g_mouseY = 0;
+
+
+#define X 0XFFFFFFFF,
+#define B 0XFF000000,
+#define o 0X00FFFFFF,
+
+int32_t g_cursorColors[] = 
+	{
+		/*B o o o o o o o o o o o
+		B B o o o o o o o o o o
+		B X B o o o o o o o o o
+		B X X B o o o o o o o o
+		B X X X B o o o o o o o
+		B X X X X B o o o o o o
+		B X X X X X B o o o o o
+		B X X X X X X B o o o o
+		B X X X X X X X B o o o
+		B X X X X X X X X B o o
+		B X X X X X X X X X B o
+		B X X X X X X B B B B B
+		B X X X B X X B o o o o
+		B X X B B X X B o o o o
+		B X B o o B X X B o o o
+		B B o o o B X X B o o o
+		B o o o o o B X X B o o
+		o o o o o o B X X B o o
+		o o o o o o o B X X B o
+		o o o o o o o B X X B o
+		o o o o o o o o B B o o*/
+		4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294903296, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294902784, 4294904576, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294905856, 4294906624, 4294908672, 4278190080, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294908672, 4294909440, 4294910976, 4294913024, 4278190080, 0, 0, 0, 0, 0, 0, 4278190080, 4294911744, 4294912256, 4294913280, 4294915072, 4294917120, 4278190080, 0, 0, 0, 0, 0, 4278190080, 4294914816, 4294915072, 4294916096, 4294917376, 4294919424, 4294921472, 4278190080, 0, 0, 0, 0, 4278190080, 4294917888, 4294918144, 4294918912, 4294920192, 4294921728, 4294923776, 4294925824, 4278190080, 0, 0, 0, 4278190080, 4294920960, 4294921216, 4294921728, 4294923008, 4294924288, 4294925824, 4294927872, 4294929920, 4278190080, 0, 0, 4278190080, 4294924032, 4294924288, 4294924544, 4294925824, 4294927104, 4294928640, 4294930176, 4294932224, 4294934272, 4278190080, 0, 4278190080, 4294927104, 4294927104, 4294927616, 4294928640, 4294929664, 4294931200, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4294929920, 4294930176, 4294930688, 4278190080, 4294932480, 4294933760, 4278190080, 0, 0, 0, 0, 4278190080, 4294932992, 4294933248, 4278190080, 4278190080, 4294935296, 4294936320, 4278190080, 0, 0, 0, 0, 4278190080, 4294936064, 4278190080, 0, 0, 4278190080, 4294939136, 4294940416, 4278190080, 0, 0, 0, 4278190080, 4278190080, 0, 0, 0, 4278190080, 4294941952, 4294943232, 4278190080, 0, 0, 0, 4278190080, 0, 0, 0, 0, 0, 4278190080, 4294945792, 4294947072, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294948608, 4294949888, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294952704, 4294953984, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4294955520, 4294956800, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 0, 0, 
+
 	};
-	int m_pitch32, m_pitch16;      //uint32_t's and uint16_t's per row.
+int32_t g_waitCursorColors[] = 
+	{
+		4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 4278190080, 0, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 0, 0, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4278190080, 4294967295, 4294967295, 4278190080, 4278190080, 0, 0, 0, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4294967295, 4278190080, 0, 0, 0, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 4294967295, 4278190080, 0, 0, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 0, 4278190080, 4278190080, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4278190080, 4278190080, 0, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080, 0, 
+	};
+
+Cursor g_defaultCursor = {
+	12, 21, 0, 0, 
+	g_cursorColors
+};
+Cursor g_waitCursor = {
+	14, 22, 0, 0, 
+	g_waitCursorColors
+};
+#undef X
+#undef B
+#undef o
+Cursor* g_currentCursor = NULL;
+Cursor* g_pDefaultCursor = NULL; // pointer for easy checking
+Cursor* g_pWaitCursor = NULL; // pointer for easy checking
+
+bool g_isMouseVisible = false;
+
+//forward decls to stuff
+unsigned VidReadPixel (unsigned x, unsigned y);
+static void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color);
+
+//Click queue to handle clicks later (window manager)
+ClickInfo g_clickQueue [CLICK_INFO_MAX];
+int       g_clickQueueSize = 0;
+bool      g_clickQueueLock = false;
+
+void AddClickInfoToQueue(const ClickInfo* info)
+{
+	ACQUIRE_LOCK (g_clickQueueLock);
+	
+	if (g_clickQueueSize >= CLICK_INFO_MAX)
+	{
+		//only handle the next clicks now
+		g_clickQueueSize = 0;
+	}
+	g_clickQueue[g_clickQueueSize++] = *info;
+	
+	FREE_LOCK (g_clickQueueLock);
 }
-VBEData;
+void OnLeftClick()
+{
+	ClickInfo info;
+	info.clickType = CLICK_LEFT;
+	info.clickedAtX = g_mouseX;
+	info.clickedAtY = g_mouseY;
+	AddClickInfoToQueue (&info);
+}
+void OnLeftClickRelease()
+{
+	ClickInfo info;
+	info.clickType = CLICK_LEFTR;
+	info.clickedAtX = g_mouseX;
+	info.clickedAtY = g_mouseY;
+	AddClickInfoToQueue (&info);
+}
+void OnLeftClickDrag()
+{
+	ClickInfo info;
+	info.clickType = CLICK_LEFTD;
+	info.clickedAtX = g_mouseX;
+	info.clickedAtY = g_mouseY;
+	AddClickInfoToQueue (&info);
+}
+void OnRightClick()
+{
+	ClickInfo info;
+	info.clickType = CLICK_RIGHT;
+	info.clickedAtX = g_mouseX;
+	info.clickedAtY = g_mouseY;
+	AddClickInfoToQueue (&info);
+}
 
-VBEData g_vbeData;
+uint8_t g_previousFlags = 0;
+void OnUpdateMouse(uint8_t flags, uint8_t Dx, uint8_t Dy, __attribute__((unused)) uint8_t Dz)
+{
+	int dx, dy;
+	dx = (flags & (1 << 4)) ? (int8_t)Dx : Dx;
+	dy = (flags & (1 << 5)) ? (int8_t)Dy : Dy;
+	
+	//move the cursor:
+	int newX = g_mouseX + dx;
+	int newY = g_mouseY - dy;
+	if (newX < 0) newX = 0;
+	if (newY < 0) newY = 0;
+	SetMousePos (newX, newY);
+	
+	if (flags & MOUSE_FLAG_R_BUTTON)
+	{
+		if (!(g_previousFlags & MOUSE_FLAG_R_BUTTON))
+			OnRightClick();
+	}
+	if (flags & MOUSE_FLAG_L_BUTTON)
+	{
+		if (!(g_previousFlags & MOUSE_FLAG_L_BUTTON))
+			OnLeftClick();
+		else
+			OnLeftClickDrag();
+	}
+	else if (g_previousFlags & MOUSE_FLAG_L_BUTTON)
+		OnLeftClickRelease();
+	
+	g_previousFlags = flags & 7;
+}
 
+Cursor* GetCurrentCursor()
+{
+	return g_currentCursor;
+}
+
+void SetCursor(Cursor* pCursor)
+{
+	if (!pCursor) pCursor = g_pDefaultCursor;
+	if (g_currentCursor == pCursor) return;
+	
+	VBEData* backup = g_vbeData;
+	g_vbeData = &g_mainScreenVBEData;
+	
+	//undraw the old cursor:
+	if (g_currentCursor)
+	{
+		for (int i = -2; i <= g_currentCursor->height + 1; i++)
+		{
+			for (int j = -2; j <= g_currentCursor->width + 1; j++)
+			{
+				int x = g_mouseX + j - g_currentCursor->leftOffs;
+				int y = g_mouseY + i - g_currentCursor->topOffs;
+				VidPlotPixelIgnoreCursorChecksChecked (x, y, VidReadPixel(x, y));
+			}
+		}
+	}
+	
+	//draw the new cursor:
+	g_currentCursor = pCursor;
+	for (int i = 0; i < g_currentCursor->height; i++)
+	{
+		for (int j = 0; j < g_currentCursor->width; j++)
+		{
+			int id = i * g_currentCursor->width + j;
+			if (g_currentCursor->bitmap[id] != 0)
+			{
+				VidPlotPixelIgnoreCursorChecksChecked(
+					j + g_mouseX - g_currentCursor->leftOffs,
+					i + g_mouseY - g_currentCursor->topOffs,
+					g_currentCursor->bitmap[id]
+				);
+			}
+		}
+	}
+	
+	
+	
+	g_vbeData = backup;
+}
+
+void SetMouseVisible (bool b)
+{
+	g_isMouseVisible = b;
+	if (!g_isMouseVisible)
+	{
+		for (int i = 0; i < g_currentCursor->height; i++)
+		{
+			if (i + g_mouseY - g_currentCursor->topOffs >= GetScreenSizeY()) break;
+			for (int j = 0; j < g_currentCursor->width; j++)
+			{
+				if (j + g_mouseX - g_currentCursor->leftOffs >= GetScreenSizeX()) break;
+				int id = i * g_currentCursor->width + j;
+				if (g_currentCursor->bitmap[id] != 0)
+				{
+					int kx = j + g_mouseX - g_currentCursor->leftOffs,
+						ky = i + g_mouseY - g_currentCursor->topOffs;
+					VidPlotPixelIgnoreCursorChecksChecked (
+						kx, ky, VidReadPixel (kx, ky)
+					);
+				}
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < g_currentCursor->height; i++)
+		{
+			if (i + g_mouseY - g_currentCursor->topOffs >= GetScreenSizeY()) break;
+			for (int j = 0; j < g_currentCursor->width; j++)
+			{
+				if (j + g_mouseX - g_currentCursor->leftOffs >= GetScreenSizeX()) break;
+				int id = i * g_currentCursor->width + j;
+				if (g_currentCursor->bitmap[id] != 0)
+				{
+					int kx = j + g_mouseX - g_currentCursor->leftOffs,
+						ky = i + g_mouseY - g_currentCursor->topOffs;
+					VidPlotPixelIgnoreCursorChecksChecked (
+						kx, ky, g_currentCursor->bitmap[id]
+					);
+				}
+			}
+		}
+	}
+}
+
+void SetMousePos (unsigned newX, unsigned newY)
+{
+	//NOTE: As this is called in an interrupt too, a call here might end up coming right
+	//while we we're drawing a window or something.  Keep a backup of the previous settings.
+	
+	VBEData* backup = g_vbeData;
+	g_vbeData = &g_mainScreenVBEData;
+	
+	int oldX = g_mouseX, oldY = g_mouseY;
+	
+	if (newX >= (unsigned)GetScreenSizeX()) newX = GetScreenSizeX() - 1;
+	if (newY >= (unsigned)GetScreenSizeY()) newY = GetScreenSizeY() - 1;
+	
+	g_mouseX = newX, g_mouseY = newY;
+	
+	//--uncomment if you want one pixel cursor (This is very useless and hard to use)
+	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
+	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
+	
+	//Draw the cursor image at the new position:
+	for (int i = 0; i < g_currentCursor->height; i++)
+	{
+		for (int j = 0; j < g_currentCursor->width; j++)
+		{
+			int id = i * g_currentCursor->width + j;
+			if (g_currentCursor->bitmap[id] != 0)
+			{
+				int kx = j + g_mouseX - g_currentCursor->leftOffs,
+					ky = i + g_mouseY - g_currentCursor->topOffs;
+				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+				VidPlotPixelIgnoreCursorChecksChecked (
+					kx,
+					ky,
+					g_currentCursor->bitmap[id]
+				);
+			}
+		}
+	}
+	
+	//Then, redraw all the pixels under where the cursor was previously:
+	for (int i = 0; i < g_currentCursor->height; i++)
+	{
+		for (int j = 0; j < g_currentCursor->width; j++)
+		{
+			int id = i * g_currentCursor->width + j;
+			if (g_currentCursor->bitmap[id] != 0)
+			{
+				int kx = j + oldX - g_currentCursor->leftOffs,
+					ky = i + oldY - g_currentCursor->topOffs;
+				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+				VidPlotPixel (
+					kx, ky, VidReadPixel (kx, ky)
+				);
+			}
+		}
+	}
+	
+	//TODO: check flags here
+	
+	g_vbeData = backup;
+}
+
+void SetDefaultCursor ()
+{
+	g_currentCursor = &g_defaultCursor;
+	g_pDefaultCursor = &g_defaultCursor;
+	g_pWaitCursor = &g_waitCursor;
+}
+#endif
+
+// Getters
+#if 1
 bool VidIsAvailable()
 {
-	return g_vbeData.m_available;
+	return g_vbeData->m_available;
 }
 int GetScreenSizeX()
 {
-	return g_vbeData.m_width;
+	return g_vbeData->m_width;
 }
 int GetScreenSizeY()
 {
-	return g_vbeData.m_height;
+	return g_vbeData->m_height;
 }
-void VidInitializeVBEData(multiboot_info_t* pInfo)
+int GetWidth (Rectangle* rect)
 {
-	int bpp = pInfo->framebuffer_bpp;
-	g_vbeData.m_available = true;
-	g_vbeData.m_width     = pInfo->framebuffer_width;
-	g_vbeData.m_height    = pInfo->framebuffer_height;
-	if (bpp == 32)
-		g_vbeData.m_bitdepth  = 2;
-	else if (bpp == 16)
-		g_vbeData.m_bitdepth  = 1;
-	else
-		g_vbeData.m_bitdepth  = 0;
-	g_vbeData.m_pitch     = pInfo->framebuffer_pitch;
-	g_vbeData.m_pitch32   = pInfo->framebuffer_pitch / sizeof (int);
-	g_vbeData.m_pitch16   = pInfo->framebuffer_pitch / sizeof (short);
-	
-	g_vbeData.m_framebuffer32 = (uint32_t*)FRAMEBUFFER_MAPPED_ADDR;
-	g_vbeData.m_framebuffer16 = (uint16_t*)FRAMEBUFFER_MAPPED_ADDR;
-	g_vbeData.m_framebuffer8  = (uint8_t *)FRAMEBUFFER_MAPPED_ADDR;
+	return rect->right - rect->left;
 }
+int GetHeight (Rectangle* rect)
+{
+	return rect->bottom - rect->top;
+}
+#endif
 
+// Graphical drawing routines
+#if 1
 typedef void (*PlotPixelFunction)(unsigned x, unsigned y, unsigned color);
 
 //! Temporary placeholder functions:
@@ -87,26 +381,72 @@ short VidColor32to16(unsigned color)
 
 void VidPlotPixelRaw8  (unsigned x, unsigned y, unsigned color)
 {
-	g_vbeData.m_framebuffer8 [x + y * g_vbeData.m_pitch  ] = VidColor32to8 (color);
+	g_vbeData->m_dirty = 1;
+	g_vbeData->m_framebuffer8 [x + y * g_vbeData->m_pitch  ] = VidColor32to8 (color);
 }
 void VidPlotPixelRaw16 (unsigned x, unsigned y, unsigned color)
 {
-	g_vbeData.m_framebuffer16[x + y * g_vbeData.m_pitch16] = VidColor32to16(color);
+	g_vbeData->m_dirty = 1;
+	g_vbeData->m_framebuffer16[x + y * g_vbeData->m_pitch16] = VidColor32to16(color);
 }
 void VidPlotPixelRaw32 (unsigned x, unsigned y, unsigned color)
 {
-	g_vbeData.m_framebuffer32[x + y * g_vbeData.m_pitch32] = color;
+	g_vbeData->m_dirty = 1;
+	g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
 }
-void VidPlotPixel(unsigned x, unsigned y, unsigned color)
+static void VidPlotPixelIgnoreCursorChecks(unsigned x, unsigned y, unsigned color)
 {
-	if (x >= g_vbeData.m_width && y >= g_vbeData.m_height) return;
-	switch (g_vbeData.m_bitdepth)
+	switch (g_vbeData->m_bitdepth)
 	{
 		case 0: VidPlotPixelRaw8 (x, y, color); break;
 		case 1: VidPlotPixelRaw16(x, y, color); break;
 		case 2: VidPlotPixelRaw32(x, y, color); break;
 	}
-	g_framebufferCopy[x + y * g_vbeData.m_width] = color;
+}
+static void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color)
+{
+	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
+	switch (g_vbeData->m_bitdepth)
+	{
+		case 0: VidPlotPixelRaw8 (x, y, color); break;
+		case 1: VidPlotPixelRaw16(x, y, color); break;
+		case 2: VidPlotPixelRaw32(x, y, color); break;
+	}
+}
+static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
+{
+	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
+	if (g_vbeData == &g_mainScreenVBEData)
+		g_framebufferCopy[x + y * g_vbeData->m_width] = color;
+}
+void VidPlotPixel(unsigned x, unsigned y, unsigned color)
+{
+	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
+	VidPlotPixelToCopy(x, y, color);
+	
+	// if inside the cursor area, don't display this pixel on the screen:
+	if (g_vbeData == &g_mainScreenVBEData)
+	{
+		if (g_currentCursor && g_isMouseVisible)
+		{
+			if ((int)x >= g_mouseX - g_currentCursor->leftOffs &&
+				(int)y >= g_mouseY - g_currentCursor->topOffs  &&
+				(int)x <  g_mouseX + g_currentCursor->width  - g_currentCursor->leftOffs &&
+				(int)y <  g_mouseY + g_currentCursor->height - g_currentCursor->topOffs)
+			{
+				int mx = x - g_mouseX + g_currentCursor->leftOffs;
+				int my = y - g_mouseY + g_currentCursor->topOffs;
+				int index = my * g_currentCursor->width + mx;
+				if (g_currentCursor->bitmap[index] != 0)
+				{
+					return;
+				}
+			}
+		}
+	}
+	
+	
+	VidPlotPixelIgnoreCursorChecks (x, y, color);
 }
 void VidPrintTestingPattern()
 {
@@ -121,16 +461,18 @@ void VidPrintTestingPattern()
 }
 void VidFillScreen(unsigned color)
 {
+	g_vbeData->m_dirty = 1;
 	int color2 = color;
-	switch (g_vbeData.m_bitdepth)
+	bool alsoToTheCopy = (g_vbeData == &g_mainScreenVBEData);
+	switch (g_vbeData->m_bitdepth)
 	{
 		case 0:
 			color2 = VidColor32to8(color);
 			for (int y = 0; y < GetScreenSizeY(); y++) 
 				for (int x = 0; x < GetScreenSizeX(); x++)
 				{
-					g_vbeData.m_framebuffer8 [x + y * g_vbeData.m_pitch  ] = color2;
-					g_framebufferCopy[x + y * g_vbeData.m_width] = color;
+					g_vbeData->m_framebuffer8 [x + y * g_vbeData->m_pitch  ] = color2;
+					if (alsoToTheCopy) g_framebufferCopy[x + y * g_vbeData->m_width] = color;
 				}
 			break;
 		case 1:
@@ -138,16 +480,16 @@ void VidFillScreen(unsigned color)
 			for (int y = 0; y < GetScreenSizeY(); y++) 
 				for (int x = 0; x < GetScreenSizeX(); x++)
 				{
-					g_vbeData.m_framebuffer16[x + y * g_vbeData.m_pitch16] = color2;
-					g_framebufferCopy[x + y * g_vbeData.m_width] = color;
+					g_vbeData->m_framebuffer16[x + y * g_vbeData->m_pitch16] = color2;
+					if (alsoToTheCopy) g_framebufferCopy[x + y * g_vbeData->m_width] = color;
 				}
 			break;
 		case 2:
 			for (int y = 0; y < GetScreenSizeY(); y++) 
 				for (int x = 0; x < GetScreenSizeX(); x++)
 				{
-					g_vbeData.m_framebuffer32[x + y * g_vbeData.m_pitch32] = color;
-					g_framebufferCopy[x + y * g_vbeData.m_width] = color;
+					g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
+					if (alsoToTheCopy) g_framebufferCopy[x + y * g_vbeData->m_width] = color;
 				}
 			break;
 	}
@@ -165,6 +507,20 @@ void VidFillRect(unsigned color, int left, int top, int right, int bottom)
 			VidPlotPixel(x, y, color);
 	}
 }
+void VidFillRectangle(unsigned color, Rectangle rect)
+{
+	VidFillRect (color, rect.left, rect.top, rect.right, rect.bottom);
+}
+
+void VidSetVBEData(VBEData* pData)
+{
+	if (pData)
+		g_vbeData = pData;
+	else
+		g_vbeData = &g_mainScreenVBEData;
+}
+
+
 // Font rendering
 bool g_uses8by16Font = 0;
 
@@ -204,12 +560,16 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 		}
 	}
 }
+
+//! DO NOT use this on non-main-screen framebuffers!
 unsigned VidReadPixel (unsigned x, unsigned y)
 {
 	if (x >= (unsigned)GetScreenSizeX()) return 0;
 	if (y >= (unsigned)GetScreenSizeY()) return 0;
 	return g_framebufferCopy[x + y * GetScreenSizeX()];
 }
+
+//! DO NOT use this on non-main-screen framebuffers!
 void VidShiftScreen (int howMuch)
 {
 	if (howMuch >= GetScreenSizeY())
@@ -220,13 +580,13 @@ void VidShiftScreen (int howMuch)
 		}
 	}*/
 	
-	if (g_vbeData.m_bitdepth == 2)
+	if (g_vbeData->m_bitdepth == 2)
 	{
-		int a = g_vbeData.m_width * 4;
-		for (int i = howMuch, j = 0, k = 0; i < GetScreenSizeY(); i++, j += g_vbeData.m_pitch, k += a)
+		int a = g_vbeData->m_width * 4;
+		for (int i = howMuch, j = 0, k = 0; i < GetScreenSizeY(); i++, j += g_vbeData->m_pitch, k += a)
 		{
-			fast_memcpy(((uint8_t*)g_vbeData.m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData.m_width], a);
-			fast_memcpy(((uint8_t*)g_framebufferCopy         + k), &g_framebufferCopy[i * g_vbeData.m_width], a);
+			fast_memcpy(((uint8_t*)g_vbeData->m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData->m_width], a);
+			fast_memcpy(((uint8_t*)g_framebufferCopy         + k), &g_framebufferCopy[i * g_vbeData->m_width], a);
 		}
 	}
 	else
@@ -234,13 +594,38 @@ void VidShiftScreen (int howMuch)
 		;//unhandled
 	}
 }
+#endif
 
+// Video initialization
+#if 1
+void VidInitializeVBEData(multiboot_info_t* pInfo)
+{
+	int bpp = pInfo->framebuffer_bpp;
+	g_vbeData->m_available = true;
+	g_vbeData->m_width     = pInfo->framebuffer_width;
+	g_vbeData->m_height    = pInfo->framebuffer_height;
+	if (bpp == 32)
+		g_vbeData->m_bitdepth  = 2;
+	else if (bpp == 16)
+		g_vbeData->m_bitdepth  = 1;
+	else
+		g_vbeData->m_bitdepth  = 0;
+	g_vbeData->m_pitch     = pInfo->framebuffer_pitch;
+	g_vbeData->m_pitch32   = pInfo->framebuffer_pitch / sizeof (int);
+	g_vbeData->m_pitch16   = pInfo->framebuffer_pitch / sizeof (short);
+	
+	g_vbeData->m_framebuffer32 = (uint32_t*)FRAMEBUFFER_MAPPED_ADDR;
+	g_vbeData->m_framebuffer16 = (uint16_t*)FRAMEBUFFER_MAPPED_ADDR;
+	g_vbeData->m_framebuffer8  = (uint8_t *)FRAMEBUFFER_MAPPED_ADDR;
+}
 //present, read/write, user/supervisor, writethrough
 #define VBE_PAGE_BITS (1 | 2 | 4 | 8)
 void VidInitialize(multiboot_info_t* pInfo)
 {
 	cli;
-	g_vbeData.m_available = false;
+	g_vbeData = &g_mainScreenVBEData;
+	
+	g_vbeData->m_available = false;
 	if (pInfo->flags & MULTIBOOT_INFO_VIDEO_INFO)
 	{
 		if (pInfo->framebuffer_type != 1)
@@ -249,7 +634,7 @@ void VidInitialize(multiboot_info_t* pInfo)
 			sti;
 			return;
 		}
-		// map shit to 0xE0000000
+		// map shit to 0xE0000000 or above
 		int index = FRAMEBUFFER_MAPPED_ADDR >> 22;
 		uint32_t pointer = pInfo->framebuffer_addr;
 		uint32_t final_address = 0xE0000000;
@@ -295,3 +680,4 @@ void VidInitialize(multiboot_info_t* pInfo)
 		sti;
 	}
 }
+#endif

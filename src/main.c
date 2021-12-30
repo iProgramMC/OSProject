@@ -15,6 +15,7 @@
 #include <multiboot.h>
 #include <task.h>
 #include <shell.h>
+#include <mouse.h>
 
 __attribute__((noreturn))
 void KeStopSystem()
@@ -151,6 +152,9 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	VidInitialize (mbi);
 	// Initialize the task scheduler
 	KiTaskSystemInitialize();
+	
+	//Initialize the mouse driver too
+	MouseInit();
 	sti;
 	
 	//LogMsg("C_MAX_TASKS: %d", C_MAX_TASKS);

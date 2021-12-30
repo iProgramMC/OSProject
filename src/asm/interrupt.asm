@@ -4,33 +4,43 @@ SECTION .text
 
 extern IrqTimer
 extern IrqClock
+extern IrqMouse
 extern IrqKeyboard
 extern OnSyscallReceived
 extern IsrSoftware
+
 global IrqTimerA
 global IrqClockA
+global IrqMouseA
+global IrqKeyboardA
+global IrqCascadeA
 global OnSyscallReceivedA
+
+
 IrqTimerA:
 	pusha
 	call IrqTimer
 	popa
 	iretd
-global IrqKeyboardA
 IrqKeyboardA:
 	pusha
+	push esp
 	call IrqKeyboard
+	add esp, 4
 	popa
 	iretd
-global IrqClockA
 IrqClockA:
 	pusha
 	call IrqClock
 	popa
 	iretd
-global IrqCascadeA
+IrqMouseA:
+	pusha
+	call IrqMouse
+	popa
+	iretd
 IrqCascadeA:
 	iretd
-global OnSyscallReceivedA
 OnSyscallReceivedA:
 	cli
 	push 0

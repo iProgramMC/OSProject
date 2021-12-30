@@ -19,18 +19,44 @@ typedef unsigned uint;
 #define false 0
 #define true 1
 
-#define hlt __asm__("hlt\n\t")  
-#define cli __asm__("cli\n\t")
-#define sti __asm__("sti\n\t")
+#define hlt __asm__("hlt\n\t")
+#define cli __asm__("cli\n\t")//do{__asm__("cli\n\t");SLogMsg("CLI request at " __FILE__ ":%d",__LINE__);}while(0)
+#define sti __asm__("sti\n\t")//do{__asm__("sti\n\t");SLogMsg("STI request at " __FILE__ ":%d",__LINE__);}while(0)
 
-#define Version 10
-#define VersionString "V0.10"
+#define Version 11
+#define VersionString "V0.11"
 
 #define UNUSED __attribute__((unused))
 
 #define crash __asm__("int $0x10\n\t") // Int 0x10 doesn't work in pmode! Might as well make use of it.
 
 #define KERNEL_MEM_START 0xC0000000
+
+//note: needs to be used for SIZED arrays only
+#define ARRAY_COUNT(array) (sizeof(array)/sizeof(*array))
+
+#define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+
+#ifdef MULTITASKED_WINDOW_MANAGER
+
+#define ACQUIRE_LOCK(lock_var) do {\
+	SLogMsg("acquirelock " #lock_var ":%d",lock_var);\
+	while (lock_var) \
+	{ SLogMsgNoCr("Retry" #lock_var); hlt; } \
+	lock_var = 1;\
+} while (0)
+
+#define FREE_LOCK(lock_var) do {\
+	SLogMsg("Unlocking " #lock_var);\
+	lock_var = 0;\
+} while (0);
+
+#else
+	
+#define ACQUIRE_LOCK(var)
+#define FREE_LOCK(var)
+
+#endif
 
 extern void WritePort(unsigned short port, unsigned char data);
 extern unsigned char ReadPort(unsigned short port);

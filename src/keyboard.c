@@ -227,7 +227,7 @@ bool ShiftPressed()
 			KbGetKeyState(KEY_RSHIFT) == KEY_PRESSED);
 }
 
-void IrqKeyboard()
+void IrqKeyboard(int e[50])
 {
 	//LogMsg("Keyboard!");
 	// acknowledge interrupt:
@@ -248,6 +248,15 @@ void IrqKeyboard()
 		}
 		else
 		{
+			if (keycode == KEY_F11)
+			{
+				SLogMsgNoCr("\nHello:");
+				for(int a=0; a<50; a++)
+				{
+					SLogMsgNoCr(" %x", e[a]);
+				}
+				SLogMsg("");
+			}
 			keyboardState[keycode & SCANCODE_NOTREL] = KEY_PRESSED;
 			KbAddKeyToBuffer(KeyboardMap[(keycode & SCANCODE_NOTREL) + (ShiftPressed() ? 0x80 : 0x00)]);
 		}
