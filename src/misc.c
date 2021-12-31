@@ -64,7 +64,9 @@ void KePrintSystemInfoAdvanced()
 	LogMsg("\x01\x0CVersion Number: %d", VersionNumber);
 	
 	LogMsg("\x01\x0F-------------------------------------------------------------------------------");
-	LogMsg("\x01\x09[CPU] x86 Family %d Model %d Stepping %d.  Feature bits: %d");
+	LogMsg("\x01\x09[CPU] Name: %s", GetCPUName());
+	LogMsg("\x01\x09[CPU] x86 Family %d Model %d Stepping %d.  Feature bits: %d",
+			g_cpuidFeatureBits.m_familyID, g_cpuidFeatureBits.m_model, g_cpuidFeatureBits.m_steppingID);
 	LogMsg("\x01\x0A[RAM] PageSize: 4K. Physical pages: %d. Total physical RAM: %d Kb", GetNumPhysPages(), GetNumPhysPages()*4);
 	LogMsg("\x01\x0A[VID] Screen resolution: %dx%d.  Textmode size: %dx%d characters, of type %d.", GetScreenSizeX(), GetScreenSizeY(), 
 																						g_debugConsole.width, g_debugConsole.height, g_debugConsole.type);
@@ -88,4 +90,5 @@ void KePrintSystemInfo()
 	LogMsg("\x01\x0D       S    S \x01\x0C ");
 	LogMsg("\x01\x0D        SSSS  \x01\x0C ");
 	LogMsg("\x01\x0F");
+	//Last Line Of Code Written In 2021
 }

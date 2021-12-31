@@ -66,4 +66,9 @@ CPUIDFeatureBits GetCPUFeatureBits();
  */
 void KePrintSystemInfo();
 
+/**
+ * Prints more info about the system.
+ */
+void KePrintSystemInfoAdvanced();
+
 #endif//_MISC_H

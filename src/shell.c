@@ -98,6 +98,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("mrd        - mounts a testing RAM Disk");
 		LogMsg("rd         - reads and dumps a sector from the RAM Disk");
 		LogMsg("sysinfo    - dump system information");
+		LogMsg("sysinfoa   - dump advanced system information");
 		LogMsg("time       - get timing information");
 		LogMsg("st         - spawns a single thread that makes a random line forever");
 		LogMsg("tt         - spawns 64 threads that makes random lines forever");
@@ -297,6 +298,10 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "sysinfo") == 0)
 	{
 		KePrintSystemInfo();
+	}
+	else if (strcmp (token, "sysinfoa") == 0)
+	{
+		KePrintSystemInfoAdvanced();
 	}
 	else
 	{
