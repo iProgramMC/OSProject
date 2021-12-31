@@ -39,6 +39,11 @@ void MmFirstThingEver(unsigned long memorySizeKb)
 	e_placement += e_frameBitsetSize;
 }
 
+int GetNumPhysPages()
+{
+	return e_frameBitsetSize;
+}
+
 /**
  * Kernel heap.
  */
@@ -130,6 +135,26 @@ static uint32_t MmFindFreeFrame()
 	//what
 	LogMsg("WARNING: No more free memory?!");
 	return 0xffffffffu/*ck you*/;
+}
+
+int GetNumFreePhysPages()
+{
+	int result = 0;
+	for (uint32_t i=0; i<INDEX_FROM_BIT(e_frameBitsetSize); i++)
+	{
+		//Any bit free?
+		if (e_frameBitsetVirt[i] != 0xFFFFFFFF) {
+			//yes, which?
+			for (int j=0; j<32; j++)
+			{
+				if (!(e_frameBitsetVirt[i] & (1<<j)))
+					result++;
+			}
+		}
+		//no, continue
+	}
+	//what
+	return result;
 }
 
 void MmInitializePMM()

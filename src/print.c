@@ -176,35 +176,5 @@ void sprintf(char*a, const char*c, ...) {
 	va_end(list);
 }
 
-typedef struct
-{
-	char m_steppingID : 4;
-	char m_model : 4;
-	char m_familyID : 4;
-	char m_processorType : 2;
-	char m_reserved : 2;
-	char m_extModelID: 4;
-	char m_extendedFamilyID;
-	char m_reserved1 : 4;
-}
-__attribute__((packed))
-CPUIDFeatureBits;
-
-extern void KeCPUID();
-extern uint32_t g_cpuidLastLeaf;
-extern char g_cpuidNameEBX[];
-extern CPUIDFeatureBits g_cpuidFeatureBits;
-
-void KePrintSystemInfo()
-{
-	KeCPUID();
-	LogMsg("Information about the system:");
-	LogMsg("CPU Type: %s", g_cpuidNameEBX);
-	LogMsg("Feature bits: %x", *((int*)&g_cpuidFeatureBits));
-	LogMsgNoCr("x86 Family %d ", g_cpuidFeatureBits.m_familyID);
-	LogMsgNoCr("Model %d ", g_cpuidFeatureBits.m_model);
-	LogMsg("Stepping %d", g_cpuidFeatureBits.m_steppingID);
-	LogMsg("g_cpuidLastLeaf: %d", g_cpuidLastLeaf);
-}
 extern int g_textX, g_textY;
 

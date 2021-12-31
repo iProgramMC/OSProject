@@ -162,6 +162,16 @@ bool AllocateHeapD (Heap* pHeap, int size, const char* callerFile, int callerLin
 int GetHeapSize();
 
 /**
+ * Get total number of allocatable pages.
+ */
+int GetNumPhysPages();
+
+/**
+ * Get total number of free allocatable pages.
+ */
+int GetNumFreePhysPages();
+
+/**
  * Use this heap pointer as our heap.  
  */
 void UseHeap (Heap* pHeap);

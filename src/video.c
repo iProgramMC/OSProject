@@ -345,14 +345,17 @@ void SetDefaultCursor ()
 #if 1
 bool VidIsAvailable()
 {
+	if (!g_vbeData) return false;
 	return g_vbeData->m_available;
 }
 int GetScreenSizeX()
 {
+	if (!g_vbeData) return 0;
 	return g_vbeData->m_width;
 }
 int GetScreenSizeY()
 {
+	if (!g_vbeData) return 0;
 	return g_vbeData->m_height;
 }
 int GetWidth (Rectangle* rect)

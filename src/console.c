@@ -145,14 +145,25 @@ void CoScrollUpByOne(Console *this) {
 	}
 }
 bool g_shouldntUpdateCursor = false;
-void CoPrintChar (Console* this, char c) {
-	if (this->type != CONSOLE_TYPE_FRAMEBUFFER) 
+//returns a bool, if it's a true, we need to skip the next character.
+bool CoPrintCharInternal (Console* this, char c, char next) {
+	if (this->type == CONSOLE_TYPE_E9HACK) 
 	{
 		WritePort(0xE9, c);
 		//return; // Not Initialized
+		return false;
 	}
-	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
+	if (this->type == CONSOLE_TYPE_NONE) return false; // Not Initialized
 	switch (c) {
+		case '\x01':
+			//allow foreground color switching.
+			//To use this, just type `\x01\x0B`, for example, to switch to bright cyan
+			//Typing \x00 will end the parsing, so you can use \x01\x10, or \x01\x30.
+			
+			if (!next) break;
+			char color = next & 0xF;
+			this->color = (this->color & 0xF0) | color;
+			return true;
 		case '\b':
 			if (--this->curX < 0) {
 				this->curX = this->width - 1;
@@ -187,11 +198,19 @@ void CoPrintChar (Console* this, char c) {
 		}
 	}
 	if (!g_shouldntUpdateCursor) CoMoveCursor(this);
+	return false;
+}
+void CoPrintChar (Console* this, char c)
+{
+	CoPrintCharInternal(this, c, 0);
 }
 void CoPrintString (Console* this, const char *c) {
 	if (this->type == CONSOLE_TYPE_NONE) return; // Not Initialized
 	g_shouldntUpdateCursor = true;
-	while (*c) CoPrintChar(this, *c++);
+	while (*c) {
+		if (CoPrintCharInternal(this, *c, *(c+1))) c++;
+		c++;
+	}
 	g_shouldntUpdateCursor = false;
 	CoMoveCursor(this);
 }

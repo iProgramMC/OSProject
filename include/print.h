@@ -12,9 +12,8 @@
 
 void sprintf(char*a, const char*c, ...);
 void vsprintf(char* memory, const char* format, va_list list);
-void LogInt (uint32_t i);
+/*void LogInt (uint32_t i);
 void LogIntDec (int i);
-void KePrintSystemInfo();
-void PrInitialize();
+void PrInitialize();*/
 
 #endif//_PRINT_H

@@ -209,6 +209,7 @@ global g_cpuidNameECX
 global g_cpuidNameEDX
 global g_cpuidNameNUL
 global g_cpuidFeatureBits
+global g_cpuidBrandingInfo
 	
 global KeCPUID
 KeCPUID:
@@ -226,6 +227,32 @@ KeCPUID:
 	CPUID
 	MOV [g_cpuidFeatureBits], EAX
 	
+	; get processor brand string
+	
+	MOV EAX, 80000002h
+	CPUID
+	MOV [g_cpuidBrandingInfo+ 0], EAX
+	MOV [g_cpuidBrandingInfo+ 4], EBX
+	MOV [g_cpuidBrandingInfo+ 8], ECX
+	MOV [g_cpuidBrandingInfo+12], EDX
+	
+	MOV EAX, 80000003h
+	CPUID
+	MOV [g_cpuidBrandingInfo+16], EAX
+	MOV [g_cpuidBrandingInfo+20], EBX
+	MOV [g_cpuidBrandingInfo+24], ECX
+	MOV [g_cpuidBrandingInfo+28], EDX
+	
+	MOV EAX, 80000004h
+	CPUID
+	MOV [g_cpuidBrandingInfo+32], EAX
+	MOV [g_cpuidBrandingInfo+36], EBX
+	MOV [g_cpuidBrandingInfo+40], ECX
+	MOV [g_cpuidBrandingInfo+44], EDX
+	
+	XOR EAX, EAX
+	MOV [g_cpuidBrandingInfo+48], AL
+	
 	RET
 	
 section .bss
@@ -238,6 +265,8 @@ g_cpuidNameEBX resd 1
 g_cpuidNameEDX resd 1
 g_cpuidNameECX resd 1
 g_cpuidNameNUL resd 1
+
+g_cpuidBrandingInfo resd 49
 
 ; eax=1, eax's value:
 g_cpuidFeatureBits resd 1

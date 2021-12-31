@@ -9,6 +9,20 @@
 
 #define RTC_TICKS_PER_SECOND 2048
 
+typedef struct
+{
+	unsigned char m_steppingID : 4;
+	unsigned char m_model : 4;
+	unsigned char m_familyID : 4;
+	unsigned char m_processorType : 2;
+	unsigned char m_reserved : 2;
+	unsigned char m_extModelID: 4;
+	unsigned char m_extendedFamilyID;
+	unsigned char m_reserved1 : 4;
+}
+__attribute__((packed))
+CPUIDFeatureBits;
+
 /**
  * Gets the TSC from the CPU.  It returns the number of cycles the CPU went
  * through after the last reset, in "high" and "low".
@@ -25,5 +39,31 @@ int GetTickCount();
  * Gets the number of times the RTC interrupt handler was called.
  */
 int GetRawTickCount();
+
+/**
+ * Gets the CPU type string. (e.g. "GenuineIntel", "AuthenticAMD" etc)
+ *
+ * Note:  MUST call KeCPUID().  KiStartupSystem already does that though.
+ */
+const char* GetCPUType();
+
+/**
+ * Gets the CPU name string.
+ *
+ * Note:  MUST call KeCPUID().  KiStartupSystem already does that though.
+ */
+const char* GetCPUType();
+
+/**
+ * Gets the CPU feature bits.
+ *
+ * Note:  MUST call KeCPUID().  KiStartupSystem already does that though.
+ */
+CPUIDFeatureBits GetCPUFeatureBits();
+
+/**
+ * Prints info about the system.
+ */
+void KePrintSystemInfo();
 
 #endif//_MISC_H

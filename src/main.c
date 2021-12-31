@@ -16,6 +16,7 @@
 #include <task.h>
 #include <shell.h>
 #include <mouse.h>
+#include <misc.h>
 
 __attribute__((noreturn))
 void KeStopSystem()
@@ -116,6 +117,7 @@ void KiPerformRamCheck()
 	}
 }
 
+extern void KeCPUID();//io.asm
 __attribute__((noreturn))
 void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 {
@@ -144,6 +146,9 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	KiPerformRamCheck();
 	MmFirstThingEver(g_nKbExtRam);
 	
+	//grab the CPUID
+	KeCPUID();
+	
 	KiIdtInit();
 	cli;
 	// Initialize the Memory Management Subsystem
@@ -166,10 +171,10 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	//print the hello text, to see if the OS booted ok
 	KePrintSystemVersion();
 	
-	TestAllocFunctions();
-	ElfPerformTest();
+	//TestAllocFunctions();
+	//ElfPerformTest();
 	KePrintSystemInfo();
-	TestHeap();
+	//TestHeap();
 	
 	//MmDebugDump();
 	//FreeTypeThing();
