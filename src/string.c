@@ -75,16 +75,7 @@ void* memset(void* bufptr, BYTE val, size_t size)
 	}
 	return bufptr;
 }
-void* fast_memset(void* bufptr, BYTE val, size_t size)
-{
-	uint32_t* buf = (uint32_t*) bufptr;
-	uint32_t val2 = val<<24|val<<16|val<<8|val;
-	for(size_t i = 0; i < size; i += 4)
-	{
-		buf[i] = val2;
-	}
-	return bufptr;
-}
+void* fast_memset(void* bufptr, BYTE val, size_t size);
 //NOTE: size must be 4 byte aligned!!
 void ZeroMemory (void* bufptr1, size_t size)
 {

@@ -37,17 +37,17 @@ typedef unsigned uint;
 
 #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 
+#define UNUSED __attribute__((unused))
+
 #ifdef MULTITASKED_WINDOW_MANAGER
 
 #define ACQUIRE_LOCK(lock_var) do {\
-	SLogMsg("acquirelock " #lock_var ":%d",lock_var);\
 	while (lock_var) \
-	{ SLogMsgNoCr("Retry" #lock_var); hlt; } \
+		hlt; \
 	lock_var = 1;\
 } while (0)
 
 #define FREE_LOCK(lock_var) do {\
-	SLogMsg("Unlocking " #lock_var);\
 	lock_var = 0;\
 } while (0);
 

@@ -42,6 +42,33 @@ not_fast_memcpy:
 	rep movsb
 	ret
 	
+extern fast_memset
+fast_memset:
+	mov esi, [esp + 8]
+	mov edi, [esp + 4]
+	mov ecx, [esp + 12]
+	
+	and esi, 0xFF
+	mov eax, esi
+	xor esi, esi
+	
+	or  esi, eax
+	shl eax, 8
+	or  esi, eax
+	shl eax, 8
+	or  esi, eax
+	shl eax, 8
+	or  esi, eax
+	
+	.some_loop:
+		mov [edi], esi
+		add edi, 4
+		sub ecx, 4
+		jnz .some_loop
+	
+	ret
+
+
 fast_memcpy:
 	mov esi, [esp + 8]
 	mov edi, [esp + 4]

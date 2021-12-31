@@ -119,7 +119,7 @@ void vsprintf(char* memory, const char* format, va_list list) {
 				}
 				case 'b': {
 					uint32_t toPrint = va_arg(list, uint32_t);
-					uint32_t power = (15 << 28), pt = 4;
+					uint32_t power = (15 << 4), pt = 4;
 					for (; power != 0; power >>= 4, pt -= 4) {
 						uint32_t p = toPrint & power;
 						p >>= pt;

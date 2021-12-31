@@ -536,6 +536,96 @@ void VidDrawVLine(unsigned color, int top, int bottom, int x)
 		VidPlotPixel(x, y, color);
 	}
 }
+int absinl(int i)
+{
+	if (i < 0) return -i; 
+	return i;
+}
+
+//shamelessly stolen from https://github.com/OneLoneCoder/olcPixelGameEngine/blob/master/olcPixelGameEngine.h#L1866
+void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2)
+{
+	//is line vertical?
+	int aux = 0;
+	if (x1 == x2)
+	{
+		//we have a more optimized version, use that
+		if (y1 > y2)
+		{
+			aux = y1; y1 = y2; y2 = aux;
+		}
+		VidDrawVLine(p, y1, y2, x1);
+		return;
+	}
+	//is line horizontal?
+	if (y1 == y2)
+	{
+		if (x1 > x2)
+		{
+			aux = x1; x1 = x2; x2 = aux;
+		}
+		//we have a more optimized version, use that
+		VidDrawHLine(p, x1, x2, y1);
+		return;
+	}
+	
+	int dx = x2 - x1, dy = y2 - y1;
+	int dx1 = absinl(dx), dy1 = absinl(dy), xe, ye, x, y;
+	int px = 2 * dy1 - dx1, py = 2 * dx1 - dy1;
+	
+	if (dy1 <= dx1)
+	{
+		if (dx >= 0)
+		{
+			x = x1, y = y1, xe = x2;
+		}
+		else
+		{
+			x = x2, y = y2, xe = x1;
+		}
+		
+		VidPlotPixel(x, y, p);
+		
+		for (int i = 0; x < xe; i++)
+		{
+			x++;
+			if (px < 0)
+				px += 2 * dy1;
+			else
+			{
+				if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y++; else y--;
+				px += 2 * (dy1 - dx1);
+			}
+			VidPlotPixel(x, y, p);
+		}
+	}
+	else
+	{
+		if (dy >= 0)
+		{
+			x = x1, y = y1, ye = y2;
+		}
+		else
+		{
+			x = x2, y = y2, ye = y1;
+		}
+		
+		VidPlotPixel(x, y, p);
+		
+		for (int i = 0; y < ye; i++)
+		{
+			y++;
+			if (py <= 0)
+				py += 2 * dx1;
+			else
+			{
+				if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x++; else x--;
+				py += 2 * (dx1 - dy1);
+			}
+			VidPlotPixel(x, y, p);
+		}
+	}
+}
 void VidDrawRect(unsigned color, int left, int top, int right, int bottom)
 {
 	//basic clipping:
@@ -581,6 +671,7 @@ const unsigned char* g_fontIDToData[] = {
 	g_TamsynRegu8x16,
 	g_TamsynBold8x16,
 	g_PaperMFont8x16,
+	g_BasicFontData,
 };
 const unsigned char* g_pCurrentFont = NULL;
 void VidSetFont(unsigned fontType)
@@ -591,7 +682,7 @@ void VidSetFont(unsigned fontType)
 		return;
 	}
 	g_pCurrentFont  = g_fontIDToData[fontType];
-	g_uses8by16Font = (g_pCurrentFont[1] == 16);
+	g_uses8by16Font = (g_pCurrentFont[1] != 8);
 }
 void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/)
 {
@@ -600,7 +691,7 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 		return;
 	}
 	int width = g_pCurrentFont[0], height = g_pCurrentFont[1];
-	const unsigned char* test = g_pCurrentFont + 2;
+	const unsigned char* test = g_pCurrentFont + 3;
 	for (int y = 0; y < height; y++)
 	{
 		for (int x = 0, bitmask = (1 << (width - 1)); x < width; x++, bitmask >>= 1)
@@ -616,6 +707,7 @@ void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, u
 {
 	int x = ox, y = oy;
 	int lineHeight = g_pCurrentFont[1], charWidth = g_pCurrentFont[0];
+	bool hasVariableCharWidth = g_pCurrentFont[2];
 	
 	while (*pText)
 	{
@@ -628,8 +720,10 @@ void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, u
 		}
 		else
 		{
+			int cw = charWidth;
+			if (hasVariableCharWidth) cw = g_pCurrentFont[3 + 256 * lineHeight + c];
 			VidPlotChar(c, x, y, colorFg, colorBg);
-			x += charWidth;
+			x += cw;
 		}
 		pText++;
 	}
@@ -742,6 +836,7 @@ void VidInitialize(multiboot_info_t* pInfo)
 		// initialize the console:
 		//LogMsg("Setting font.");
 		VidSetFont (FONT_TAMSYN_BOLD);
+		//VidSetFont (FONT_BASIC);
 		//LogMsg("Re-initializing debug console with graphics");
 		CoInitAsGraphics(&g_debugConsole);
 		sti;

@@ -37,7 +37,7 @@ enum {
 };
 
 struct WindowStruct;
-typedef void (*WindowProc) (struct WindowStruct*, int);
+typedef void (*WindowProc) (struct WindowStruct*, int, int, int);
 
 typedef struct WindowStruct
 {
@@ -56,6 +56,8 @@ typedef struct WindowStruct
 	
 	bool       m_eventQueueLock;
 	short      m_eventQueue[EVENT_QUEUE_MAX];
+	int        m_eventQueueParm1[EVENT_QUEUE_MAX];
+	int        m_eventQueueParm2[EVENT_QUEUE_MAX];
 	int        m_eventQueueSize;
 	
 	bool       m_markedForDeletion;
@@ -66,6 +68,10 @@ typedef struct WindowStruct
  * Mark your callbacks with this anyway!
  */
 #define CALLBACK 
+
+#define MAKE_MOUSE_PARM(x, y) ((x)<<16|(y))
+#define GET_X_PARM(parm1)  (parm1>>16)
+#define GET_Y_PARM(parm2)  (parm1&0xFFFF)
 
 /**
  * Entry point of the window manager.

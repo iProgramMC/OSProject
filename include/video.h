@@ -18,6 +18,7 @@ enum {
 	FONT_TAMSYN_BOLD,
 	FONT_PAPERM,
 	FONT_FAMISANS,
+	FONT_BASIC,
 	FONT_LAST,
 };
 
@@ -122,6 +123,11 @@ void VidDrawVLine(unsigned color, int top, int bottom, int x);
  * Draws a horizontal line of 1px thickness.
  */
 void VidDrawHLine(unsigned color, int left, int right, int y);
+
+/**
+ * Draws a line of 1px thickness.
+ */
+void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2);
 
 /**
  * Sets the current screen font.
