@@ -1,6 +1,6 @@
 /*****************************************
 		NanoShell Operating System
-		  (C) 2021 iProgramInCpp
+	   (C) 2021-2022 iProgramInCpp
 
            Window Manager module
 ******************************************/
@@ -13,8 +13,9 @@
 #define DebugLogMsg  SLogMsg
 
 #include <window.h>
+#include <icon.h>
+#include <print.h>
 #include <task.h>
-
 
 //util:
 #if 1
@@ -40,9 +41,9 @@ extern bool      g_clickQueueLock;
 bool g_windowLock = false;
 bool g_screenLock = false;
 
-void TestProgramTask (int argument);
-void TestProgramTask1(int argument);
-void PrgPaintTask    (int argument);
+void TestProgramTask(int argument);
+void IconTestTask   (int argument);
+void PrgPaintTask   (int argument);
 #endif
 
 // Window depth buffer
@@ -462,14 +463,14 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//test:
 #if !THREADING_ENABLED
 	TestProgramTask (0);
-	TestProgramTask1(0);
+	IconTestTask(0);
 	PrgPaintTask(0);
 #else
 	int errorCode = 0;
 	Task* pTask = KeStartTask(TestProgramTask, 0, &errorCode);
 	DebugLogMsg("Created test task 1. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	errorCode = 0;
-	pTask = KeStartTask(TestProgramTask1, 0, &errorCode);
+	pTask = KeStartTask(IconTestTask, 0, &errorCode);
 	DebugLogMsg("Created test task 2. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	errorCode = 0;
 	pTask = KeStartTask(PrgPaintTask, 0, &errorCode);
@@ -665,11 +666,32 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 #if 1
 void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
 {
+	int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();
+	switch (messageType)
+	{
+		case EVENT_PAINT: {
+			char test[100];
+			sprintf(test, "Hi! Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
+			VidFillRect (0xFF00FF, 10, 40, 100, 120);
+			VidTextOut (test, 10, 20, 0, TRANSPARENT);
+			break;
+		}
+		default:
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+	}
+}
+void CALLBACK IconTestProc (Window* pWindow, int messageType, int parm1, int parm2)
+{
 	switch (messageType)
 	{
 		case EVENT_PAINT:
-			VidFillRect (0xFF00FF, 10, 40, 100, 120);
-			VidTextOut ("Hey, it's the window :)", 50, 50, TRANSPARENT, 0xe0e0e0);
+			//draw until ICON_COUNT:
+			for (int i = ICON_NULL+1; i < ICON_COUNT; i++)
+			{
+				int x = i & 7, y = i >> 3;
+				RenderIcon((IconType)i, x*32 + 10, y*32 + 15);
+			}
+			/*RenderIcon(ICON_CABINET, 10, 20);*/
 			break;
 		default:
 			DefaultWindowProc(pWindow, messageType, parm1, parm2);
@@ -725,10 +747,10 @@ void TestProgramTask (__attribute__((unused)) int argument)
 	while (HandleMessages (pWindow));
 #endif
 }
-void TestProgramTask1 (__attribute__((unused)) int argument)
+void IconTestTask (__attribute__((unused)) int argument)
 {
 	// create ourself a window:
-	Window* pWindow = CreateWindow ("Hello World", 300, 200, 320, 240, TestProgramProc);
+	Window* pWindow = CreateWindow ("Icon Test", 300, 200, 320, 240, IconTestProc);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the window couldn't be created");
@@ -745,7 +767,7 @@ void TestProgramTask1 (__attribute__((unused)) int argument)
 void PrgPaintTask (__attribute__((unused)) int argument)
 {
 	// create ourself a window:
-	Window* pWindow = CreateWindow ("Scribble!", 200, 500, 500, 400, PrgPaintProc);
+	Window* pWindow = CreateWindow ("Scribble!", 200, 300, 500, 400, PrgPaintProc);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the window couldn't be created");

@@ -76,19 +76,21 @@ void KePrintSystemInfoAdvanced()
 void KePrintSystemInfo()
 {
 	//neofetch style:
+	int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();
 	LogMsg("(note, the logo you see is temporary)");
-	LogMsg("\x01\x0E N    N       \x01\x0C OS:       NanoShell Operating System");
-	LogMsg("\x01\x0E NN   N       \x01\x0C Kernel:   %s (%d)", VersionString, VersionNumber);
-	LogMsg("\x01\x0E N N  N       \x01\x0C Uptime:   ?");
-	LogMsg("\x01\x0E N  N N       \x01\x0C CPU:      %s", GetCPUName());
-	LogMsg("\x01\x0E N   NN       \x01\x0C CPU type: %s", GetCPUType());
-	LogMsg("\x01\x0E N    N\x01\x0D SSSS  \x01\x0C Memory:   %d KB / %d KB", GetNumFreePhysPages()*4, GetNumPhysPages()*4);
-	LogMsg("\x01\x0D       S    S \x01\x0C ");
-	LogMsg("\x01\x0D       S      \x01\x0C ");
-	LogMsg("\x01\x0D        SSSS  \x01\x0C ");
-	LogMsg("\x01\x0D            S \x01\x0C ");
-	LogMsg("\x01\x0D       S    S \x01\x0C ");
-	LogMsg("\x01\x0D        SSSS  \x01\x0C ");
+	//below are the first lines modified in 2022 :)
+	LogMsg("\x01\x0E N    N       "      "\x01\x0C OS:       \x01\x0FNanoShell Operating System");
+	LogMsg("\x01\x0E NN   N       "      "\x01\x0C Kernel:   \x01\x0F%s (%d)", VersionString, VersionNumber);
+	LogMsg("\x01\x0E N N  N       "      "\x01\x0C Uptime:   \x01\x0F?");
+	LogMsg("\x01\x0E N  N N       "      "\x01\x0C CPU:      \x01\x0F%s", GetCPUName());
+	LogMsg("\x01\x0E N   NN       "      "\x01\x0C CPU type: \x01\x0F%s", GetCPUType());
+	LogMsg("\x01\x0E N    N\x01\x0D SSSS  \x01\x0C Memory:   \x01\x0F%d KB / %d KB", (npp-nfpp)*4, npp*4);
+	LogMsg("\x01\x0D       S    S "      "\x01\x0C ");
+	LogMsg("\x01\x0D       S      "      "\x01\x0C ");
+	LogMsg("\x01\x0D        SSSS  "      "\x01\x0C ");
+	LogMsg("\x01\x0D            S "      "\x01\x0C ");
+	LogMsg("\x01\x0D       S    S "      "\x01\x0C ");
+	LogMsg("\x01\x0D        SSSS  "      "\x01\x0C ");
 	LogMsg("\x01\x0F");
 	//Last Line Of Code Written In 2021
 }

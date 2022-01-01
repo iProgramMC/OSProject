@@ -17,6 +17,7 @@
 #include <task.h>
 #include <storabs.h>
 #include <window.h>
+#include <icon.h>
 
 char g_lastCommandExecuted[256] = {0};
 
@@ -48,6 +49,17 @@ void ShellTaskTest2(int arg)
 		//wait for 5 interrupts
 		for (int i = 0; i < 5; i++)
 			hlt;
+	}
+}
+
+void TemporaryTask(__attribute__((unused)) int arg)
+{
+	LogMsgNoCr("HI!");
+	for (int i = 0; i < 15; i++)
+	{
+		for (int j = 0; j < 10000000; j++)
+			;
+		LogMsgNoCr("%d! ", i);
 	}
 }
 
@@ -100,6 +112,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("sysinfo    - dump system information");
 		LogMsg("sysinfoa   - dump advanced system information");
 		LogMsg("time       - get timing information");
+		LogMsg("stt        - spawns a single thread that doesn't last forever");
 		LogMsg("st         - spawns a single thread that makes a random line forever");
 		LogMsg("tt         - spawns 64 threads that makes random lines forever");
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
@@ -186,6 +199,16 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "lt") == 0)
 	{
 		KeTaskDebugDump();
+	}
+	/*else if (strcmp (token, "icon") == 0)
+	{
+		RenderIcon(ICON_NANOSHELL, 10, 10);
+	}*/
+	else if (strcmp (token, "stt") == 0)
+	{
+		int errorCode = 0;
+		Task* task = KeStartTask(TemporaryTask, g_nextTaskNum++, &errorCode);
+		LogMsg("Task %d (%x) spawned.  Error code: %x", g_nextTaskNum - 1, task, errorCode);
 	}
 	else if (strcmp (token, "st") == 0)
 	{

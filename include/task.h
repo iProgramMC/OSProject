@@ -57,6 +57,7 @@ typedef struct
 	bool           m_featuresArgs;
 	int            m_argument;
 	bool           m_bFirstTime;
+	bool           m_bMarkedForDeletion;
 	
 	const char*    m_authorFile, 
 	          *    m_authorFunc;

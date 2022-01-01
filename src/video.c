@@ -9,6 +9,7 @@
 #include <video.h>
 #include <memory.h>
 #include <string.h>
+#include <icon.h>
 
 //! TODO: perhaps merge vga.c with this?
 #include "extra/fonts.h"
@@ -628,6 +629,19 @@ void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2)
 			VidPlotPixel(x, y, p);
 		}
 	}
+}
+void VidBlitImage(Image* pImage, int x, int y)
+{
+	const uint32_t* fb = pImage->framebuffer;
+	
+	int ixe = x + pImage->width, iye = y + pImage->height;
+	for (int iy = y; iy < iye; iy++)
+		for (int ix = x; ix < ixe; ix++)
+		{
+			if (*fb != TRANSPARENT)
+				VidPlotPixel(ix, iy, *fb);
+			fb++;
+		}
 }
 void VidDrawRect(unsigned color, int left, int top, int right, int bottom)
 {

@@ -1,3 +1,9 @@
+/*****************************************
+		NanoShell Operating System
+	      (C) 2021 iProgramInCpp
+
+            Mouse Driver module
+******************************************/
 #include <mouse.h>
 
 enum

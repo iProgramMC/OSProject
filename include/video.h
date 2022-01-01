@@ -61,6 +61,13 @@ Point;
 
 typedef struct
 {
+	short width, height;
+	const uint32_t *framebuffer;
+}
+Image;
+
+typedef struct
+{
 	bool     m_available;			    //if the vbe display is available
 	unsigned m_width, m_height, m_pitch;//bytes per row
 	int      m_bitdepth;                //bits per pixel, only values we support: 0=8, 1=16, 2=32
@@ -138,6 +145,11 @@ void VidSetFont(unsigned fontType);
  * Draws a character in "colorFg" with an optional colorBg (if it's 0xFFFFFFFF we don't draw any).
  */
 void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/);
+
+/**
+ * Blits an image onto the screen.
+ */
+void VidBlitImage(Image* pImage, int x, int y);
 
 /**
  * Prints a string in "colorFg" with an optional colorBg (if it's 0xFFFFFFFF we don't draw any).

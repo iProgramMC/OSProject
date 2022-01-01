@@ -1,5 +1,11 @@
 BITS 32
 
+;section .data
+;global e_TaskStack
+;e_TaskStack res 1024
+
+section .text
+
 extern KeSwitchTask
 global IrqTaskA
 IrqTaskA:

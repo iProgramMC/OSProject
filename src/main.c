@@ -31,7 +31,7 @@ int g_nKbExtRam = 0;
 
 void KePrintSystemVersion()
 {
-	LogMsg("NanoShell (TM), December 2021 - " VersionString);
+	LogMsg("NanoShell (TM), January 2022 - " VersionString);
 	LogMsg("[%d Kb System Memory]", g_nKbExtRam);
 }
 void TestAllocFunctions()

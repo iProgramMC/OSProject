@@ -85,6 +85,7 @@ Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, co
 		pTask->m_authorFunc = authorFunc;
 		pTask->m_authorLine = authorLine;
 		pTask->m_argument   = argument;
+		pTask->m_bMarkedForDeletion = false;
 		
 		KeConstructTask(pTask);
 		
@@ -102,20 +103,31 @@ Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, co
 }
 static void KeResetTask(Task* pTask, bool killing)
 {
-	if (killing && pTask->m_pStack)
+	if (pTask == KeGetRunningTask())
 	{
-		MmFree(pTask->m_pStack);
+		SLogMsg("Marked current task for execution (KeResetTask)");
+		pTask->m_bMarkedForDeletion = true;
+		while (1) hlt;
 	}
-	pTask->m_pStack = NULL;
-	
-	pTask->m_bFirstTime = false;
-	pTask->m_bExists    = false;
-	pTask->m_pFunction  = NULL;
-	pTask->m_authorFile = NULL;
-	pTask->m_authorFunc = NULL;
-	pTask->m_authorLine = 0;
-	pTask->m_argument   = 0;
-	pTask->m_featuresArgs = false;
+	else
+	{
+		SLogMsg("Deleting task %x for execution (KeResetTask, killing:%d)", pTask, killing);
+		if (killing && pTask->m_pStack)
+		{
+			MmFree(pTask->m_pStack);
+		}
+		pTask->m_pStack = NULL;
+		
+		pTask->m_bFirstTime = false;
+		pTask->m_bExists    = false;
+		pTask->m_pFunction  = NULL;
+		pTask->m_authorFile = NULL;
+		pTask->m_authorFunc = NULL;
+		pTask->m_authorLine = 0;
+		pTask->m_argument   = 0;
+		pTask->m_featuresArgs = false;
+		pTask->m_bMarkedForDeletion = false;
+	}
 }
 bool KeKillTask(Task* pTask)
 {
@@ -175,7 +187,8 @@ void KeExit()
 		KeStopSystem();
 	}
 	
-	KeResetTask (KeGetRunningTask(), true);
+	SLogMsg("Marked current task for execution (KeExit)");
+	KeGetRunningTask()->m_bMarkedForDeletion = true;
 	while (1) hlt;
 }
 void KeSwitchTask(CPUSaveState* pSaveState)
@@ -211,12 +224,22 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 	if (pNewTask)
 	{
 		s_currentRunningTask = i;
+		
+		//if old task was marked for deletion, remove it:
+		if (pTask)
+			if (pTask->m_bMarkedForDeletion) KeResetTask(pTask, true);
+		
 		KeRestoreStandardTask(pNewTask);
 	}
 	else
 	{
 		//Kernel task
 		s_currentRunningTask = -1;
+		
+		//if old task was marked for deletion, remove it:
+		if (pTask)
+			if (pTask->m_bMarkedForDeletion) KeResetTask(pTask, true);
+		
 		KeRestoreKernelTask();
 	}
 }
