@@ -16,6 +16,8 @@
 #include <icon.h>
 #include <print.h>
 #include <task.h>
+#include <widget.h>
+#include <misc.h>
 
 //util:
 #if 1
@@ -96,6 +98,7 @@ void FillDepthBufferWithWindowIndex (Rectangle r, uint32_t* framebuffer, int ind
 }
 void UpdateDepthBuffer ()
 {
+	cli;
 	memset (g_windowDepthBuffer, 0xFF, g_windowDepthBufferSzBytes);
 	
 	for (int i = 0; i < WINDOWS_MAX; i++)
@@ -116,6 +119,7 @@ void UpdateDepthBuffer ()
 					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, g_windows[i].m_vbeData.m_framebuffer32, i);
 			}
 	}
+	sti;
 }
 #endif
 
@@ -211,6 +215,11 @@ void ReadyToDestroyWindow (Window* pWindow)
 		pWindow->m_vbeData.m_available     = 0;
 		pWindow->m_vbeData.m_framebuffer32 = NULL;
 	}
+	if (pWindow->m_pControlArray)
+	{
+		MmFree(pWindow->m_pControlArray);
+		pWindow->m_controlArrayLen = 0;
+	}
 	pWindow->m_used = false;
 	pWindow->m_eventQueueSize = 0;
 }
@@ -233,7 +242,7 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 				{
 					g_windows[i].m_isSelected = false;
 					WindowRegisterEvent(&g_windows[i], EVENT_KILLFOCUS, 0, 0);
-					//WindowRegisterEvent(&g_windows[i], EVENT_PAINT, 0, 0);
+					WindowRegisterEvent(&g_windows[i], EVENT_PAINT, 0, 0);
 				}
 			}
 		}
@@ -285,6 +294,13 @@ Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, Win
 	pWnd->m_vbeData.m_height        = ySize;
 	pWnd->m_vbeData.m_pitch32       = xSize;
 	pWnd->m_vbeData.m_bitdepth      = 2;     // 32 bit :)
+	
+	//give the window a starting point of 10 controls:
+	pWnd->m_controlArrayLen = 10;
+	size_t controlArraySize = sizeof(Control) * pWnd->m_controlArrayLen;
+	pWnd->m_pControlArray   = (Control*)MmAllocate(controlArraySize);
+	memset(pWnd->m_pControlArray, 0, controlArraySize);
+	
 	UpdateDepthBuffer();
 	
 	WindowRegisterEvent(pWnd, EVENT_CREATE, 0, 0);
@@ -435,6 +451,32 @@ void OnUIRightClick (int mouseX, int mouseY)
 // Main loop thread.
 #if 1
 
+void RedrawEverything()
+{
+	cli;
+//	Rectangle r = {0, 0, GetScreenSizeX(), GetScreenSizeY() };
+	VidFillScreen(BACKGROUND_COLOR);
+	
+	//wait for apps to fully setup their windows:
+	sti;
+	for (int i = 0; i < 50000; i++)
+		hlt;
+	cli;
+	
+	UpdateDepthBuffer();
+	
+	//for each window, send it a EVENT_PAINT:
+	for (int p = 0; p < WINDOWS_MAX; p++)
+	{
+		Window* pWindow = &g_windows [p];
+		if (!pWindow->m_used) continue;
+		
+		WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
+	}
+	
+	sti;
+}
+
 bool HandleMessages(Window* pWindow);
 void WindowManagerTask(__attribute__((unused)) int useless_argument)
 {
@@ -476,6 +518,15 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	pTask = KeStartTask(PrgPaintTask, 0, &errorCode);
 	DebugLogMsg("Created test task 3. pointer returned:%x, errorcode:%x", pTask, errorCode);
 #endif
+	
+	//wait a bit
+	for (int i = 0; i < 500; i++)
+		hlt;
+	
+	//we're done.  Redraw everything.
+	RedrawEverything();
+	
+	int timeout = 10;
 	
 	while (g_windowManagerRunning)
 	{
@@ -520,11 +571,130 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		FREE_LOCK (g_screenLock);
 		FREE_LOCK (g_clickQueueLock);
 		
-		for (int i =0; i<2; i++)
+		timeout--;
+		
+		for (int i = 0; i < 2; i++)
 			hlt;
 	}
 	KillWindowDepthBuffer();
 }
+#endif
+
+// Control creation and management
+#if 1
+
+//Returns an index, because we might want to relocate the m_pControlArray later.
+int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int p1, int p2)
+{
+	if (!pWindow->m_pControlArray)
+	{
+		VidSetVBEData(NULL);
+		LogMsg("No pControlArray!?");
+		KeStopSystem();
+		return -1;
+	}
+	int index = -1;
+	for (int i = 0; i < pWindow->m_controlArrayLen; i++)
+	{
+		if (!pWindow->m_pControlArray[i].m_active)
+		{
+			index = i;
+			break;
+		}
+	}
+	if (index <= -1)
+	{
+		//Couldn't find a spot in the currently allocated thing.
+		//Perhaps we need to expand the array.
+		int cal = pWindow->m_controlArrayLen;
+		if (cal < 2) cal = 2;
+		
+		cal += cal / 2;
+		//series: 2, 3, 4, 6, 9, 13, 19, 28, 42, ...
+		
+		size_t newSize = sizeof(Control) * cal;
+		Control* newCtlArray = (Control*)MmAllocate(newSize);
+		memset(newCtlArray, 0, newSize);
+		
+		// copy stuff into the new control array:
+		memcpy(newCtlArray, pWindow->m_pControlArray, sizeof(Control) * pWindow->m_controlArrayLen);
+		
+		// free the previous array:
+		MmFree(pWindow->m_pControlArray);
+		
+		// then assign the new one
+		pWindow->m_pControlArray   = newCtlArray;
+		pWindow->m_controlArrayLen = cal;
+		
+		// last, re-search the thing
+		index = -1;
+		for (int i = 0; i < pWindow->m_controlArrayLen; i++)
+		{
+			if (!pWindow->m_pControlArray[i].m_active)
+			{
+				index = i;
+				break;
+			}
+		}
+	}
+	if (index <= -1)
+	{
+		return -1;
+	}
+	
+	// add the control itself:
+	Control *pControl = &pWindow->m_pControlArray[index];
+	pControl->m_active  = true;
+	pControl->m_type    = type;
+	pControl->m_dataPtr = NULL;
+	pControl->m_rect    = rect;
+	pControl->m_parm1   = p1;
+	pControl->m_parm2   = p2;
+	pControl->m_bMarkedForDeletion = false;
+	
+	if (text)
+		strcpy (pControl->m_text, text);
+	else
+		pControl->m_text[0] = '\0';
+	
+	pControl->OnEvent = GetWidgetOnEventFunction(type);
+	
+	//register an event for the window:
+	//WindowRegisterEvent(pWindow, EVENT_PAINT, 0, 0);
+	
+	return index;
+}
+
+void RemoveControl (Window* pWindow, int controlIndex)
+{
+	if (controlIndex >= pWindow->m_controlArrayLen || controlIndex < 0) return;
+	
+	cli;
+	Control* pControl = &pWindow->m_pControlArray[controlIndex];
+	if (pControl->m_dataPtr)
+	{
+		//TODO
+	}
+	pControl->m_active = false;
+	pControl->m_bMarkedForDeletion = false;
+	pControl->OnEvent = NULL;
+	
+	sti;
+}
+
+void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)
+{
+	for (int i = 0; i != pWindow->m_controlArrayLen; i++)
+	{
+		if (pWindow->m_pControlArray[i].m_active)
+		{
+			Control* p = &pWindow->m_pControlArray[i];
+			if (p->OnEvent)
+				p->OnEvent(p, eventType, parm1, parm2, pWindow);
+		}
+	}
+}
+
 #endif
 
 // Event processors called by user processes.
@@ -554,10 +724,8 @@ void RenderWindow (Window* pWindow)
 	}
 }
 
-void PaintWindowBackgroundAndBorder(Window* pWindow)
+void PaintWindowBorder(Window* pWindow)
 {
-	VidFillScreen(TRANSPARENT);
-	
 	Rectangle recta = pWindow->m_rect;
 	recta.right  -= recta.left; recta.left = 0;
 	recta.bottom -= recta.top;  recta.top  = 0;
@@ -568,14 +736,25 @@ void PaintWindowBackgroundAndBorder(Window* pWindow)
 	
 	Rectangle rectb = recta;
 	
-	VidFillRectangle(0xAAAAAA, recta);
-	VidDrawRectangle(0x000000, recta);
+	VidFillRectangle(WINDOW_BACKGD_COLOR, recta);
+	VidDrawRectangle(WINDOW_EDGE_COLOR, recta);
 	
 	for (int i = 0; i < WINDOW_RIGHT_SIDE_THICKNESS; i++) {
 		recta.left++; recta.right++; recta.bottom++; recta.top++;
-		VidDrawHLine(0x000000, recta.left, recta.right, recta.bottom);
-		VidDrawVLine(0x000000, recta.top, recta.bottom, recta.right);
+		VidDrawHLine(WINDOW_EDGE_COLOR, recta.left, recta.right, recta.bottom);
+		VidDrawVLine(WINDOW_EDGE_COLOR, recta.top, recta.bottom, recta.right);
 	}
+	
+	//draw a white border thing:
+	rectb.left++;
+	rectb.top ++;
+	rectb.right--;
+	rectb.bottom--;
+	//VidDrawRectangle(WINDOW_TITLE_TEXT_COLOR, rectb);
+	VidDrawHLine (WINDOW_TITLE_TEXT_COLOR,     rectb.left, rectb.right, rectb.top);
+	VidDrawHLine (WINDOW_TITLE_INACTIVE_COLOR, rectb.left, rectb.right, rectb.bottom);
+	VidDrawVLine (WINDOW_TITLE_TEXT_COLOR,     rectb.top, rectb.bottom, rectb.left);
+	VidDrawVLine (WINDOW_TITLE_INACTIVE_COLOR, rectb.top, rectb.bottom, rectb.right);
 	
 	//draw the window title:
 	rectb.left++;
@@ -584,13 +763,30 @@ void PaintWindowBackgroundAndBorder(Window* pWindow)
 	rectb.bottom = rectb.top + TITLE_BAR_HEIGHT;
 	
 	//todo: gradients?
-	VidFillRectangle(0x00007F, rectb);
+	VidFillRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR : WINDOW_TITLE_INACTIVE_COLOR, rectb);
 	
-	VidTextOut(pWindow->m_title, rectb.left + 1, rectb.top + 1, 0xFFFFFF, 0x00007F);
+	VidTextOut(pWindow->m_title, rectb.left + 2, rectb.top + 2, WINDOW_TITLE_TEXT_COLOR_SHADOW, TRANSPARENT);
+	VidTextOut(pWindow->m_title, rectb.left + 1, rectb.top + 1, WINDOW_TITLE_TEXT_COLOR, TRANSPARENT);
 	
 #undef X
 }
-
+void PaintWindowBackgroundAndBorder(Window* pWindow)
+{
+	VidFillScreen(TRANSPARENT);
+	PaintWindowBorder(pWindow);
+}
+bool IsEventDestinedForControlsToo(int type)
+{
+	switch (type)
+	{
+		case EVENT_PAINT:
+		case EVENT_MOVECURSOR:
+		case EVENT_CLICKCURSOR:
+		case EVENT_RELEASECURSOR:
+			return true;
+	}
+	return false;
+}
 bool HandleMessages(Window* pWindow)
 {
 	// grab the lock
@@ -598,9 +794,7 @@ bool HandleMessages(Window* pWindow)
 	ACQUIRE_LOCK (g_windowLock);
 	ACQUIRE_LOCK (pWindow->m_eventQueueLock);
 	
-	int size = pWindow->m_eventQueueSize;
-	pWindow->m_eventQueueSize = 0;
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < pWindow->m_eventQueueSize; i++)
 	{
 		//setup paint stuff so the window can only paint in their little box
 		VidSetVBEData (&pWindow->m_vbeData);
@@ -608,6 +802,9 @@ bool HandleMessages(Window* pWindow)
 			PaintWindowBackgroundAndBorder(pWindow);
 		
 		pWindow->m_callback(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
+		
+		if (IsEventDestinedForControlsToo(pWindow->m_eventQueue[i]))
+			ControlProcessEvent(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
 		
 		//reset to main screen
 		VidSetVBEData (NULL);
@@ -618,11 +815,11 @@ bool HandleMessages(Window* pWindow)
 		
 		if (pWindow->m_eventQueue[i] == EVENT_DESTROY) return false;
 	}
+	pWindow->m_eventQueueSize = 0;
 	
 	FREE_LOCK (pWindow->m_eventQueueLock);
 	FREE_LOCK (g_windowLock);
 	FREE_LOCK (g_screenLock);
-	
 	hlt; //give it a good halt
 	return true;
 }
@@ -653,6 +850,10 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 			//so just mark this as dirty
 			pWindow->m_vbeData.m_dirty = 1;
 			break;
+		case EVENT_SETFOCUS:
+		case EVENT_KILLFOCUS:
+			PaintWindowBorder(pWindow);
+			break;
 		case EVENT_DESTROY:
 			PostQuitMessage(pWindow);//exits
 			break;
@@ -669,11 +870,37 @@ void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int 
 	int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();
 	switch (messageType)
 	{
+		case EVENT_CREATE: {
+			//add a predefined list of controls:
+			Rectangle r = {108, 200, 208, 220};
+			
+			//parm1 is the button number that we're being fed in EVENT_COMMAND
+			AddControl (pWindow, CONTROL_BUTTON, r, "Click Me!", 1, 0);
+			
+			Rectangle r1 = {250,108,320,120};
+			AddControl (pWindow, CONTROL_TEXT, r1, "Hello", 0xFFFFFF, TRANSPARENT);
+			
+			Rectangle r2 = {200,100,232,120};
+			AddControl (pWindow, CONTROL_ICON, r2, NULL, ICON_GLOBE, 0);
+			
+			break;
+		}
 		case EVENT_PAINT: {
 			char test[100];
-			sprintf(test, "Hi! Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
+			sprintf(test, "Hi!  Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
 			VidFillRect (0xFF00FF, 10, 40, 100, 120);
-			VidTextOut (test, 10, 20, 0, TRANSPARENT);
+			VidTextOut (test, 10, 30, 0, TRANSPARENT);
+			break;
+		}
+		case EVENT_COMMAND: {
+			if (parm1 == 1)
+			{
+				//The only button:
+				int randomX = GetRandom() % 320;
+				int randomY = GetRandom() % 240;
+				int randomColor = GetRandom();
+				VidTextOut("*click*", randomX, randomY, randomColor, TRANSPARENT);
+			}
 			break;
 		}
 		default:

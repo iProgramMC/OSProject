@@ -157,6 +157,14 @@ void VidBlitImage(Image* pImage, int x, int y);
 void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/);
 
 /**
+ * Draws text inside a rectangle with the specified flags.
+ */
+#define TEXTSTYLE_HCENTERED 1
+#define TEXTSTYLE_VCENTERED 2
+//TODO: Add word wrap
+void VidDrawText(const char* pText, Rectangle rect, unsigned drawFlags, unsigned colorFg, unsigned colorBg);
+
+/**
  * Shifts the screen up, by a certain amount of pixels.  Anything larger than the screen height will
  * effectively clear the screen.
  */

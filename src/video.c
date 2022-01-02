@@ -720,11 +720,14 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 		}
 	}
 }
-void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg)
+static void VidTextOutInternal(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg, bool doNotActuallyDraw, int* widthx, int* heightx)
 {
 	int x = ox, y = oy;
 	int lineHeight = g_pCurrentFont[1], charWidth = g_pCurrentFont[0];
 	bool hasVariableCharWidth = g_pCurrentFont[2];
+	
+	int width = 0;
+	int cwidth = 0, height = lineHeight;
 	
 	while (*pText)
 	{
@@ -733,17 +736,49 @@ void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, u
 		if (c == '\n')
 		{
 			y += lineHeight;
+			height += lineHeight;
 			x = ox;
+			if (cwidth < width)
+				cwidth = width;
 		}
 		else
 		{
 			int cw = charWidth;
 			if (hasVariableCharWidth) cw = g_pCurrentFont[3 + 256 * lineHeight + c];
-			VidPlotChar(c, x, y, colorFg, colorBg);
+			
+			if (!doNotActuallyDraw)
+				VidPlotChar(c, x, y, colorFg, colorBg);
+			
 			x += cw;
+			width += cw;
 		}
 		pText++;
 	}
+	if (cwidth < width)
+		cwidth = width;
+	
+	*widthx  = cwidth;
+	*heightx = height;
+}
+void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg)
+{
+	UNUSED int a, b;
+	VidTextOutInternal (pText, ox, oy, colorFg, colorBg, false, &a, &b);
+}
+
+void VidDrawText(const char* pText, Rectangle rect, unsigned drawFlags, unsigned colorFg, unsigned colorBg)
+{
+	//TODO: Fix this function
+	int w, h;
+	VidTextOutInternal(pText, 0, 0, 0, 0, true, &w, &h);
+	
+	int xStart = rect.left, yStart = rect.top;
+	if (drawFlags & TEXTSTYLE_HCENTERED)
+		xStart = rect.left + ((rect.right - rect.left - w) / 2);
+	if (drawFlags & TEXTSTYLE_VCENTERED)
+		yStart = rect.top  + ((rect.bottom- rect.top  - h) / 2);
+	
+	VidTextOutInternal(pText, xStart, yStart, colorFg, colorBg, false, &w, &h);
 }
 
 //! DO NOT use this on non-main-screen framebuffers!

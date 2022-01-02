@@ -39,6 +39,10 @@ int GetTickCount();
  * Gets the number of times the RTC interrupt handler was called.
  */
 int GetRawTickCount();
+/**
+ * Returns a random number between 0 and 2147483647.
+ */
+int GetRandom();
 
 /**
  * Gets the CPU type string. (e.g. "GenuineIntel", "AuthenticAMD" etc)

@@ -28,6 +28,26 @@ int GetRawTickCount()
 	return g_nRtcTicks;
 }
 
+// basic garbage rand():
+int GetRandom()
+{
+	//read the tsc:
+	int hi, lo;
+	GetTimeStampCounter(&hi, &lo);
+	//combine the high and low numbers:
+	
+	hi ^= lo;
+	
+	//then mask it out so it wont look obvious:
+	hi ^= 0xe671c4b4;
+	
+	//then make it positive:
+	hi &= 2147483647;
+	
+	//lastly, return.
+	return hi;
+}
+
 extern uint32_t g_cpuidLastLeaf;
 extern char g_cpuidNameEBX[];
 extern char g_cpuidBrandingInfo[];
