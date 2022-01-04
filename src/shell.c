@@ -153,6 +153,8 @@ void ShellExecuteCommand(char* p)
 					if (CoPrintCharInternal(&g_debugConsole, pData[i], pData[i+1]))
 						i++;
 				}
+				
+				MmFree(pData);
 			}
 			LogMsg("");
 		}
