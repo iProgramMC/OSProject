@@ -17,6 +17,7 @@
 #include <shell.h>
 #include <mouse.h>
 #include <misc.h>
+#include <vfs.h>
 
 __attribute__((noreturn))
 void KeStopSystem()
@@ -118,6 +119,9 @@ void KiPerformRamCheck()
 }
 
 extern void KeCPUID();//io.asm
+
+extern char g_initrdStart[];
+
 __attribute__((noreturn))
 void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 {
@@ -157,6 +161,8 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	VidInitialize (mbi);
 	// Initialize the task scheduler
 	KiTaskSystemInitialize();
+	// Initialize the ramdisk
+	FsInitializeInitRd(g_initrdStart);
 	
 	//Initialize the mouse driver too
 	MouseInit();

@@ -1,9 +1,6 @@
-@echo Deleting build...
 @del /q build\*
-@echo Deleting build/asm...
 @del /q build\asm\*
-@echo Deleting build/icons...
 @del /q build\icons\*
-@echo Deleting kernel.bin
 @del /q kernel.bin
+@del /q nanoshell_initrd
 @echo Clean finished

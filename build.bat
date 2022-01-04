@@ -17,6 +17,7 @@ cd /d %path%
 set NSPath=%path%
 set path=%backupPath%;%NSPath%\tools\i686-gcc\bin;%NSPath%\tools\nasm;%NSPath%\tools;%laptopshit%
 
+:make initramdisk
 make
 
 set path=%backupPath%

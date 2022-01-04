@@ -10,7 +10,7 @@
 #include <main.h>
 #include <debug.h>
 
-#define C_MAX_TASKS 1024
+#define C_MAX_TASKS 64//reduced, old was 1024
 #define C_STACK_BYTES_PER_TASK 32768 //plenty, but can change later if needed.
 
 /***********************************************************

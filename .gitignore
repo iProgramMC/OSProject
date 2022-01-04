@@ -18,3 +18,4 @@ sdk/nsmake/nsmake/Release/*
 sdk/nsmake/x64/*
 sdk/nsmake/Debug/*
 sdk/nsmake/Release/*
+nanoshell_initrd

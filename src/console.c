@@ -182,6 +182,17 @@ bool CoPrintCharInternal (Console* this, char c, char next) {
 				this->curY--;
 			}
 			break;
+		case '\t': 
+			this->curX = (this->curX + 4) & ~3;
+			if (this->curX >= this->width) {
+				this->curX = 0;
+				this->curY++;
+			}
+			while (this->curY >= this->height) {
+				CoScrollUpByOne(this);
+				this->curY--;
+			}
+			break;
 		
 		default: {
 			CoPlotChar(this, this->curX, this->curY, c);

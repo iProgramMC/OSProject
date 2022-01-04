@@ -10,11 +10,11 @@ g_testingElf:
 	incbin 'application/helloworld/main.nse'
 g_testingElfEnd:
 
-global g_TestingFloppyImageStart, g_TestingFloppyImageEnd, g_TestingFloppyImage
+global g_initrdStart, g_initrd, g_initrdEnd
 
-g_TestingFloppyImageStart:
-g_TestingFloppyImage:
-;	incbin 'test.img'
-g_TestingFloppyImageEnd:
+g_initrdStart:
+g_initrd:
+incbin 'nanoshell_initrd'
+g_initrdEnd:
 
 %endif

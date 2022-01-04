@@ -30,11 +30,15 @@ AFLAGS=-felf32
 
 # Icon converter
 ICC=./tools/icc/icontest
+FSMAKER=./tools/fsmaker
 
 BUILD=build
 SRC=src
 ICONS=icons
+FS=fs
 BUICO=build/icons
+
+INITRD=nanoshell_initrd
 
 # Convert the icons
 
@@ -65,6 +69,9 @@ $(BUILD)/%.o: $(SRC)/%.asm
 $(BUILD)/%.o: $(SRC)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
+
+initramdisk:
+	$(FSMAKER) $(FS) $(INITRD)
 
 # Make Clean
 clean: 

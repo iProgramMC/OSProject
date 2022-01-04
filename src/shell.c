@@ -18,6 +18,7 @@
 #include <storabs.h>
 #include <window.h>
 #include <icon.h>
+#include <vfs.h>
 
 char g_lastCommandExecuted[256] = {0};
 
@@ -87,6 +88,7 @@ void GraphicsTest()
 int g_nextTaskNum = 0;
 bool g_ramDiskMounted = 0;
 int g_ramDiskID = 0;
+bool CoPrintCharInternal (Console* this, char c, char next);
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -99,12 +101,14 @@ void ShellExecuteCommand(char* p)
 	if (strcmp (token, "help") == 0)
 	{
 		LogMsg("NanoShell Shell Help");
+		LogMsg("cat        - prints the contents of a file");
 		LogMsg("cls        - clear screen");
 		LogMsg("crash      - attempt to crash the kernel");
 		LogMsg("color XX   - change the screen color");
 		LogMsg("help       - shows this list");
 		LogMsg("gt         - run a graphical test");
 		LogMsg("lm         - list memory allocations");
+		LogMsg("ls         - list the current working directory (right now just /)");
 		LogMsg("lt         - list currently running threads (pauses them during the print)");
 		LogMsg("mode X     - change the screen mode");
 		LogMsg("mrd        - mounts a testing RAM Disk");
@@ -118,6 +122,56 @@ void ShellExecuteCommand(char* p)
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
+	}
+	else if (strcmp (token, "cat") == 0)
+	{
+		char* fileName = Tokenize (&state, NULL, " ");
+		if (!fileName)
+		{
+			LogMsg("Expected filename");
+		}
+		else if (*fileName == 0)
+		{
+			LogMsg("Expected filename");
+		}
+		else
+		{
+			FileNode* pNode = FsGetInitrdNode();
+			FileNode* pFile = FsFindDir(pNode, fileName);
+			if (!pFile)
+				LogMsg("No such file or directory");
+			else
+			{
+				int length = pFile->m_length;
+				char* pData = (char*)MmAllocate(length + 1);
+				pData[length] = 0;
+				
+				FsRead(pFile, 0, length, pData);
+				
+				for (int i = 0; i < length; i++)
+				{
+					if (CoPrintCharInternal(&g_debugConsole, pData[i], pData[i+1]))
+						i++;
+				}
+			}
+			LogMsg("");
+		}
+	}
+	else if (strcmp (token, "ls") == 0)
+	{
+		FileNode* pNode = FsGetInitrdNode();
+		LogMsg("Directory of %s (%x)", pNode->m_name, pNode);
+		DirEnt* pDirEnt;
+		int i = 1;
+		while ((pDirEnt = FsReadDir(pNode, i)) != 0)
+		{
+			FileNode* pSubnode = FsFindDir(pNode, pDirEnt->m_name);
+			if (!pSubnode)
+				LogMsg("- [NULL?!]");
+			else
+				LogMsg("- %s\t%d\t%s", pSubnode->m_type & FILE_TYPE_DIRECTORY ? "<DIR>" : "     ", pSubnode->m_length, pSubnode->m_name);
+			i++;
+		}
 	}
 	else if (strcmp (token, "gt") == 0)
 	{
