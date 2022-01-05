@@ -58,10 +58,6 @@ void SetupExceptionInterrupt (int intNum, void* isrHandler)
 /**
  * Exception handlers.  They cause a bugcheck when we get 'em.
  */
-#define HAS_EXCEPTION_HANDLERS
-#ifdef HAS_EXCEPTION_HANDLERS
-
-
 bool g_hasAlreadyThrownException = false;
 void IsrExceptionCommon(int code, Registers* pRegs) {
 	cli;
@@ -74,6 +70,10 @@ void IsrExceptionCommon(int code, Registers* pRegs) {
 	g_hasAlreadyThrownException = true;
 	KeBugCheck((BugCheckReason)code, pRegs);
 }
+#define HAS_EXCEPTION_HANDLERS
+#ifdef HAS_EXCEPTION_HANDLERS
+
+
 extern void IsrStub0 ();
 extern void IsrStub1 ();
 extern void IsrStub2 ();

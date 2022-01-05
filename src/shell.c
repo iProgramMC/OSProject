@@ -27,7 +27,7 @@ void ShellTaskTest(int arg)
 	while (1)	
 	{
 		SLogMsg("Task %d!", arg);
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < 3; i++)
 			hlt;
 	}
 }
@@ -55,12 +55,13 @@ void ShellTaskTest2(int arg)
 
 void TemporaryTask(__attribute__((unused)) int arg)
 {
-	LogMsgNoCr("HI!");
 	for (int i = 0; i < 15; i++)
 	{
-		for (int j = 0; j < 10000000; j++)
-			;
-		LogMsgNoCr("%d! ", i);
+		//for (int j = 0; j < 10000000; j++)
+		//	;
+		LogMsgNoCr("HI!");
+		for (int i = 0; i < 30; i++)
+			hlt;
 	}
 }
 
@@ -120,6 +121,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("st         - spawns a single thread that makes a random line forever");
 		LogMsg("tt         - spawns 64 threads that makes random lines forever");
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
+		LogMsg("ttte       - spawns 1024 threads that prints stuff");
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
 	}
@@ -164,7 +166,7 @@ void ShellExecuteCommand(char* p)
 		FileNode* pNode = FsGetInitrdNode();
 		LogMsg("Directory of %s (%x)", pNode->m_name, pNode);
 		DirEnt* pDirEnt;
-		int i = 1;
+		int i = 0;
 		while ((pDirEnt = FsReadDir(pNode, i)) != 0)
 		{
 			FileNode* pSubnode = FsFindDir(pNode, pDirEnt->m_name);
@@ -288,6 +290,15 @@ void ShellExecuteCommand(char* p)
 		for (int i = 0; i < 1024; i++)
 		{
 			KeStartTask(ShellTaskTest2, g_nextTaskNum++, &errorCode);
+		}
+		LogMsg("Tasks have been spawned.");
+	}
+	else if (strcmp (token, "ttte") == 0)
+	{
+		int errorCode = 0;
+		for (int i = 0; i < 128; i++)
+		{
+			KeStartTask(TemporaryTask, g_nextTaskNum++, &errorCode);
 		}
 		LogMsg("Tasks have been spawned.");
 	}

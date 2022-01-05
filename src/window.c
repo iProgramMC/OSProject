@@ -81,6 +81,7 @@ short GetWindowIndexInDepthBuffer (int x, int y)
 }
 void FillDepthBufferWithWindowIndex (Rectangle r, uint32_t* framebuffer, int index)
 {
+	if (!framebuffer) return;
 	int hx = GetScreenSizeX(), hy = GetScreenSizeY();
 	for (int y = r.top; y < r.bottom; y++) {
 		if (y >= hy) break;//no point.
@@ -455,13 +456,13 @@ void RedrawEverything()
 {
 	cli;
 //	Rectangle r = {0, 0, GetScreenSizeX(), GetScreenSizeY() };
-	VidFillScreen(BACKGROUND_COLOR);
+	/*VidFillScreen(BACKGROUND_COLOR);
 	
 	//wait for apps to fully setup their windows:
 	sti;
 	for (int i = 0; i < 50000; i++)
 		hlt;
-	cli;
+	cli;*/
 	
 	UpdateDepthBuffer();
 	
@@ -478,6 +479,7 @@ void RedrawEverything()
 }
 
 bool HandleMessages(Window* pWindow);
+void RenderWindow (Window* pWindow);
 void WindowManagerTask(__attribute__((unused)) int useless_argument)
 {
 	g_clickQueueSize = 0;
@@ -519,12 +521,21 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	DebugLogMsg("Created test task 3. pointer returned:%x, errorcode:%x", pTask, errorCode);
 #endif
 	
+	ACQUIRE_LOCK (g_clickQueueLock);
+	ACQUIRE_LOCK (g_screenLock);
 	//wait a bit
+	
+	for (int i = 0; i < 500; i++)
+		hlt;
+	//we're done.  Redraw everything.
+	//UpdateDepthBuffer();
+	RedrawEverything();
+	
 	for (int i = 0; i < 500; i++)
 		hlt;
 	
-	//we're done.  Redraw everything.
-	RedrawEverything();
+	FREE_LOCK (g_screenLock);
+	FREE_LOCK (g_clickQueueLock);
 	
 	int timeout = 10;
 	
@@ -544,6 +555,8 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 				continue;
 			}
 		#endif
+			if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
+				RenderWindow(pWindow);
 			
 			if (pWindow->m_markedForDeletion)
 			{
@@ -699,8 +712,13 @@ void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)
 
 // Event processors called by user processes.
 #if 1
+extern VBEData* g_vbeData, g_mainScreenVBEData;
 void RenderWindow (Window* pWindow)
 {
+	ACQUIRE_LOCK(g_screenLock);
+	VBEData* backup = g_vbeData;
+	g_vbeData = &g_mainScreenVBEData;
+	
 	int windIndex = pWindow - g_windows;
 	int x = pWindow->m_rect.left,  y = pWindow->m_rect.top;
 	int tw = pWindow->m_vbeData.m_width, th = pWindow->m_vbeData.m_height;
@@ -722,6 +740,9 @@ void RenderWindow (Window* pWindow)
 			o++;
 		}
 	}
+	
+	g_vbeData = backup;
+	FREE_LOCK(g_screenLock);
 }
 
 void PaintWindowBorder(Window* pWindow)
@@ -810,8 +831,8 @@ bool HandleMessages(Window* pWindow)
 		VidSetVBEData (NULL);
 		
 		//if the contents of this window have been modified, redraw them:
-		if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
-			RenderWindow(pWindow);
+		//if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
+		//	RenderWindow(pWindow);
 		
 		if (pWindow->m_eventQueue[i] == EVENT_DESTROY) return false;
 	}

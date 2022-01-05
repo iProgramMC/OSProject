@@ -292,25 +292,71 @@ void SetMousePos (unsigned newX, unsigned newY)
 	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
 	
 	//Draw the cursor image at the new position:
-	for (int i = 0; i < g_currentCursor->height; i++)
+	if (g_vbeData->m_bitdepth == 2)
 	{
-		for (int j = 0; j < g_currentCursor->width; j++)
+		//NEW: Optimization
+		int ys =                         - g_currentCursor->topOffs + g_mouseY;
+		int ye = g_currentCursor->height - g_currentCursor->topOffs + g_mouseY;
+		int kys = 0, kzs = 0;
+		if (ys < 0)
 		{
-			int id = i * g_currentCursor->width + j;
-			if (g_currentCursor->bitmap[id] != TRANSPARENT)
+			kys -= ys * g_currentCursor->width;
+			kzs -= ys;
+			ys = 0;
+		}
+		int xs =                         - g_currentCursor->leftOffs+ g_mouseX;
+		int xe = g_currentCursor->width  - g_currentCursor->leftOffs+ g_mouseX;
+		int off = 0;
+		if (xs < 0)
+		{
+			off = -xs;
+			xs = 0;
+		}
+		if (xe >= GetScreenSizeX())
+			xe = GetScreenSizeX() - 1;
+		//int xd = (xe - xs) * sizeof(uint32_t);
+		for (int y = ys, ky = kys, kz = kzs; y < ye; y++, kz++)
+		{
+			ky = kz * g_currentCursor->width + off;
+			//just memcpy shit
+			//memcpy (&g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + xs], &g_currentCursor->bitmap[ky], xd);
+			for (int x = xs; x < xe; x++)
 			{
-				int kx = j + g_mouseX - g_currentCursor->leftOffs,
-					ky = i + g_mouseY - g_currentCursor->topOffs;
-				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
-				VidPlotPixelIgnoreCursorChecksChecked (
-					kx,
-					ky,
-					g_currentCursor->bitmap[id]
-				);
+				if (g_currentCursor->bitmap[ky] != TRANSPARENT)
+					g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + x] = g_currentCursor->bitmap[ky];
+				ky++;
 			}
 		}
 	}
-	
+	else//use the slower but more reliable method:
+	{
+		for (int i = 0, ky=g_mouseY - g_currentCursor->topOffs; i < g_currentCursor->height; i++, ky++)
+		{
+			if (ky < 0) {
+				i += ky;
+				ky = 0;
+			}
+			for (int j = 0, kx=g_mouseX - g_currentCursor->leftOffs; j < g_currentCursor->width; j++, kx++)
+			{
+				if (kx < 0) {
+					j += kx;
+					kx = 0;
+				}
+				int id = i * g_currentCursor->width + j;
+				if (g_currentCursor->bitmap[id] != TRANSPARENT)
+				{
+					//int kx = j + g_mouseX - g_currentCursor->leftOffs,
+					//	ky = i + g_mouseY - g_currentCursor->topOffs;
+					if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+					VidPlotPixelIgnoreCursorChecksChecked (
+						kx,
+						ky,
+						g_currentCursor->bitmap[id]
+					);
+				}
+			}
+		}
+	}
 	//Then, redraw all the pixels under where the cursor was previously:
 	for (int i = 0; i < g_currentCursor->height; i++)
 	{

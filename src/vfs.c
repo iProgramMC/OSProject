@@ -172,6 +172,18 @@ void FsInitializeInitRd(void* pRamDisk)
 	g_pInitRdRoot->ReadDir = FsInitRdReadDir;
 	g_pInitRdRoot->FindDir = FsInitRdFindDir;
 	
+	// Initialize the /dev dir.
+	g_pInitRdDev = (FileNode*)MmAllocate(sizeof(FileNode));
+	strcpy(g_pInitRdDev->m_name, "dev");
+	g_pInitRdDev->m_flags = g_pInitRdDev->m_inode = g_pInitRdDev->m_length = g_pInitRdDev->m_implData = g_pInitRdDev->m_perms = 0;
+	g_pInitRdDev->m_type = FILE_TYPE_DIRECTORY;
+	g_pInitRdDev->Read    = NULL;
+	g_pInitRdDev->Write   = NULL;
+	g_pInitRdDev->Open    = NULL;
+	g_pInitRdDev->Close   = NULL;
+	g_pInitRdDev->ReadDir = FsInitRdReadDir;
+	g_pInitRdDev->FindDir = FsInitRdFindDir;
+	
 	// Add files to the ramdisk.
 	g_pRootNodes = (FileNode*)MmAllocate(sizeof(FileNode) * g_pInitRdHeader->m_nFiles);
 	g_nRootNodes = g_pInitRdHeader->m_nFiles;
