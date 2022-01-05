@@ -127,6 +127,8 @@ void ElfDumpInfo(ElfHeader* pHeader)
 	LogMsg("flags: %x  ehsize: %x  phentsz: %x  shnum: %x", pHeader->m_flags, pHeader->m_ehSize, pHeader->m_phEntSize, pHeader->m_shNum);
 }
 
+extern int g_lastReturnCode;
+
 int ElfExecute (void *pElfFile, size_t size)
 {
 	size += 0; //to circumvent unused warning
@@ -175,10 +177,12 @@ int ElfExecute (void *pElfFile, size_t size)
 	
 	UseHeap (&proc.m_heap);
 	
-	LogMsg("Loaded ELF successfully! Executing it now.");
+	//LogMsg("Loaded ELF successfully! Executing it now.");
 	int e = entry();
 	
-	LogMsg("(executable returned: %d)", e);
+	//LogMsg("(executable returned: %d)", e);
+	
+	g_lastReturnCode = e;
 	ResetToKernelHeap();
 	ElfCleanup (&proc);
 	

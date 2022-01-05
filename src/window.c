@@ -893,7 +893,7 @@ void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int 
 	{
 		case EVENT_CREATE: {
 			//add a predefined list of controls:
-			Rectangle r = {108, 200, 208, 220};
+			Rectangle r = {108, 190, 208, 220};
 			
 			//parm1 is the button number that we're being fed in EVENT_COMMAND
 			AddControl (pWindow, CONTROL_BUTTON, r, "Click Me!", 1, 0);

@@ -26,10 +26,10 @@
 void RenderButtonShape(Rectangle rect, int colorDark, int colorLight, int colorMiddle)
 {
 	//draw some lines
-	VidDrawHLine (colorLight, rect.left,  rect.right,    rect.top);
-	VidDrawHLine (colorDark,  rect.left,  rect.right,    rect.bottom-1);
-	VidDrawVLine (colorLight, rect.top,   rect.bottom-2, rect.left);
-	VidDrawVLine (colorDark,  rect.top+1, rect.bottom-1, rect.right);
+	VidDrawHLine (colorLight, rect.left+1,rect.right-1,  rect.top);
+	VidDrawHLine (colorDark,  rect.left+1,rect.right-1,  rect.bottom-1);
+	VidDrawVLine (colorLight, rect.top+1, rect.bottom-3, rect.left);
+	VidDrawVLine (colorDark,  rect.top+2, rect.bottom-2, rect.right);
 	
 	//shrink
 	rect.left++, rect.right--, rect.top++, rect.bottom--;

@@ -19,6 +19,7 @@
 #include <window.h>
 #include <icon.h>
 #include <vfs.h>
+#include <elf.h>
 
 char g_lastCommandExecuted[256] = {0};
 
@@ -89,6 +90,7 @@ void GraphicsTest()
 int g_nextTaskNum = 0;
 bool g_ramDiskMounted = 0;
 int g_ramDiskID = 0;
+int g_lastReturnCode = 0;
 bool CoPrintCharInternal (Console* this, char c, char next);
 void ShellExecuteCommand(char* p)
 {
@@ -106,12 +108,15 @@ void ShellExecuteCommand(char* p)
 		LogMsg("cls        - clear screen");
 		LogMsg("crash      - attempt to crash the kernel");
 		LogMsg("color XX   - change the screen color");
+		LogMsg("e          - executes an ELF from the initrd");
+		LogMsg("el         - prints the last returned value from an executed ELF");
 		LogMsg("help       - shows this list");
 		LogMsg("gt         - run a graphical test");
 		LogMsg("lm         - list memory allocations");
 		LogMsg("ls         - list the current working directory (right now just /)");
 		LogMsg("lt         - list currently running threads (pauses them during the print)");
 		LogMsg("mode X     - change the screen mode");
+		LogMsg("mspy       - Memory Spy! (TM)");
 		LogMsg("mrd        - mounts a testing RAM Disk");
 		LogMsg("rd         - reads and dumps a sector from the RAM Disk");
 		LogMsg("sysinfo    - dump system information");
@@ -124,6 +129,43 @@ void ShellExecuteCommand(char* p)
 		LogMsg("ttte       - spawns 1024 threads that prints stuff");
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
+	}
+	else if (strcmp (token, "el") == 0)
+	{
+		LogMsg("Last run ELF returned: %d", g_lastReturnCode);
+	}
+	else if (strcmp (token, "e") == 0)
+	{
+		char* fileName = Tokenize (&state, NULL, " ");
+		if (!fileName)
+		{
+			LogMsg("Expected filename");
+		}
+		else if (*fileName == 0)
+		{
+			LogMsg("Expected filename");
+		}
+		else
+		{
+			//TODO: open/close
+			FileNode* pNode = FsGetInitrdNode();
+			FileNode* pFile = FsFindDir(pNode, fileName);
+			if (!pFile)
+				LogMsg("No such file or directory");
+			else
+			{
+				int length = pFile->m_length;
+				char* pData = (char*)MmAllocate(length + 1);
+				pData[length] = 0;
+				
+				FsRead(pFile, 0, length, pData);
+				
+				ElfExecute(pData, length);
+				
+				MmFree(pData);
+			}
+			LogMsg("");
+		}
 	}
 	else if (strcmp (token, "cat") == 0)
 	{
@@ -138,6 +180,7 @@ void ShellExecuteCommand(char* p)
 		}
 		else
 		{
+			//TODO: open/close
 			FileNode* pNode = FsGetInitrdNode();
 			FileNode* pFile = FsFindDir(pNode, fileName);
 			if (!pFile)
@@ -194,6 +237,69 @@ void ShellExecuteCommand(char* p)
 		}
 		g_ramDiskID = StMountTestRamDisk();
 		g_ramDiskMounted = true;
+	}
+	else if (strcmp (token, "mspy") == 0)
+	{
+		char* secNum = Tokenize (&state, NULL, " ");
+		if (!secNum)
+		{
+			goto print_usage;
+		}
+		if (*secNum == 0)
+		{
+			goto print_usage;
+		}
+		
+		char* nBytesS = Tokenize(&state, NULL, " ");
+		if (!nBytesS)
+		{
+			goto print_usage;
+		}
+		if (*nBytesS == 0)
+		{
+			goto print_usage;
+		}
+		
+		char* auxSwitch = Tokenize(&state, NULL, " ");
+		bool as_bytes = false;
+		if (auxSwitch && *auxSwitch != 0)
+		{
+			if (strcmp (auxSwitch, "/b") == 0)
+				as_bytes = true;
+		}
+		
+		int nAddr = atoi (secNum);
+		int nBytes= atoi (nBytesS);
+		
+		int ints = nBytes/4;
+		if (ints > 1024) ints = 1024;
+		if (ints < 4) ints = 4;
+		
+		uint32_t* pAddr = (uint32_t*)(nAddr << 12);
+		uint8_t* pAddrB = (uint8_t*) (nAddr << 12);
+		for (int i = 0; i < ints; i += (8 >> as_bytes))
+		{
+			for (int j = 0; j < (8 >> as_bytes); j++)
+			{
+				if (as_bytes)
+				{
+					LogMsgNoCr("%b %b %b %b ", pAddrB[((i+j)<<2)+0], pAddrB[((i+j)<<2)+1], pAddrB[((i+j)<<2)+2], pAddrB[((i+j)<<2)+3]);
+				}
+				else
+					LogMsgNoCr("%x ", pAddr[i+j]);
+			}
+			LogMsg("");
+		}
+		goto dont_print_usage;
+	print_usage:
+		LogMsg("Virtual Memory Spy");
+		LogMsg("Usage: mspy <page number> <numBytes> [/b]");
+		LogMsg("- bytes will be printed as groups of 4 unless [/b] is specified");
+		LogMsg("- numBytes will be capped off at 4096 and rounded down to 32");
+		LogMsg("- pageNumber must be a \x01\x0CVALID\x01\x0F and \x01\x0CMAPPED\x01\x0F address.");
+		LogMsg("- pageNumber is in\x01\x0C DECIMAL\x01\x0F");
+		LogMsg("- note: cut off the last 3 digits of an address in hex and turn it to decimal to get a pageNumber");
+	dont_print_usage:;
 	}
 	else if (strcmp (token, "rd") == 0)
 	{

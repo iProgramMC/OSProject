@@ -108,5 +108,6 @@ enum {
 };
 
 void ElfPerformTest();
+int ElfExecute (void *pElfFile, size_t size);
 
 #endif//_ELF_H
