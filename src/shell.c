@@ -68,6 +68,7 @@ void TemporaryTask(__attribute__((unused)) int arg)
 
 void GraphicsTest()
 {
+	g_debugConsole.color = 0x2F;
 	CoClearScreen(&g_debugConsole);
 	
 	//demonstrate some of the apis that the kernel provides:
@@ -85,6 +86,7 @@ void GraphicsTest()
 	
 	LogMsg("Test complete.  Strike a key to exit.");
 	KbWaitForKeyAndGet();
+	g_debugConsole.color = 0x1F;
 }
 
 int g_nextTaskNum = 0;
@@ -106,6 +108,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("NanoShell Shell Help");
 		LogMsg("cat        - prints the contents of a file");
 		LogMsg("cls        - clear screen");
+		LogMsg("cm         - character map");
 		LogMsg("crash      - attempt to crash the kernel");
 		LogMsg("color XX   - change the screen color");
 		LogMsg("e          - executes an ELF from the initrd");
@@ -125,10 +128,23 @@ void ShellExecuteCommand(char* p)
 		LogMsg("stt        - spawns a single thread that doesn't last forever");
 		LogMsg("st         - spawns a single thread that makes a random line forever");
 		LogMsg("tt         - spawns 64 threads that makes random lines forever");
+		
+		//wait for new key
+		LogMsg("Strike a key to print more.");
+		KbWaitForKeyAndGet();
+		
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
 		LogMsg("ttte       - spawns 1024 threads that prints stuff");
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
+	}
+	else if (strcmp (token, "cm") == 0)
+	{
+		for (int y = 0; y < 16; y++)
+			for (int x = 0; x < 16; x++)
+			{
+				CoPlotChar(&g_debugConsole, x, y, (y<<4)|x);
+			}
 	}
 	else if (strcmp (token, "el") == 0)
 	{
@@ -507,7 +523,7 @@ void ShellExecuteCommand(char* p)
 	//LogMsg("You typed: '%s'", p);
 }
 
-void ShellRun()
+void ShellRun(UNUSED int unused_arg)
 {
 	while (1) 
 	{

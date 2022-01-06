@@ -99,7 +99,6 @@ void FillDepthBufferWithWindowIndex (Rectangle r, uint32_t* framebuffer, int ind
 }
 void UpdateDepthBuffer ()
 {
-	cli;
 	memset (g_windowDepthBuffer, 0xFF, g_windowDepthBufferSzBytes);
 	
 	for (int i = 0; i < WINDOWS_MAX; i++)
@@ -120,7 +119,6 @@ void UpdateDepthBuffer ()
 					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, g_windows[i].m_vbeData.m_framebuffer32, i);
 			}
 	}
-	sti;
 }
 #endif
 
@@ -169,9 +167,9 @@ void HideWindow (Window* pWindow)
 	
 	//higher = faster, but may miss some smaller windows
 	//a precision of 10 is a-ok if the window will never go beyond 11x11 in size
-	#define PRECISION 2
-	for (int y = pWindow->m_rect.top; y != pWindow->m_rect.bottom; y += PRECISION) {
-		for (int x = pWindow->m_rect.left; x != pWindow->m_rect.right; x += PRECISION) {
+	#define PRECISION 10
+	for (int y = pWindow->m_rect.top; y <= pWindow->m_rect.bottom; y += PRECISION) {
+		for (int x = pWindow->m_rect.left; x <= pWindow->m_rect.right; x += PRECISION) {
 			short h = GetWindowIndexInDepthBuffer(x,y);
 			if (h == -1) continue;
 			//check if it's present in the windowDrawList
@@ -322,7 +320,7 @@ void OnUILeftClick (int mouseX, int mouseY)
 	g_prevMouseX = (int)mouseX;
 	g_prevMouseY = (int)mouseY;
 	
-	ACQUIRE_LOCK (g_windowLock);
+	//ACQUIRE_LOCK (g_windowLock); -- NOTE: No need to lock anymore.  We're 'cli'ing anyway.
 	
 	short idx = GetWindowIndexInDepthBuffer(mouseX, mouseY);
 	
@@ -341,17 +339,16 @@ void OnUILeftClick (int mouseX, int mouseY)
 	else
 		g_currentlyClickedWindow = -1;
 	
-	FREE_LOCK(g_windowLock);
+	//FREE_LOCK(g_windowLock);
 }
 Cursor g_windowDragCursor;
-#define TITLE_BAR_HEIGHT 12
-#define WINDOW_RIGHT_SIDE_THICKNESS 4
 void OnUILeftClickDrag (int mouseX, int mouseY)
 {
 	if (!g_windowManagerRunning) return;
 	if (g_currentlyClickedWindow == -1) return;
 	
-	ACQUIRE_LOCK (g_windowLock);
+	//ACQUIRE_LOCK (g_windowLock); -- NOTE: No need to lock anymore.  We're 'cli'ing anyway.
+	
 	g_prevMouseX = (int)mouseX;
 	g_prevMouseY = (int)mouseY;
 	
@@ -391,14 +388,15 @@ void OnUILeftClickDrag (int mouseX, int mouseY)
 			WindowRegisterEvent (window, EVENT_CLICKCURSOR, MAKE_MOUSE_PARM (x, y), 0);
 		}
 	}
-	FREE_LOCK(g_windowLock);
+	
+	//FREE_LOCK(g_windowLock);
 }
 void OnUILeftClickRelease (int mouseX, int mouseY)
 {
 	if (!g_windowManagerRunning) return;
 	if (g_currentlyClickedWindow == -1) return;
 	
-	ACQUIRE_LOCK (g_windowLock);
+	//ACQUIRE_LOCK (g_windowLock); -- NOTE: No need to lock anymore.  We're 'cli'ing anyway.
 	
 	g_prevMouseX = (int)mouseX;
 	g_prevMouseY = (int)mouseY;
@@ -428,7 +426,7 @@ void OnUILeftClickRelease (int mouseX, int mouseY)
 	int y = mouseY - window->m_rect.top;
 	WindowRegisterEvent (window, EVENT_RELEASECURSOR, MAKE_MOUSE_PARM (x, y), 0);
 	
-	FREE_LOCK(g_windowLock);
+	//FREE_LOCK(g_windowLock);
 }
 void OnUIRightClick (int mouseX, int mouseY)
 {
@@ -436,6 +434,7 @@ void OnUIRightClick (int mouseX, int mouseY)
 	g_prevMouseX = (int)mouseX;
 	g_prevMouseY = (int)mouseY;
 	
+	//ACQUIRE_LOCK (g_windowLock); -- NOTE: No need to lock anymore.  We're 'cli'ing anyway.
 	short idx = GetWindowIndexInDepthBuffer(mouseX, mouseY);
 	
 	if (idx > -1)
@@ -445,6 +444,7 @@ void OnUIRightClick (int mouseX, int mouseY)
 		//hide this window:
 		HideWindow(window);
 	}
+	//FREE_LOCK(g_windowLock);
 }
 
 #endif
@@ -480,6 +480,7 @@ void RedrawEverything()
 
 bool HandleMessages(Window* pWindow);
 void RenderWindow (Window* pWindow);
+void TerminalHostTask(int arg);
 void WindowManagerTask(__attribute__((unused)) int useless_argument)
 {
 	g_clickQueueSize = 0;
@@ -502,7 +503,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//CreateTestWindows();
 	UpdateDepthBuffer();
 	
-	VidSetFont(FONT_BASIC);
+	//VidSetFont(FONT_BASIC);
+	VidSetFont(FONT_TAMSYN_BOLD);
+	//VidSetFont(FONT_FAMISANS);
 	
 	//test:
 #if !THREADING_ENABLED
@@ -519,6 +522,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	errorCode = 0;
 	pTask = KeStartTask(PrgPaintTask, 0, &errorCode);
 	DebugLogMsg("Created test task 3. pointer returned:%x, errorcode:%x", pTask, errorCode);
+	errorCode = 0;
+	pTask = KeStartTask(TerminalHostTask, 0, &errorCode);
+	DebugLogMsg("Created test task 4. pointer returned:%x, errorcode:%x", pTask, errorCode);
 #endif
 	
 	ACQUIRE_LOCK (g_clickQueueLock);
@@ -568,8 +574,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		}
 		
-		ACQUIRE_LOCK (g_clickQueueLock);
-		ACQUIRE_LOCK (g_screenLock);
+		cli;
+		//ACQUIRE_LOCK (g_clickQueueLock);
+		//ACQUIRE_LOCK (g_screenLock);
 		for (int i = 0; i < g_clickQueueSize; i++)
 		{
 			switch (g_clickQueue[i].clickType)
@@ -581,8 +588,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		}
 		g_clickQueueSize = 0;
-		FREE_LOCK (g_screenLock);
-		FREE_LOCK (g_clickQueueLock);
+		//FREE_LOCK (g_screenLock);
+		//FREE_LOCK (g_clickQueueLock);
+		sti;
 		
 		timeout--;
 		
@@ -682,7 +690,7 @@ void RemoveControl (Window* pWindow, int controlIndex)
 {
 	if (controlIndex >= pWindow->m_controlArrayLen || controlIndex < 0) return;
 	
-	cli;
+	ACQUIRE_LOCK(pWindow->m_eventQueueLock);
 	Control* pControl = &pWindow->m_pControlArray[controlIndex];
 	if (pControl->m_dataPtr)
 	{
@@ -692,7 +700,7 @@ void RemoveControl (Window* pWindow, int controlIndex)
 	pControl->m_bMarkedForDeletion = false;
 	pControl->OnEvent = NULL;
 	
-	sti;
+	FREE_LOCK(pWindow->m_eventQueueLock);
 }
 
 void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)

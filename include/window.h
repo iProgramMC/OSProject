@@ -75,6 +75,8 @@ typedef struct ControlStruct
 }
 Control;
 
+#define TITLE_BAR_HEIGHT 18
+#define WINDOW_RIGHT_SIDE_THICKNESS 3
 
 typedef struct WindowStruct
 {
@@ -101,6 +103,8 @@ typedef struct WindowStruct
 	
 	Control*   m_pControlArray;
 	int        m_controlArrayLen;
+	
+	void*      m_data; //user data
 } Window;
 
 /**
@@ -129,6 +133,31 @@ void WindowRegisterEvent (Window* pWindow, short eventType, int parm1, int parm2
  * For utility this can directly be put inside a KeStartTask.
  */
 void WindowManagerTask(__attribute__((unused)) int useless_argument);
+
+
+//Windowing API
+
+/**
+ * Creates a window, with its top left corner at (xPos, yPos), and its
+ * bottom right corner at (xPos + xSize, yPos + ySize).
+ *
+ * WindowProc is the main event handler of the program, but it isn't called.
+ * spontaneously. Instead, you use it like:
+ *
+ * while (HandleMessages(pWindow));
+ */
+Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc);
+
+/**
+ * Updates the window, and handles its messages.
+ */
+bool HandleMessages(Window* pWindow);
+
+/**
+ * The default window event procedure.  Call this when you don't know
+ * how to handle an event properly.
+ */
+void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUSED int parm2);
 
 
 #endif//_WINDOW_H

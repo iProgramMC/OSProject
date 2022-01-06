@@ -730,10 +730,10 @@ void VidSetVBEData(VBEData* pData)
 bool g_uses8by16Font = 0;
 
 const unsigned char* g_fontIDToData[] = {
-	g_FamiSans8x8,
 	g_TamsynRegu8x16,
 	g_TamsynBold8x16,
 	g_PaperMFont8x16,
+	g_FamiSans8x8,
 	g_BasicFontData,
 };
 const unsigned char* g_pCurrentFont = NULL;
@@ -848,11 +848,19 @@ void VidShiftScreen (int howMuch)
 	
 	if (g_vbeData->m_bitdepth == 2)
 	{
-		int a = g_vbeData->m_width * 4;
-		for (int i = howMuch, j = 0, k = 0; i < GetScreenSizeY(); i++, j += g_vbeData->m_pitch, k += a)
+		if (g_vbeData == &g_mainScreenVBEData)
 		{
-			fast_memcpy(((uint8_t*)g_vbeData->m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData->m_width], a);
-			fast_memcpy(((uint8_t*)g_framebufferCopy         + k), &g_framebufferCopy[i * g_vbeData->m_width], a);
+			int a = g_vbeData->m_width * 4;
+			for (int i = howMuch, j = 0, k = 0; i < GetScreenSizeY(); i++, j += g_vbeData->m_pitch, k += a)
+			{
+				fast_memcpy(((uint8_t*)g_vbeData->m_framebuffer32 + j), &g_framebufferCopy[i * g_vbeData->m_width], a);
+				fast_memcpy(((uint8_t*)g_framebufferCopy          + k), &g_framebufferCopy[i * g_vbeData->m_width], a);
+			}
+		}
+		else
+		{
+			int sz = g_vbeData->m_width * (g_vbeData->m_height - howMuch);
+			fast_memcpy(g_vbeData->m_framebuffer32, &g_vbeData->m_framebuffer32[g_vbeData->m_width * howMuch], sz);
 		}
 	}
 	else

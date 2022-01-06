@@ -45,6 +45,12 @@ void RenderButtonShape(Rectangle rect, int colorDark, int colorLight, int colorM
 	
 	//fill the background:
 	VidFillRectangle(colorMiddle, rect);
+	
+	//then, the corners.
+	VidPlotPixel(rect.left,  rect.top, 	  colorLight);
+	VidPlotPixel(rect.left,  rect.bottom, colorDark);
+	VidPlotPixel(rect.right, rect.top,	  colorLight);
+	VidPlotPixel(rect.right, rect.bottom, colorDark);
 }
 
 void WidgetNone_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int parm1, UNUSED int parm2, UNUSED Window* pWindow)

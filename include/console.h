@@ -7,6 +7,8 @@
 #ifndef _CONSOLE_H
 #define _CONSOLE_H
 
+#include <video.h>
+
 #define DefaultConsoleColor 0x1F
 
 enum ConsoleType {
@@ -15,6 +17,7 @@ enum ConsoleType {
 	CONSOLE_TYPE_FRAMEBUFFER, // can either be the entire screen or just a portion of it. TODO
 	CONSOLE_TYPE_SERIAL, // just plain old serial
 	CONSOLE_TYPE_E9HACK, // Port E9 hack - qemu and bochs support this.
+	CONSOLE_TYPE_WINDOW,
 };
 
 typedef struct ConsoleStruct {
@@ -24,6 +27,8 @@ typedef struct ConsoleStruct {
 	uint16_t color; // colors
 	int curX, curY; // cursor X and Y positions
 	bool pushOrWrap;// check if we should push whole screen up, or clear&wrap
+	VBEData* m_vbeData;//vbe data to switch to when drawing, ONLY APPLIES TO CONSOLE_TYPE_WINDOW!!
+	int offX, offY;
 	int font;
 } Console;
 
@@ -40,6 +45,8 @@ void CoInitAsText (Console* this);
 void CoInitAsGraphics (Console* this);
 void CoInitAsSerial (Console* this);
 void CoInitAsE9Hack (Console *this);
+void CLogMsg (Console *this, const char* fmt, ...);
+void CLogMsgNoCr (Console *this, const char* fmt, ...);
 void LogMsg (const char* fmt, ...);
 void LogMsgNoCr (const char* fmt, ...);
 void SLogMsg (const char* fmt, ...);

@@ -185,7 +185,7 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	//MmDebugDump();
 	//FreeTypeThing();
 	
-	ShellRun();
+	ShellRun(0);
 	LogMsg("Kernel ready to shutdown.");
 	KeStopSystem();
 }

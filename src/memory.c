@@ -388,17 +388,19 @@ void* MmAllocateSinglePagePhyD(uint32_t* pPhysOut, const char* callFile, int cal
 	// find a free pageframe.
 	// For 4096 bytes we can use ANY hole in the pageframes list, and we
 	// really do not care.
-	
+	cli;
 	int heapSize = GetHeapSize();
 	for (int i = 0; i < heapSize; i++)
 	{
 		if (!g_pageEntries[i].m_bPresent) // A non-allocated pageframe?
 		{
+			sti;
 			return MmSetupPage(i, pPhysOut, callFile, callLine);
 		}
 	}
 	// No more page frames?!
 	LogMsg("WARNING: No more page entries");
+	sti;
 	return NULL;
 }
 void* MmAllocateSinglePageD(const char* callFile, int callLine)
@@ -446,6 +448,7 @@ void *MmAllocatePhyD (size_t size, const char* callFile, int callLine, uint32_t*
 	if (size <= 0x1000) //worth one page:
 		return MmAllocateSinglePagePhyD(physAddresses, callFile, callLine);
 	else {
+		cli;
 		//more than one page, take matters into our own hands:
 		int numPagesNeeded = ((size - 1) >> 12) + 1;
 		//ex: if we wanted 6100 bytes, we'd take 6100-1=6099, then divide that by 4096 (we get 1) and add 1
@@ -490,10 +493,12 @@ void *MmAllocatePhyD (size_t size, const char* callFile, int callLine, uint32_t*
 					if (pPhysOut)
 						pPhysOut++;
 				}
+				sti;
 				return pointer;
 			}
 		_label_continue:;
 		}
+		sti;
 		return NULL; //no continuous addressed pages are left.
 	}
 }
@@ -505,6 +510,7 @@ void MmFree(void* pAddr)
 {
 	if (!pAddr) return; //handle (hopefully) accidental NULL freeing
 	
+	cli;
 	// Free the first page, but before we do, save its g_memoryAllocationSize.
 	uint32_t addr = (uint32_t)pAddr;
 	addr -= g_pageAllocationBase;
@@ -520,6 +526,7 @@ void MmFree(void* pAddr)
 		MmFreePage(pAddr);
 		pAddr = (void*)((uint8_t*)pAddr+0x1000);
 	}
+	sti;
 }
 
 uint32_t* MmGetKernelPageDir()

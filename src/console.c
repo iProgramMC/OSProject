@@ -22,22 +22,22 @@ uint16_t TextModeMakeChar(uint8_t fgbg, uint8_t chr) {
 	return comb2;
 }
 uint32_t g_vgaColorsToRGB[] = {
-	0xFF000000,
-	0xFF0000AA,
-	0xFF00AA00,
-	0xFF00AAAA,
-	0xFFAA0000,
-	0xFFAA00AA,
-	0xFFAAAA00,
-	0xFFAAAAAA,
-	0xFF555555,
-	0xFF5555FF,
-	0xFF55FF55,
-	0xFF55FFFF,
-	0xFFFF5555,
-	0xFFFF55FF,
-	0xFFFFFF55,
-	0xFFFFFFFF,
+	0x00000000,
+	0x000000AA,
+	0x0000AA00,
+	0x0000AAAA,
+	0x00AA0000,
+	0x00AA00AA,
+	0x00AAAA00,
+	0x00AAAAAA,
+	0x00555555,
+	0x005555FF,
+	0x0055FF55,
+	0x0055FFFF,
+	0x00FF5555,
+	0x00FF55FF,
+	0x00FFFF55,
+	0x00FFFFFF,
 };
 
 extern bool g_uses8by16Font;
@@ -104,19 +104,51 @@ void CoMoveCursor(Console* this) {
 		WritePort(0x3d5, cursorLocation);
 	}
 }
+extern VBEData* g_vbeData, g_mainScreenVBEData;
 void CoPlotChar (Console *this, int x, int y, char c) {
-	if (this->type == CONSOLE_TYPE_TEXT) {
+	VBEData* backup = g_vbeData;
+	if (this->type == CONSOLE_TYPE_WINDOW)
+		g_vbeData = this->m_vbeData;
+	else if (this->type == CONSOLE_TYPE_FRAMEBUFFER)
+	{
+		g_vbeData = &g_mainScreenVBEData;
+		this->offX = this->offY = 0;
+	}
+		
+	
+	if (this->type == CONSOLE_TYPE_TEXT || this->type == CONSOLE_TYPE_WINDOW) {
 		uint16_t chara = TextModeMakeChar (this->color, c);
 		// TODO: add bounds check
 		this->textBuffer [x + y * this->width] = chara;
 	}
-	else if (this->type == CONSOLE_TYPE_FRAMEBUFFER)
+	if (this->type == CONSOLE_TYPE_FRAMEBUFFER || this->type == CONSOLE_TYPE_WINDOW)
 	{
-		VidPlotChar (c, x << 3, y << (3 + (g_uses8by16Font)), g_vgaColorsToRGB[this->color & 0xF], g_vgaColorsToRGB[this->color >> 4]);
+		VidPlotChar (c, this->offX + (x << 3), this->offY + (y << (3 + (g_uses8by16Font))), g_vgaColorsToRGB[this->color & 0xF], g_vgaColorsToRGB[this->color >> 4]);
+		g_vbeData = backup;
 	}
 }
 void CoScrollUpByOne(Console *this) {
-	if (this->type == CONSOLE_TYPE_TEXT) {
+	if (this->type == CONSOLE_TYPE_WINDOW) {
+		if (this->pushOrWrap) {
+			//CoClearScreen(this);
+			this->curX = this->curY = 0;
+			return;
+		}
+		memcpy (this->textBuffer, &this->textBuffer[this->width], this->width * (this->height - 1) * sizeof(short));
+		//uint16_t* p = &this->textBuffer[this->width * (this->height - 1) * sizeof(short)];
+		for (int i = 0; i < this->width; i++)
+		{
+			CoPlotChar (this, i, this->height - 1, 0);
+		}
+		for (int j = 0; j < this->height-1; j++)
+		{
+			for (int i = 0; i < this->width; i++)
+			{
+				CoPlotChar(this, i, j, this->textBuffer[i + j * this->width]);
+			}
+		}
+	}
+	else if (this->type == CONSOLE_TYPE_TEXT) {
 		if (this->pushOrWrap) {
 			//CoClearScreen(this);
 			this->curX = this->curY = 0;
@@ -226,6 +258,28 @@ void CoPrintString (Console* this, const char *c) {
 	CoMoveCursor(this);
 }
 
+void CLogMsg (Console* pConsole, const char* fmt, ...) {
+	////allocate a buffer well sized
+	char cr[8192];
+	va_list list;
+	va_start(list, fmt);
+	vsprintf(cr, fmt, list);
+	
+	sprintf (cr + strlen(cr), "\n");
+	CoPrintString(pConsole, cr);
+	
+	va_end(list);
+}
+void CLogMsgNoCr (Console* pConsole, const char* fmt, ...) {
+	////allocate a buffer well sized
+	char cr[8192];
+	va_list list;
+	va_start(list, fmt);
+	vsprintf(cr, fmt, list);
+	CoPrintString(pConsole, cr);
+	
+	va_end(list);
+}
 void LogMsg (const char* fmt, ...) {
 	////allocate a buffer well sized
 	char cr[8192];

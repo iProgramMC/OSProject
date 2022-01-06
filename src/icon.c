@@ -41,6 +41,7 @@
 #include <icons/warning.h>
 #include <icons/nanoshell.h>
 #include <icons/nanoshell16.h>
+#include <icons/nanoshell_shell.h>
 
 Image * g_iconTable[] = {
 	NULL,
@@ -78,6 +79,7 @@ Image * g_iconTable[] = {
 	&g_warning_icon,
 	&g_nanoshell_icon,
 	&g_nanoshell16_icon,
+	&g_nanoshell_shell_icon,
 };
 
 STATIC_ASSERT(ARRAY_COUNT(g_iconTable) == ICON_COUNT, "Change this array if adding icons.");
