@@ -75,7 +75,7 @@ typedef struct ControlStruct
 }
 Control;
 
-#define TITLE_BAR_HEIGHT 18
+#define TITLE_BAR_HEIGHT 10
 #define WINDOW_RIGHT_SIDE_THICKNESS 3
 
 typedef struct WindowStruct

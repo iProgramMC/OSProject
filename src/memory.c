@@ -16,6 +16,13 @@ extern uint32_t e_placement;
 
 uint32_t* g_pageDirectory = NULL;
 uint32_t* g_curPageDir = NULL;
+uint32_t  g_curPageDirP = NULL;
+
+bool g_memoryPriLock  = false;
+bool g_memoryPmmLock  = false;
+bool g_memorySubLock  = false;
+bool g_memoryHeapLock = false;
+bool g_memoryPageLock = false;
 
 void MmTlbInvalidate() {
 	__asm__("movl %cr3, %ecx\n\tmovl %ecx, %cr3\n\t");
@@ -23,6 +30,7 @@ void MmTlbInvalidate() {
 void MmUsePageDirectory(uint32_t* curPageDir, uint32_t phys)
 {
 	g_curPageDir = curPageDir;
+	g_curPageDirP = phys;
 	__asm__ volatile ("mov %0, %%cr3"::"r"((uint32_t*)phys));
 }
 /*
@@ -97,10 +105,12 @@ uint32_t g_memoryStart;
 #define OFFSET_FROM_BIT(a) (a % 32)
 static void MmSetFrame (uint32_t frameAddr)
 {
+	ACQUIRE_LOCK (g_memoryPmmLock);
 	uint32_t frame = frameAddr >> 12;
 	uint32_t idx = INDEX_FROM_BIT (frame),
 			 off =OFFSET_FROM_BIT (frame);
 	e_frameBitsetVirt[idx] |= (0x1 << off);
+	FREE_LOCK (g_memoryPmmLock);
 }
 /*
 static void MmClrFrame (uint32_t frameAddr)
@@ -119,6 +129,7 @@ static bool MmTestFrame(uint32_t frameAddr)
 }*/
 static uint32_t MmFindFreeFrame()
 {
+	ACQUIRE_LOCK (g_memoryPmmLock);
 	for (uint32_t i=0; i<INDEX_FROM_BIT(e_frameBitsetSize); i++)
 	{
 		//Any bit free?
@@ -127,18 +138,23 @@ static uint32_t MmFindFreeFrame()
 			for (int j=0; j<32; j++)
 			{
 				if (!(e_frameBitsetVirt[i] & (1<<j)))
+				{
+					FREE_LOCK (g_memoryPmmLock);
 					return i*32 + j;
+				}
 			}
 		}
 		//no, continue
 	}
 	//what
-	LogMsg("WARNING: No more free memory?!");
+	SLogMsg("WARNING: No more free memory?!");
+	FREE_LOCK (g_memoryPmmLock);
 	return 0xffffffffu/*ck you*/;
 }
 
 int GetNumFreePhysPages()
 {
+	ACQUIRE_LOCK (g_memoryPmmLock);
 	int result = 0;
 	for (uint32_t i=0; i<INDEX_FROM_BIT(e_frameBitsetSize); i++)
 	{
@@ -153,6 +169,7 @@ int GetNumFreePhysPages()
 		}
 		//no, continue
 	}
+	FREE_LOCK (g_memoryPmmLock);
 	//what
 	return result;
 }
@@ -181,6 +198,7 @@ int GetHeapSize()
 
 void ResetToKernelHeap()
 {
+	ACQUIRE_LOCK (g_memoryHeapLock);
 	g_pageAllocationBase = PAGE_ALLOCATION_BASE;
 	g_heapSize = PAGE_ENTRY_TOTAL;
 	g_pageEntries = g_kernelPageEntries;
@@ -190,10 +208,12 @@ void ResetToKernelHeap()
 	g_memoryAllocationSize = g_kernelMemoryAllocationSize;
 	g_pHeap = NULL;
 	MmUsePageDirectory(g_kernelPageDirectory, (uint32_t)g_kernelPageDirectory - BASE_ADDRESS);
+	FREE_LOCK (g_memoryHeapLock);
 }
 
 void UseHeap (Heap* pHeap)
 {
+	ACQUIRE_LOCK (g_memoryHeapLock);
 	if (!pHeap) {
 		ResetToKernelHeap();
 		return;
@@ -211,11 +231,13 @@ void UseHeap (Heap* pHeap)
 	
 	
 	MmUsePageDirectory(pHeap->m_pageDirectory, pHeap->m_pageDirectoryPhys);
+	FREE_LOCK (g_memoryHeapLock);
 }
 
 // Frees a heap that was allocated on the kernel heap.
 void FreeHeap (Heap* pHeap)
 {
+	ACQUIRE_LOCK (g_memoryHeapLock);
 	ResetToKernelHeap();
 	MmFree(pHeap->m_pageEntries);
 	MmFree(pHeap->m_pageDirectory);
@@ -228,6 +250,7 @@ void FreeHeap (Heap* pHeap)
 	pHeap->m_memoryAllocAuthorLine = NULL;
 	pHeap->m_memoryAllocSize       = NULL;
 	pHeap->m_pageEntrySize         = 0;
+	FREE_LOCK (g_memoryHeapLock);
 }
 
 void MmRevertToKernelPageDir()
@@ -237,7 +260,7 @@ void MmRevertToKernelPageDir()
 }
 
 //! ONLY call this for the kernel heap!
-void MmSetupKernelHeapPages()
+static void MmSetupKernelHeapPages()
 {
 	int heapSize = GetHeapSize();
 	for (int i = 0; i < heapSize; i++)
@@ -257,7 +280,7 @@ void MmSetupKernelHeapPages()
 	MmTlbInvalidate();
 }
 
-void MmSetupUserHeapPages(Heap* pHeap)
+static void MmSetupUserHeapPages(Heap* pHeap)
 {
 	int heapSize = pHeap->m_pageEntrySize;
 	for (int i = 0; i < heapSize; i++)
@@ -275,28 +298,17 @@ void MmSetupUserHeapPages(Heap* pHeap)
 		index++;
 		jindex++;
 	}
-	
-	//dump the first 100 entries in the PD
-	/*for (int i=0; i<300; i+=8)
-	{
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+0]);
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+1]);
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+2]);
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+3]);
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+4]);
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+5]);
-		LogMsgNoCr("%x ",pHeap->m_pageDirectory[i+6]);
-		LogMsg    ("%x ",pHeap->m_pageDirectory[i+7]);
-	}*/
 }
 
 bool AllocateHeapD (Heap* pHeap, int size, const char* callerFile, int callerLine)
 {
+	ACQUIRE_LOCK (g_memoryHeapLock);
 	//PAGE_ENTRIES_PHYS_MAX_SIZE represents how many pagedirectories can we create at one time
 	if (size > PAGE_ENTRIES_PHYS_MAX_SIZE * 4096)
 	{
 		//can't:
 		LogMsg("Can't allocate a heap bigger than %d pages big.  That may change in a future update.", PAGE_ENTRIES_PHYS_MAX_SIZE * 4096);
+		FREE_LOCK (g_memoryHeapLock);
 		return false;
 	}
 	
@@ -328,6 +340,7 @@ bool AllocateHeapD (Heap* pHeap, int size, const char* callerFile, int callerLin
 	
 	ResetToKernelHeap();
 	
+	FREE_LOCK (g_memoryHeapLock);
 	return true;
 }
 
@@ -358,9 +371,13 @@ void MmInvalidateSinglePage(uintptr_t add)
 
 void* MmSetupPage(int i, uint32_t* pPhysOut, const char* callFile, int callLine)
 {
+	ACQUIRE_LOCK (g_memoryPageLock);
 	uint32_t frame = MmFindFreeFrame();
 	if (frame == 0xffffffffu/*ck you*/)
+	{
+		FREE_LOCK (g_memoryPageLock);
 		return NULL;
+	}
 
 	MmSetFrame(frame << 12);
 	
@@ -381,6 +398,7 @@ void* MmSetupPage(int i, uint32_t* pPhysOut, const char* callFile, int callLine)
 	uint32_t retaddr = (g_pageAllocationBase + (i << 12));
 	MmInvalidateSinglePage(retaddr);
 	
+	FREE_LOCK (g_memoryPageLock);
 	return (void*)retaddr;
 }
 void* MmAllocateSinglePagePhyD(uint32_t* pPhysOut, const char* callFile, int callLine)
@@ -388,7 +406,9 @@ void* MmAllocateSinglePagePhyD(uint32_t* pPhysOut, const char* callFile, int cal
 	// find a free pageframe.
 	// For 4096 bytes we can use ANY hole in the pageframes list, and we
 	// really do not care.
-	cli;
+	
+	ACQUIRE_LOCK (g_memoryLock);
+	
 	int heapSize = GetHeapSize();
 	for (int i = 0; i < heapSize; i++)
 	{
@@ -400,7 +420,9 @@ void* MmAllocateSinglePagePhyD(uint32_t* pPhysOut, const char* callFile, int cal
 	}
 	// No more page frames?!
 	LogMsg("WARNING: No more page entries");
-	sti;
+	
+	ACQUIRE_LOCK (g_memoryLock);
+	
 	return NULL;
 }
 void* MmAllocateSinglePageD(const char* callFile, int callLine)
@@ -410,6 +432,7 @@ void* MmAllocateSinglePageD(const char* callFile, int callLine)
 void MmFreePage(void* pAddr)
 {
 	if (!pAddr) return;
+	ACQUIRE_LOCK (g_memorySubLock);
 	// Turn this into a g_pageEntries index.
 	uint32_t addr = (uint32_t)pAddr;
 	
@@ -441,6 +464,8 @@ void MmFreePage(void* pAddr)
 	// Yes. Let's mark this as present, and return a made-up address from the index.
 	g_pageEntries[addr].m_bPresent = false;
 	g_memoryAllocationSize[addr] = 0;
+	
+	FREE_LOCK (g_memorySubLock);
 }
 //be sure to provide a decently sized physAddresses, or NULL
 void *MmAllocatePhyD (size_t size, const char* callFile, int callLine, uint32_t* physAddresses)
@@ -448,7 +473,7 @@ void *MmAllocatePhyD (size_t size, const char* callFile, int callLine, uint32_t*
 	if (size <= 0x1000) //worth one page:
 		return MmAllocateSinglePagePhyD(physAddresses, callFile, callLine);
 	else {
-		cli;
+		ACQUIRE_LOCK (g_memoryLock);
 		//more than one page, take matters into our own hands:
 		int numPagesNeeded = ((size - 1) >> 12) + 1;
 		//ex: if we wanted 6100 bytes, we'd take 6100-1=6099, then divide that by 4096 (we get 1) and add 1
@@ -493,12 +518,12 @@ void *MmAllocatePhyD (size_t size, const char* callFile, int callLine, uint32_t*
 					if (pPhysOut)
 						pPhysOut++;
 				}
-				sti;
+				FREE_LOCK (g_memoryLock);
 				return pointer;
 			}
 		_label_continue:;
 		}
-		sti;
+		FREE_LOCK (g_memoryLock);
 		return NULL; //no continuous addressed pages are left.
 	}
 }
@@ -510,7 +535,7 @@ void MmFree(void* pAddr)
 {
 	if (!pAddr) return; //handle (hopefully) accidental NULL freeing
 	
-	cli;
+	ACQUIRE_LOCK (g_memoryPageLock);
 	// Free the first page, but before we do, save its g_memoryAllocationSize.
 	uint32_t addr = (uint32_t)pAddr;
 	addr -= g_pageAllocationBase;
@@ -526,7 +551,7 @@ void MmFree(void* pAddr)
 		MmFreePage(pAddr);
 		pAddr = (void*)((uint8_t*)pAddr+0x1000);
 	}
-	sti;
+	FREE_LOCK (g_memoryPageLock);
 }
 
 uint32_t* MmGetKernelPageDir()

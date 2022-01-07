@@ -36,6 +36,7 @@ typedef void (*TaskedFunction) (int arg);
 // This is why we use CPUSaveState instead. (as we did in NanoShell2)
 typedef struct CPUSaveState
 {
+	int cr3;
 	int eax, ebx, ecx, edx,
 	    esi, edi, ebp, esp,
 		eip, cs, eflags;

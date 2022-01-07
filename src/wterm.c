@@ -1,6 +1,6 @@
 /*****************************************
 		NanoShell Operating System
-	   (C) 2021-2022 iProgramInCpp
+	      (C) 2022 iProgramInCpp
 
         Console Window Host module
 ******************************************/
@@ -47,8 +47,8 @@ void TerminalHostTask(int arg)
 	Window *pWindow = CreateWindow(
 		"nsterm", 
 		array[0], array[1], 
-		array[2] * 8  + 2 + WINDOW_RIGHT_SIDE_THICKNESS, 
-		array[3] * 16 + 6 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
+		array[2] * 6 + 4 + WINDOW_RIGHT_SIDE_THICKNESS, 
+		array[3] * 8 + 4 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
 		TerminalHostProc);
 	if (!pWindow)
 	{
@@ -68,9 +68,11 @@ void TerminalHostTask(int arg)
 	basic_console.height = array[3];
 	basic_console.offX = 2;
 	basic_console.offY = 2 + TITLE_BAR_HEIGHT;
-	basic_console.color = 0x2f;//green background
+	basic_console.color = 0x06;//green background
 	basic_console.curX = basic_console.curY = 0;
 	basic_console.pushOrWrap = 0; //wrap for now
+	basic_console.cwidth = 6;
+	basic_console.cheight = 8;
 	
 	pWindow->m_data = &basic_console;
 	

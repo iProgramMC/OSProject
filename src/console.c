@@ -106,6 +106,7 @@ void CoMoveCursor(Console* this) {
 }
 extern VBEData* g_vbeData, g_mainScreenVBEData;
 void CoPlotChar (Console *this, int x, int y, char c) {
+	if (x < 0 || y < 0 || x >= this->width || y >= this->height) return;
 	VBEData* backup = g_vbeData;
 	if (this->type == CONSOLE_TYPE_WINDOW)
 		g_vbeData = this->m_vbeData;
@@ -121,9 +122,14 @@ void CoPlotChar (Console *this, int x, int y, char c) {
 		// TODO: add bounds check
 		this->textBuffer [x + y * this->width] = chara;
 	}
-	if (this->type == CONSOLE_TYPE_FRAMEBUFFER || this->type == CONSOLE_TYPE_WINDOW)
+	if (this->type == CONSOLE_TYPE_FRAMEBUFFER)
 	{
 		VidPlotChar (c, this->offX + (x << 3), this->offY + (y << (3 + (g_uses8by16Font))), g_vgaColorsToRGB[this->color & 0xF], g_vgaColorsToRGB[this->color >> 4]);
+		g_vbeData = backup;
+	}
+	if (this->type == CONSOLE_TYPE_WINDOW)
+	{
+		VidPlotChar (c, this->offX + x * this->cwidth, this->offY + y  * this->cheight, g_vgaColorsToRGB[this->color & 0xF], g_vgaColorsToRGB[this->color >> 4]);
 		g_vbeData = backup;
 	}
 }

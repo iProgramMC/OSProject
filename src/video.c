@@ -735,6 +735,7 @@ const unsigned char* g_fontIDToData[] = {
 	g_PaperMFont8x16,
 	g_FamiSans8x8,
 	g_BasicFontData,
+	g_GlcdData,
 };
 const unsigned char* g_pCurrentFont = NULL;
 void VidSetFont(unsigned fontType)
@@ -755,14 +756,38 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 	}
 	int width = g_pCurrentFont[0], height = g_pCurrentFont[1];
 	const unsigned char* test = g_pCurrentFont + 3;
-	for (int y = 0; y < height; y++)
+	if (g_pCurrentFont[2] == 2)
 	{
-		for (int x = 0, bitmask = (1 << (width - 1)); x < width; x++, bitmask >>= 1)
+		int x = 0;
+		for (x = 0; x < width; x++)
 		{
-			if (test[c * height + y] & bitmask)
-				VidPlotPixel(ox + x, oy + y, colorFg);
-			else if (colorBg != TRANSPARENT)
+			for (int y = 0, bitmask = 1; y < height; y++, bitmask <<= 1)
+			{
+				if (test[c * width + x] & bitmask)
+					VidPlotPixel(ox + x, oy + y, colorFg);
+				else if (colorBg != TRANSPARENT)
+					VidPlotPixel(ox + x, oy + y, colorBg);
+			}
+		}
+		for (int y = 0; y < height; y++)
+		{
+			if (colorBg != TRANSPARENT)
 				VidPlotPixel(ox + x, oy + y, colorBg);
+		}
+		
+		return;
+	}
+	else
+	{
+		for (int y = 0; y < height; y++)
+		{
+			for (int x = 0, bitmask = (1 << (width - 1)); x < width; x++, bitmask >>= 1)
+			{
+				if (test[c * height + y] & bitmask)
+					VidPlotPixel(ox + x, oy + y, colorFg);
+				else if (colorBg != TRANSPARENT)
+					VidPlotPixel(ox + x, oy + y, colorBg);
+			}
 		}
 	}
 }
@@ -770,7 +795,9 @@ static void VidTextOutInternal(const char* pText, unsigned ox, unsigned oy, unsi
 {
 	int x = ox, y = oy;
 	int lineHeight = g_pCurrentFont[1], charWidth = g_pCurrentFont[0];
-	bool hasVariableCharWidth = g_pCurrentFont[2];
+	bool hasVariableCharWidth = g_pCurrentFont[2] == 1;
+	if (g_pCurrentFont[2] == 2)
+		charWidth++;
 	
 	int width = 0;
 	int cwidth = 0, height = lineHeight;

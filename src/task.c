@@ -14,6 +14,7 @@
 Task g_runningTasks[C_MAX_TASKS];
 static int s_currentRunningTask = -1;
 static CPUSaveState g_kernelSaveState;
+
 void KeTaskDebugDump()
 {
 	cli;
@@ -34,7 +35,7 @@ void KeTaskDebugDump()
 // This function (in asm/task.asm) prepares the initial task for
 // execution.
 extern void KeTaskStartup();
-
+extern uint32_t g_curPageDirP; //memory.c
 void KeConstructTask (Task* pTask)
 {
 	pTask->m_state.esp = ((int)pTask->m_pStack + C_STACK_BYTES_PER_TASK) & ~0xF; //Align to 4 bits
@@ -49,6 +50,10 @@ void KeConstructTask (Task* pTask)
 	pTask->m_state.edi = 0xBBBBBBBB;
 	pTask->m_state.cs  = 0x8;//same as our CS
 	pTask->m_state.eflags = 0x297; //same as our own EFL register
+	pTask->m_state.cr3 = g_curPageDirP; //same as our own CR3 register
+	
+	//clear the stack
+	ZeroMemory (pTask->m_pStack, C_STACK_BYTES_PER_TASK);
 	
 	// push the iretd worthy registers on the stack:
 	pTask->m_state.esp -= sizeof(int) * 5;
@@ -101,23 +106,27 @@ Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, co
 		return NULL;
 	}
 }
-static void KeResetTask(Task* pTask, bool killing)
+static void KeResetTask(Task* pTask, bool killing, bool interrupt)
 {
+	if (!interrupt) cli; //must do this, because otherwise we can expect an interrupt to come in and load our unfinished structure
 	if (pTask == KeGetRunningTask())
 	{
 		SLogMsg("Marked current task for execution (KeResetTask)");
 		pTask->m_bMarkedForDeletion = true;
+		sti;//if we didn't restore interrupts here would be our death point
 		while (1) hlt;
 	}
 	else
 	{
-		SLogMsg("Deleting task %x for execution (KeResetTask, killing:%d)", pTask, killing);
+		SLogMsg("Deleting task %x (KeResetTask, killing:%d)", pTask, killing);
 		if (killing && pTask->m_pStack)
 		{
+			SLogMsg("Freeing this task's stack");
 			MmFree(pTask->m_pStack);
 		}
 		pTask->m_pStack = NULL;
 		
+		SLogMsg("Resetting stuff about it...");
 		pTask->m_bFirstTime = false;
 		pTask->m_bExists    = false;
 		pTask->m_pFunction  = NULL;
@@ -127,6 +136,7 @@ static void KeResetTask(Task* pTask, bool killing)
 		pTask->m_argument   = 0;
 		pTask->m_featuresArgs = false;
 		pTask->m_bMarkedForDeletion = false;
+		if (!interrupt) sti;//if we didn't restore interrupts here would be our death point
 	}
 }
 bool KeKillTask(Task* pTask)
@@ -143,7 +153,7 @@ bool KeKillTask(Task* pTask)
 	{
 		sti; return false;
 	}
-	KeResetTask(pTask, true);
+	KeResetTask(pTask, true, false);
 	sti;
 	return true;
 }
@@ -155,7 +165,7 @@ Task* KeGetRunningTask()
 void KiTaskSystemInitialize()
 {
 	for (int i = 0; i < C_MAX_TASKS; i++)
-		KeResetTask(g_runningTasks + i, false);
+		KeResetTask(g_runningTasks + i, false, true);
 }
 
 CPUSaveState* g_saveStateToRestore1 = NULL;
@@ -211,6 +221,17 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 	//WritePort (0x70, 0x0C);
 	//ReadPort  (0x71);
 	
+	if (!pTask) //switching away from kernel task?
+	{
+		for (int i = 0; i < C_MAX_TASKS; i++)
+		{
+			if (g_runningTasks[i].m_bMarkedForDeletion)
+			{
+				KeResetTask(&g_runningTasks[i], true, true);
+			}
+		}
+	}
+	
 	int i = s_currentRunningTask + 1;
 	for (; i < C_MAX_TASKS; i++)
 	{
@@ -225,20 +246,12 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 	{
 		s_currentRunningTask = i;
 		
-		//if old task was marked for deletion, remove it:
-		if (pTask)
-			if (pTask->m_bMarkedForDeletion) KeResetTask(pTask, true);
-		
 		KeRestoreStandardTask(pNewTask);
 	}
 	else
 	{
 		//Kernel task
 		s_currentRunningTask = -1;
-		
-		//if old task was marked for deletion, remove it:
-		if (pTask)
-			if (pTask->m_bMarkedForDeletion) KeResetTask(pTask, true);
 		
 		KeRestoreKernelTask();
 	}

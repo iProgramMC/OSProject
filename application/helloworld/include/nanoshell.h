@@ -33,6 +33,7 @@ void strcat(char* dest, char* after);
 //our own functions that call into the system
 void PutString(const char* text);
 void LogMsg(const char* fmt, ...);
+void LogMsgNoCr(const char* fmt, ...);
 void *Allocate(int size);
 void Free (void* ptr);
 void MmDebugDump();

@@ -12,12 +12,12 @@ int main ()
 		addtobss  //should print 1
 	);
 	
-	LogMsg("Attempting to allocate some memory.");
-	void *ptr = Allocate (50);
-	
-	*((uint8_t*)ptr + 49) = 0xBE;
-	MmDebugDump();
-	Free (ptr);
+	for (int i = 0; i < 500; i++)
+	{
+		for (int j = 0; j < 500; j++)
+			__asm__ volatile ("hlt\n\t");
+		LogMsgNoCr("HI! %d", i);
+	}
 	
 	return 42;//The answer to everything
 }

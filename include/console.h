@@ -30,6 +30,7 @@ typedef struct ConsoleStruct {
 	VBEData* m_vbeData;//vbe data to switch to when drawing, ONLY APPLIES TO CONSOLE_TYPE_WINDOW!!
 	int offX, offY;
 	int font;
+	int cwidth, cheight;
 } Console;
 
 extern Console g_debugConsole; // for LogMsg

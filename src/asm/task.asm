@@ -19,9 +19,15 @@ IrqTaskA:
 	push ebx
 	push eax
 	
+	mov eax, cr3
+	push eax
+	
 	push esp
 	call KeSwitchTask
 	add esp, 4 ; get rid of what we had on the stack
+	
+	pop eax
+	mov cr3, eax
 	
 	pop eax
 	pop ebx
@@ -42,6 +48,9 @@ global KeStartedNewKernelTask
 KeStartedNewTask:
 KeStartedNewKernelTask:
 	mov esp, [g_saveStateToRestore1]
+	
+	pop eax
+	mov cr3, eax
 	
 	pop eax
 	pop ebx

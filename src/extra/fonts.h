@@ -9,3 +9,4 @@
 #include "tamsyn.h"
 #include "paperm.h"
 #include "famisans.h"
+#include "glcd.h"

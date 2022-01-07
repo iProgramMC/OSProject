@@ -60,7 +60,7 @@ void TemporaryTask(__attribute__((unused)) int arg)
 	{
 		//for (int j = 0; j < 10000000; j++)
 		//	;
-		LogMsgNoCr("HI!");
+		LogMsgNoCr("HI! %d",i);
 		for (int i = 0; i < 30; i++)
 			hlt;
 	}
@@ -94,6 +94,28 @@ bool g_ramDiskMounted = 0;
 int g_ramDiskID = 0;
 int g_lastReturnCode = 0;
 bool CoPrintCharInternal (Console* this, char c, char next);
+
+void funnytest(UNUSED int argument)
+{
+	FileNode* pNode = FsGetInitrdNode();
+	FileNode* pFile = FsFindDir(pNode, "main.nse");
+	if (!pFile)
+		LogMsg("No such file or directory");
+	else
+	{
+		int length = pFile->m_length;
+		char* pData = (char*)MmAllocate(length + 1);
+		pData[length] = 0;
+		
+		FsRead(pFile, 0, length, pData);
+		
+		ElfExecute(pData, length);
+		
+		MmFree(pData);
+	}
+	LogMsg("");
+}
+
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -149,6 +171,13 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "el") == 0)
 	{
 		LogMsg("Last run ELF returned: %d", g_lastReturnCode);
+	}
+	else if (strcmp (token, "em") == 0)
+	{
+		int erc = 0;
+		Task* pTask = KeStartTask(funnytest, 0, &erc);
+		
+		LogMsg("Started task!  Pointer: %x, errcode: %x", pTask, erc);
 	}
 	else if (strcmp (token, "e") == 0)
 	{

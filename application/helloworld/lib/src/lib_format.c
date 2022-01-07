@@ -157,4 +157,15 @@ void LogMsg(const char* fmt, ...)
 	
 	va_end(list);
 }
+void LogMsgNoCr(const char* fmt, ...)
+{
+	char cr[8192];
+	va_list list;
+	va_start(list, fmt);
+	vsprintf(cr, fmt, list);
+	
+	PutString(cr);
+	
+	va_end(list);
+}
 

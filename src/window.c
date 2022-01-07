@@ -504,8 +504,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	UpdateDepthBuffer();
 	
 	//VidSetFont(FONT_BASIC);
-	VidSetFont(FONT_TAMSYN_BOLD);
+	//VidSetFont(FONT_TAMSYN_BOLD);
 	//VidSetFont(FONT_FAMISANS);
+	VidSetFont(FONT_GLCD);
 	
 	//test:
 #if !THREADING_ENABLED
@@ -561,8 +562,10 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 				continue;
 			}
 		#endif
+			cli;
 			if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
 				RenderWindow(pWindow);
+			sti;
 			
 			if (pWindow->m_markedForDeletion)
 			{
@@ -574,9 +577,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		}
 		
-		cli;
-		//ACQUIRE_LOCK (g_clickQueueLock);
-		//ACQUIRE_LOCK (g_screenLock);
+		//cli;
+		ACQUIRE_LOCK (g_clickQueueLock);
+		ACQUIRE_LOCK (g_screenLock);
 		for (int i = 0; i < g_clickQueueSize; i++)
 		{
 			switch (g_clickQueue[i].clickType)
@@ -588,9 +591,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		}
 		g_clickQueueSize = 0;
-		//FREE_LOCK (g_screenLock);
-		//FREE_LOCK (g_clickQueueLock);
-		sti;
+		FREE_LOCK (g_screenLock);
+		FREE_LOCK (g_clickQueueLock);
+		//sti;
 		
 		timeout--;
 		
@@ -723,7 +726,7 @@ void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)
 extern VBEData* g_vbeData, g_mainScreenVBEData;
 void RenderWindow (Window* pWindow)
 {
-	ACQUIRE_LOCK(g_screenLock);
+	//ACQUIRE_LOCK(g_screenLock);
 	VBEData* backup = g_vbeData;
 	g_vbeData = &g_mainScreenVBEData;
 	
@@ -750,7 +753,7 @@ void RenderWindow (Window* pWindow)
 	}
 	
 	g_vbeData = backup;
-	FREE_LOCK(g_screenLock);
+	//FREE_LOCK(g_screenLock);
 }
 
 void PaintWindowBorder(Window* pWindow)
