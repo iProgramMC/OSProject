@@ -13,9 +13,14 @@
 #include <console.h>
 #include <memory.h>
 
+#define THREADING_ENABLED 1 //0
+
 #define WINDOWS_MAX 64
 #define WINDOW_TITLE_MAX 250
 #define EVENT_QUEUE_MAX 256
+
+#define TITLE_BAR_HEIGHT 10
+#define WINDOW_RIGHT_SIDE_THICKNESS 3
 
 #define BACKGROUND_COLOR 0xFF007F7F
 #define BUTTON_MIDDLE_COLOR 0xFFCCCCCC
@@ -51,7 +56,7 @@ enum {
 	CONTROL_BUTTON,
 	CONTROL_TEXTINPUT,
 	CONTROL_CHECKBOX,
-	
+	CONTROL_CLICKLABEL,
 	CONTROL_COUNT
 };
 
@@ -74,9 +79,6 @@ typedef struct ControlStruct
 	WidgetEventHandler OnEvent;
 }
 Control;
-
-#define TITLE_BAR_HEIGHT 10
-#define WINDOW_RIGHT_SIDE_THICKNESS 3
 
 typedef struct WindowStruct
 {
@@ -158,6 +160,11 @@ bool HandleMessages(Window* pWindow);
  * how to handle an event properly.
  */
 void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUSED int parm2);
+
+/**
+ * Adds a control to the window.
+ */
+int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int p1, int p2);
 
 
 #endif//_WINDOW_H

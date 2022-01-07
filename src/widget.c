@@ -119,6 +119,44 @@ void WidgetButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int
 		}
 	}
 }
+void WidgetClickLabel_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int parm1, UNUSED int parm2, UNUSED Window* pWindow)
+{
+	switch (eventType)
+	{
+	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+		case EVENT_RELEASECURSOR:
+		{
+			Rectangle r = this->m_rect;
+			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
+			if (RectangleContains (&r, &p))
+			{
+				//send a command event to the window:
+				//WindowRegisterEvent(pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
+				pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
+			}
+		}
+		//! fallthrough intentional - need the button to redraw itself as pushing back up
+		case EVENT_PAINT:
+	#pragma GCC diagnostic pop
+		{
+			//then fill in the text:
+			VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_VCENTERED, 0x1111FF, TRANSPARENT);
+			
+			break;
+		}
+		case EVENT_CLICKCURSOR:
+		{
+			Rectangle r = this->m_rect;
+			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
+			if (RectangleContains (&r, &p))
+			{
+				//then fill in the text:
+				VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_VCENTERED, 0x11, TRANSPARENT);
+			}
+			break;
+		}
+	}
+}
 void WidgetTextInput_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int parm1, UNUSED int parm2, UNUSED Window* pWindow)
 {
 }
@@ -133,6 +171,7 @@ WidgetEventHandler g_widgetEventHandlerLUT[] = {
 	WidgetButton_OnEvent,
 	WidgetTextInput_OnEvent,
 	WidgetCheckbox_OnEvent,
+	WidgetClickLabel_OnEvent,
 	NULL
 };
 WidgetEventHandler GetWidgetOnEventFunction (int type)

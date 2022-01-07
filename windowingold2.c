@@ -5,10 +5,6 @@
            Window Manager module
 ******************************************/
 
-#define THREADING_ENABLED 1 //0
-#if THREADING_ENABLED
-#define MULTITASKED_WINDOW_MANAGER
-#endif
 
 #define DebugLogMsg  SLogMsg
 
@@ -19,6 +15,9 @@
 #include <widget.h>
 #include <misc.h>
 #include <wbuiltin.h>
+#if THREADING_ENABLED
+#define MULTITASKED_WINDOW_MANAGER
+#endif
 
 //util:
 #if 1
@@ -43,8 +42,6 @@ extern bool      g_clickQueueLock;
 
 bool g_windowLock = false;
 bool g_screenLock = false;
-bool g_bufferLock = false;
-bool g_createLock = false;
 
 void TestProgramTask(int argument);
 void IconTestTask   (int argument);
@@ -102,7 +99,6 @@ void FillDepthBufferWithWindowIndex (Rectangle r, uint32_t* framebuffer, int ind
 }
 void UpdateDepthBuffer ()
 {
-	ACQUIRE_LOCK(g_bufferLock);
 	memset (g_windowDepthBuffer, 0xFF, g_windowDepthBufferSzBytes);
 	
 	for (int i = 0; i < WINDOWS_MAX; i++)
@@ -123,7 +119,6 @@ void UpdateDepthBuffer ()
 					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, g_windows[i].m_vbeData.m_framebuffer32, i);
 			}
 	}
-	FREE_LOCK(g_bufferLock);
 }
 #endif
 
@@ -211,7 +206,6 @@ void ShowWindow (Window* pWindow)
 
 void ReadyToDestroyWindow (Window* pWindow)
 {
-	ACQUIRE_LOCK(g_createLock);
 	HideWindow (pWindow);
 	
 	if (pWindow->m_vbeData.m_framebuffer32)
@@ -227,7 +221,6 @@ void ReadyToDestroyWindow (Window* pWindow)
 	}
 	pWindow->m_used = false;
 	pWindow->m_eventQueueSize = 0;
-	FREE_LOCK(g_createLock);
 }
 
 void DestroyWindow (Window* pWindow)
@@ -264,7 +257,6 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 #if 1
 Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc)
 {
-	ACQUIRE_LOCK(g_createLock);
 	int freeArea = -1;
 	for (int i = 0; i < WINDOWS_MAX; i++)
 	{
@@ -312,9 +304,7 @@ Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, Win
 	
 	WindowRegisterEvent(pWnd, EVENT_CREATE, 0, 0);
 	SelectThisWindowAndUnselectOthers(pWnd);
-	UpdateDepthBuffer();
 	
-	FREE_LOCK(g_createLock);
 	return pWnd;
 }
 #endif 
@@ -516,10 +506,10 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//CreateTestWindows();
 	UpdateDepthBuffer();
 	
-	VidSetFont(FONT_BASIC);
+	//VidSetFont(FONT_BASIC);
 	//VidSetFont(FONT_TAMSYN_BOLD);
 	//VidSetFont(FONT_FAMISANS);
-	//VidSetFont(FONT_GLCD);
+	VidSetFont(FONT_GLCD);
 	
 	//test:
 #if !THREADING_ENABLED
@@ -530,7 +520,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	int errorCode = 0;
 	Task* pTask;
 	
-	/*pTask = KeStartTask(TestProgramTask, 0, &errorCode);
+	/**/pTask = KeStartTask(TestProgramTask, 0, &errorCode);
 	DebugLogMsg("Created test task 1. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	errorCode = 0;
 	pTask = KeStartTask(IconTestTask, 0, &errorCode);
@@ -540,12 +530,12 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	DebugLogMsg("Created test task 3. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	errorCode = 0;
 	pTask = KeStartTask(TerminalHostTask, 0, &errorCode);
-	DebugLogMsg("Created test task 4. pointer returned:%x, errorcode:%x", pTask, errorCode);*/
+	DebugLogMsg("Created test task 4. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	
 	//create the program manager task.
-	errorCode = 0;
+	/*errorCode = 0;
 	pTask = KeStartTask(LauncherProgramTask, 0, &errorCode);
-	DebugLogMsg("Created launcher task. pointer returned:%x, errorcode:%x", pTask, errorCode);
+	DebugLogMsg("Created launcher task. pointer returned:%x, errorcode:%x", pTask, errorCode);*/
 	
 	
 #endif
@@ -915,4 +905,271 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 			break;
 	}
 }
+#endif
+
+// Test programs
+#if 1
+// Test program application.
+#if 1
+void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();
+	switch (messageType)
+	{
+		case EVENT_CREATE: {
+			//add a predefined list of controls:
+			Rectangle r = {108, 190, 208, 220};
+			
+			//parm1 is the button number that we're being fed in EVENT_COMMAND
+			AddControl (pWindow, CONTROL_BUTTON, r, "Click Me!", 1, 0);
+			
+			Rectangle r1 = {250,108,320,120};
+			AddControl (pWindow, CONTROL_TEXT, r1, "Hello", 0xFFFFFF, TRANSPARENT);
+			
+			Rectangle r2 = {200,100,232,120};
+			AddControl (pWindow, CONTROL_ICON, r2, NULL, ICON_GLOBE, 0);
+			
+			break;
+		}
+		case EVENT_PAINT: {
+			char test[100];
+			sprintf(test, "Hi!  Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
+			VidFillRect (0xFF00FF, 10, 40, 100, 120);
+			VidTextOut (test, 10, 30, 0, TRANSPARENT);
+			break;
+		}
+		case EVENT_COMMAND: {
+			if (parm1 == 1)
+			{
+				//The only button:
+				int randomX = GetRandom() % 320;
+				int randomY = GetRandom() % 240;
+				int randomColor = GetRandom();
+				VidTextOut("*click*", randomX, randomY, randomColor, TRANSPARENT);
+			}
+			break;
+		}
+		default:
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+	}
+}
+
+void TestProgramTask (__attribute__((unused)) int argument)
+{
+	// create ourself a window:
+	Window* pWindow = CreateWindow ("Hello World", 100, 100, 320, 240, TestProgramProc);
+	
+	if (!pWindow)
+		DebugLogMsg("Hey, the window couldn't be created");
+	
+	// setup:
+	//ShowWindow(pWindow);
+	
+	// event loop:
+#if THREADING_ENABLED
+	while (HandleMessages (pWindow));
+#endif
+}
+#endif
+
+// Icon test application.
+#if 1
+void CALLBACK IconTestProc (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	switch (messageType)
+	{
+		case EVENT_PAINT:
+			//draw until ICON_COUNT:
+			for (int i = ICON_NULL+1; i < ICON_COUNT; i++)
+			{
+				int x = i & 7, y = i >> 3;
+				RenderIcon((IconType)i, x*32 + 10, y*32 + 15);
+			}
+			/*RenderIcon(ICON_CABINET, 10, 20);*/
+			break;
+		default:
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+	}
+}
+
+void IconTestTask (__attribute__((unused)) int argument)
+{
+	// create ourself a window:
+	Window* pWindow = CreateWindow ("Icon Test", 300, 200, 320, 240, IconTestProc);
+	
+	if (!pWindow)
+		DebugLogMsg("Hey, the window couldn't be created");
+	
+	// setup:
+	//ShowWindow(pWindow);
+	
+	// event loop:
+#if THREADING_ENABLED
+	while (HandleMessages (pWindow));
+#endif
+}
+#endif
+
+// Scribble application.
+#if 1
+int g_paint1X = -1, g_paint1Y = -1;
+void CALLBACK PrgPaintProc (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	switch (messageType)
+	{
+		case EVENT_CREATE:
+			g_paint1X = g_paint1Y = -1;
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+			break;
+		case EVENT_PAINT:
+			//VidFillRect (0xFF00FF, 10, 40, 100, 120);
+			//VidTextOut ("Hey, it's the window :)", 50, 50, TRANSPARENT, 0xe0e0e0);
+			break;
+		case EVENT_CLICKCURSOR:
+		case EVENT_MOVECURSOR:
+			if (g_paint1X == -1)
+			{
+				VidPlotPixel(GET_X_PARM(parm1), GET_Y_PARM(parm1), parm1);
+			}
+			else
+			{
+				VidDrawLine(parm1, g_paint1X, g_paint1Y, GET_X_PARM(parm1), GET_Y_PARM(parm1));
+			}
+			g_paint1X = GET_X_PARM(parm1);
+			g_paint1Y = GET_Y_PARM(parm1);
+			break;
+		case EVENT_RELEASECURSOR:
+			g_paint1X = g_paint1Y = -1;
+			break;
+		default:
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+	}
+}
+
+void PrgPaintTask (__attribute__((unused)) int argument)
+{
+	// create ourself a window:
+	Window* pWindow = CreateWindow ("Scribble!", 200, 300, 500, 400, PrgPaintProc);
+	
+	if (!pWindow)
+		DebugLogMsg("Hey, the window couldn't be created");
+	
+	// setup:
+	//ShowWindow(pWindow);
+	
+	// event loop:
+#if THREADING_ENABLED
+	while (HandleMessages (pWindow));
+#endif
+}
+#endif
+
+// Main launcher application.
+#if 1
+
+enum {
+	LAUNCHER_SYSTEM = 0x10,
+	LAUNCHER_NOTEPAD,
+	LAUNCHER_PAINT,
+	LAUNCHER_CABINET,
+};
+
+#define RECT(rect,x,y,w,h) do {\
+	rect.left = x, rect.top = y, rect.right = x+w, rect.bottom = x+h;\
+} while (0)
+void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();
+	switch (messageType)
+	{
+		case EVENT_CREATE: {
+			
+			// Add a label welcoming the user to NanoShell.
+			Rectangle r;
+			RECT(r, 30, 30, 200, 20);
+			AddControl (pWindow, CONTROL_TEXT, r, "Welcome to NanoShell!", 1, 0);
+			
+			// Add the system icon.
+			RECT(r, 30, 70, 32, 32);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_COMPUTER, 0);
+			
+			RECT(r, 70, 70, 32, 32);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "System", LAUNCHER_SYSTEM, 0);
+			
+			// Add the notepad icon.
+			RECT(r, 30, 120, 32, 32);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_CABINET, 0);
+			
+			RECT(r, 70, 120, 32, 32);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "File cabinet", LAUNCHER_CABINET, 0);
+			
+			// Add the notepad icon.
+			RECT(r, 30, 170, 32, 32);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_NOTES, 0);
+			
+			RECT(r, 100, 170, 32, 32);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Notepad", LAUNCHER_NOTEPAD, 0);
+			
+			// Add the paint icon.
+			RECT(r, 30, 220, 32, 32);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_DRAW, 0);
+			
+			RECT(r, 70, 220, 32, 32);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Scribble!", LAUNCHER_PAINT, 0);
+			
+			//DefaultWindowProc(pWindow, messageType, parm1, parm2);
+			
+			break;
+		}
+		case EVENT_PAINT: {
+			char test[100];
+			sprintf(test, "Hi!  Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
+			VidFillRect (0xFF00FF, 10, 40, 100, 120);
+			VidTextOut (test, 10, 30, 0, TRANSPARENT);
+			break;
+		}
+		case EVENT_COMMAND: {
+			switch (parm1)
+			{
+				case LAUNCHER_SYSTEM:
+				case LAUNCHER_NOTEPAD:
+				case LAUNCHER_PAINT:
+				case LAUNCHER_CABINET:
+				{
+					//The only button:
+					int randomX = GetRandom() % 320;
+					int randomY = GetRandom() % 240;
+					int randomColor = GetRandom();
+					VidTextOut("*click*", randomX, randomY, randomColor, TRANSPARENT);
+					break;
+				}
+			}
+			break;
+		}
+		default:
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+	}
+}
+
+void LauncherProgramTask(__attribute__((unused)) int arg)
+{
+	// create ourself a window:
+	int ww = 400, wh = 300, sw = GetScreenSizeX(), sh = GetScreenSizeY();
+	int wx = (sw - ww) / 2, wy = (sh - wh) / 2;
+	
+	Window* pWindow = CreateWindow ("Home", wx, wy, ww, wh, LauncherProgramProc);
+	
+	if (!pWindow)
+		DebugLogMsg("Hey, the main launcher window couldn't be created");
+	
+	// setup:
+	//ShowWindow(pWindow);
+	
+	// event loop:
+#if THREADING_ENABLED
+	while (HandleMessages (pWindow));
+#endif
+}
+#endif
+
 #endif

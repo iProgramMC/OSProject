@@ -111,22 +111,22 @@ static void KeResetTask(Task* pTask, bool killing, bool interrupt)
 	if (!interrupt) cli; //must do this, because otherwise we can expect an interrupt to come in and load our unfinished structure
 	if (pTask == KeGetRunningTask())
 	{
-		SLogMsg("Marked current task for execution (KeResetTask)");
+		//SLogMsg("Marked current task for execution (KeResetTask)");
 		pTask->m_bMarkedForDeletion = true;
 		sti;//if we didn't restore interrupts here would be our death point
 		while (1) hlt;
 	}
 	else
 	{
-		SLogMsg("Deleting task %x (KeResetTask, killing:%d)", pTask, killing);
+		//SLogMsg("Deleting task %x (KeResetTask, killing:%d)", pTask, killing);
 		if (killing && pTask->m_pStack)
 		{
-			SLogMsg("Freeing this task's stack");
+			//SLogMsg("Freeing this task's stack");
 			MmFree(pTask->m_pStack);
 		}
 		pTask->m_pStack = NULL;
 		
-		SLogMsg("Resetting stuff about it...");
+		//SLogMsg("Resetting stuff about it...");
 		pTask->m_bFirstTime = false;
 		pTask->m_bExists    = false;
 		pTask->m_pFunction  = NULL;
@@ -197,7 +197,7 @@ void KeExit()
 		KeStopSystem();
 	}
 	
-	SLogMsg("Marked current task for execution (KeExit)");
+	//SLogMsg("Marked current task for execution (KeExit)");
 	KeGetRunningTask()->m_bMarkedForDeletion = true;
 	while (1) hlt;
 }

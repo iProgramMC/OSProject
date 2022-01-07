@@ -4,10 +4,7 @@
 
         Console Window Host module
 ******************************************/
-#include <window.h>
-#include <console.h>
-#include <task.h>
-#include <shell.h>
+#include <wterm.h>
 
 #define DebugLogMsg  SLogMsg
 
