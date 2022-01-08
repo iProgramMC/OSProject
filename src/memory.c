@@ -16,7 +16,7 @@ extern uint32_t e_placement;
 
 uint32_t* g_pageDirectory = NULL;
 uint32_t* g_curPageDir = NULL;
-uint32_t  g_curPageDirP = NULL;
+uint32_t  g_curPageDirP = 0;
 
 bool g_memoryPriLock  = false;
 bool g_memoryPmmLock  = false;

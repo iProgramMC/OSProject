@@ -7,7 +7,7 @@
 #ifndef _MISC_H
 #define _MISC_H
 
-#define RTC_TICKS_PER_SECOND 2048
+#define RTC_TICKS_PER_SECOND 256
 
 typedef struct
 {

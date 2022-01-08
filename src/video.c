@@ -187,8 +187,12 @@ void SetCursor(Cursor* pCursor)
 	if (!pCursor) pCursor = g_pDefaultCursor;
 	if (g_currentCursor == pCursor) return;
 	
+	cli;
+	
 	VBEData* backup = g_vbeData;
 	g_vbeData = &g_mainScreenVBEData;
+	
+	int mx = g_mouseX, my = g_mouseY;
 	
 	//undraw the old cursor:
 	if (g_currentCursor)
@@ -197,8 +201,8 @@ void SetCursor(Cursor* pCursor)
 		{
 			for (int j = -2; j <= g_currentCursor->width + 1; j++)
 			{
-				int x = g_mouseX + j - g_currentCursor->leftOffs;
-				int y = g_mouseY + i - g_currentCursor->topOffs;
+				int x = mx + j - g_currentCursor->leftOffs;
+				int y = my + i - g_currentCursor->topOffs;
 				VidPlotPixelIgnoreCursorChecksChecked (x, y, VidReadPixel(x, y));
 			}
 		}
@@ -214,8 +218,8 @@ void SetCursor(Cursor* pCursor)
 			if (g_currentCursor->bitmap[id] != TRANSPARENT)
 			{
 				VidPlotPixelIgnoreCursorChecksChecked(
-					j + g_mouseX - g_currentCursor->leftOffs,
-					i + g_mouseY - g_currentCursor->topOffs,
+					j + mx - g_currentCursor->leftOffs,
+					i + my - g_currentCursor->topOffs,
 					g_currentCursor->bitmap[id]
 				);
 			}
@@ -225,6 +229,8 @@ void SetCursor(Cursor* pCursor)
 	
 	
 	g_vbeData = backup;
+	
+	sti;
 }
 
 void SetMouseVisible (bool b)
@@ -247,6 +253,42 @@ void SetMouseVisible (bool b)
 						kx, ky, VidReadPixel (kx, ky)
 					);
 				}
+			}
+		}
+	}
+	else if (g_vbeData->m_bitdepth == 2)
+	{
+		//NEW: Optimization
+		int ys =                         - g_currentCursor->topOffs + g_mouseY;
+		int ye = g_currentCursor->height - g_currentCursor->topOffs + g_mouseY;
+		int kys = 0, kzs = 0;
+		if (ys < 0)
+		{
+			kys -= ys * g_currentCursor->width;
+			kzs -= ys;
+			ys = 0;
+		}
+		int xs =                         - g_currentCursor->leftOffs+ g_mouseX;
+		int xe = g_currentCursor->width  - g_currentCursor->leftOffs+ g_mouseX;
+		int off = 0;
+		if (xs < 0)
+		{
+			off = -xs;
+			xs = 0;
+		}
+		if (xe >= GetScreenSizeX())
+			xe = GetScreenSizeX() - 1;
+		//int xd = (xe - xs) * sizeof(uint32_t);
+		for (int y = ys, ky = kys, kz = kzs; y < ye; y++, kz++)
+		{
+			ky = kz * g_currentCursor->width + off;
+			//just memcpy shit
+			//memcpy (&g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + xs], &g_currentCursor->bitmap[ky], xd);
+			for (int x = xs; x < xe; x++)
+			{
+				if (g_currentCursor->bitmap[ky] != TRANSPARENT)
+					g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + x] = g_currentCursor->bitmap[ky];
+				ky++;
 			}
 		}
 	}
@@ -444,24 +486,28 @@ void VidPlotPixelRaw32 (unsigned x, unsigned y, unsigned color)
 	g_vbeData->m_dirty = 1;
 	g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
 }
-static void VidPlotPixelIgnoreCursorChecks(unsigned x, unsigned y, unsigned color)
+/*static void VidPlotPixelIgnoreCursorChecks(unsigned x, unsigned y, unsigned color)
 {
+	VidPlotPixelRaw32(x, y, color);
+	
 	switch (g_vbeData->m_bitdepth)
 	{
 		case 0: VidPlotPixelRaw8 (x, y, color); break;
 		case 1: VidPlotPixelRaw16(x, y, color); break;
 		case 2: VidPlotPixelRaw32(x, y, color); break;
 	}
-}
-static void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color)
+}*/
+void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
-	switch (g_vbeData->m_bitdepth)
+	VidPlotPixelRaw32(x, y, color);
+	
+	/*switch (g_vbeData->m_bitdepth)
 	{
 		case 0: VidPlotPixelRaw8 (x, y, color); break;
 		case 1: VidPlotPixelRaw16(x, y, color); break;
 		case 2: VidPlotPixelRaw32(x, y, color); break;
-	}
+	}*/
 }
 static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
 {
@@ -494,9 +540,7 @@ void VidPlotPixel(unsigned x, unsigned y, unsigned color)
 			}
 		}
 	}
-	
-	
-	VidPlotPixelIgnoreCursorChecks (x, y, color);
+	VidPlotPixelRaw32 (x, y, color);
 }
 void VidPrintTestingPattern()
 {
@@ -554,6 +598,62 @@ void VidFillRect(unsigned color, int left, int top, int right, int bottom)
 	
 	for (int y = top; y <= bottom; y++)
 	{
+		for (int x = left; x <= right; x++)
+			VidPlotPixel(x, y, color);
+	}
+}
+void VidFillRectHGradient(unsigned colorL, unsigned colorR, int left, int top, int right, int bottom)
+{
+	//basic clipping:
+	if (left < 0) left = 0;
+	if (top < 0) top = 0;
+	if (right >= GetScreenSizeX()) right = GetScreenSizeX() - 1;
+	if (bottom >= GetScreenSizeY()) bottom = GetScreenSizeY() - 1;
+	
+	int rwidth = right - left;
+	if (rwidth <= 1) return;
+	
+	for (int x = left; x <= right; x++)
+	{
+		int r1 = (colorL >> 16) & 0xFF, r2 = (colorR >> 16) & 0xFF;
+		int g1 = (colorL >>  8) & 0xFF, g2 = (colorR >>  8) & 0xFF;
+		int b1 = (colorL >>  0) & 0xFF, b2 = (colorR >>  0) & 0xFF;
+		int a  = 0x00;
+		int xa = x - left;
+		int rc = (r2 * xa + r1 * (rwidth - xa)) / (rwidth); rc &= 0xFF;//don't exceed 255, we will
+		int gc = (g2 * xa + g1 * (rwidth - xa)) / (rwidth); gc &= 0xFF;//bleed into the next color
+		int bc = (b2 * xa + b1 * (rwidth - xa)) / (rwidth); bc &= 0xFF;
+		
+		unsigned color = a << 24 | rc << 16 | gc << 8 | bc;
+		
+		for (int y = top; y <= bottom; y++)
+			VidPlotPixel(x, y, color);
+	}
+}
+void VidFillRectVGradient(unsigned colorL, unsigned colorR, int left, int top, int right, int bottom)
+{
+	//basic clipping:
+	if (left < 0) left = 0;
+	if (top < 0) top = 0;
+	if (right >= GetScreenSizeX()) right = GetScreenSizeX() - 1;
+	if (bottom >= GetScreenSizeY()) bottom = GetScreenSizeY() - 1;
+	
+	int rheight = bottom - top;
+	if (rheight <= 1) return;
+	
+	for (int y = top; y <= bottom; y++)
+	{
+		int r1 = (colorL >> 16) & 0xFF, r2 = (colorR >> 16) & 0xFF;
+		int g1 = (colorL >>  8) & 0xFF, g2 = (colorR >>  8) & 0xFF;
+		int b1 = (colorL >>  0) & 0xFF, b2 = (colorR >>  0) & 0xFF;
+		int a  = 0x00;
+		int ya = y - top;
+		int rc = (r2 * ya + r1 * (rheight - ya)) / (rheight); rc &= 0xFF;//don't exceed 255, we will
+		int gc = (g2 * ya + g1 * (rheight - ya)) / (rheight); gc &= 0xFF;//bleed into the next color
+		int bc = (b2 * ya + b1 * (rheight - ya)) / (rheight); bc &= 0xFF;
+		
+		unsigned color = a << 24 | rc << 16 | gc << 8 | bc;
+		
 		for (int x = left; x <= right; x++)
 			VidPlotPixel(x, y, color);
 	}
@@ -972,14 +1072,14 @@ void VidInitialize(multiboot_info_t* pInfo)
 		//VidSetFont (FONT_BASIC);
 		//LogMsg("Re-initializing debug console with graphics");
 		CoInitAsGraphics(&g_debugConsole);
-		sti;
+		//sti;
 	}
 	else
 	{
 		SwitchMode (0);
 		CoInitAsText(&g_debugConsole);
-		LogMsg("Warning: no VBE mode specified.");
-		sti;
+		//LogMsg("Warning: no VBE mode specified.");
+		//sti;
 	}
 }
 #endif

@@ -18,6 +18,7 @@
 #include <task.h>
 #include <widget.h>
 #include <misc.h>
+#include <keyboard.h>
 #include <wbuiltin.h>
 
 //util:
@@ -82,27 +83,48 @@ short GetWindowIndexInDepthBuffer (int x, int y)
 	short test = g_windowDepthBuffer[GetScreenSizeX() * y + x];
 	return test;
 }
-void FillDepthBufferWithWindowIndex (Rectangle r, uint32_t* framebuffer, int index)
+void FillDepthBufferWithWindowIndex (Rectangle r, int index)
 {
-	if (!framebuffer) return;
-	int hx = GetScreenSizeX(), hy = GetScreenSizeY();
-	for (int y = r.top; y < r.bottom; y++) {
-		if (y >= hy) break;//no point.
-		if (y < 0) continue;
-		for (int x = r.left; x < r.right; x++) {
-			int idx = GetScreenSizeX() * y + x;
-			if (x < 0) continue;
-			if (x >= hx) break;//no point.
-			
-			if (*framebuffer != TRANSPARENT)
+	//if (!framebuffer)
+	{
+		int hx = GetScreenSizeX(), hy = GetScreenSizeY();
+		for (int y = r.top; y < r.bottom; y++)
+		{
+			if (y >= hy) break;//no point.
+			if (y < 0) continue;
+			for (int x = r.left; x < r.right; x++)
+			{
+				int idx = GetScreenSizeX() * y + x;
+				if (x < 0) continue;
+				if (x >= hx) break;//no point.
+				
 				g_windowDepthBuffer[idx] = index;
-			framebuffer++;
-		}		
+			}		
+		}
 	}
+	/*else
+	{
+		int hx = GetScreenSizeX(), hy = GetScreenSizeY();
+		for (int y = r.top; y < r.bottom; y++)
+		{
+			if (y >= hy) break;//no point.
+			if (y < 0) continue;
+			for (int x = r.left; x < r.right; x++)
+			{
+				int idx = GetScreenSizeX() * y + x;
+				if (x < 0) continue;
+				if (x >= hx) break;//no point.
+				
+				if (*framebuffer != TRANSPARENT)
+					g_windowDepthBuffer[idx] = index;
+				framebuffer++;
+			}		
+		}
+	}*/
 }
 void UpdateDepthBuffer ()
 {
-	ACQUIRE_LOCK(g_bufferLock);
+	//ACQUIRE_LOCK(g_bufferLock);
 	memset (g_windowDepthBuffer, 0xFF, g_windowDepthBufferSzBytes);
 	
 	for (int i = 0; i < WINDOWS_MAX; i++)
@@ -110,8 +132,8 @@ void UpdateDepthBuffer ()
 		if (g_windows[i].m_used)
 			if (!g_windows[i].m_hidden)
 			{
-				if (!g_windows[i].m_isSelected)
-					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, g_windows[i].m_vbeData.m_framebuffer32, i);
+				//if (!g_windows[i].m_isSelected)
+					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, i);
 			}
 	}
 	for (int i = 0; i < WINDOWS_MAX; i++)
@@ -120,10 +142,10 @@ void UpdateDepthBuffer ()
 			if (!g_windows[i].m_hidden)
 			{
 				if (g_windows[i].m_isSelected)
-					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, g_windows[i].m_vbeData.m_framebuffer32, i);
+					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, i);
 			}
 	}
-	FREE_LOCK(g_bufferLock);
+	//FREE_LOCK(g_bufferLock);
 }
 #endif
 
@@ -278,6 +300,7 @@ Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, Win
 	Window* pWnd = &g_windows[freeArea];
 	
 	pWnd->m_used = true;
+	pWnd->m_renderFinished = false;
 	pWnd->m_hidden = false;
 	pWnd->m_isBeingDragged = false;
 	pWnd->m_isSelected = false;
@@ -312,7 +335,10 @@ Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, Win
 	
 	WindowRegisterEvent(pWnd, EVENT_CREATE, 0, 0);
 	SelectThisWindowAndUnselectOthers(pWnd);
+	
+	cli;
 	UpdateDepthBuffer();
+	sti;
 	
 	FREE_LOCK(g_createLock);
 	return pWnd;
@@ -516,10 +542,10 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//CreateTestWindows();
 	UpdateDepthBuffer();
 	
-	VidSetFont(FONT_BASIC);
+	//VidSetFont(FONT_BASIC);
 	//VidSetFont(FONT_TAMSYN_BOLD);
 	//VidSetFont(FONT_FAMISANS);
-	//VidSetFont(FONT_GLCD);
+	VidSetFont(FONT_GLCD);
 	
 	//test:
 #if !THREADING_ENABLED
@@ -567,15 +593,33 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	FREE_LOCK (g_clickQueueLock);
 	
 	int timeout = 10;
+	int UpdateTimeout = 100;
 	
 	while (g_windowManagerRunning)
 	{
+		bool bufferHasSomething = false;
+		char nextTypedChar = '\0';
+		if (!KbIsBufferEmpty())
+		{
+			bufferHasSomething = true;
+			
+			nextTypedChar = KbGetKeyFromBuffer();
+		}
 		for (int p = 0; p < WINDOWS_MAX; p++)
 		{
 			Window* pWindow = &g_windows [p];
 			if (!pWindow->m_used) continue;
 			
-			WindowRegisterEvent (pWindow, EVENT_UPDATE, 0, 0);
+			if (UpdateTimeout == 0)
+			{
+				WindowRegisterEvent (pWindow, EVENT_UPDATE, 0, 0);
+				UpdateTimeout = 100;
+			}
+			
+			if (pWindow->m_isSelected && bufferHasSomething)
+			{
+				WindowRegisterEvent (pWindow, EVENT_KEYPRESS, nextTypedChar, 0);
+			}
 			
 		#if !THREADING_ENABLED
 			if (!HandleMessages (pWindow))
@@ -585,8 +629,11 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		#endif
 			cli;
-			if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
+			if (pWindow->m_renderFinished && !pWindow->m_hidden)
+			{
+				pWindow->m_renderFinished = false;
 				RenderWindow(pWindow);
+			}
 			sti;
 			
 			if (pWindow->m_markedForDeletion)
@@ -598,6 +645,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 				DestroyWindow (pWindow);
 			}
 		}
+		UpdateTimeout--;
 		
 		//cli;
 		ACQUIRE_LOCK (g_clickQueueLock);
@@ -630,7 +678,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 #if 1
 
 //Returns an index, because we might want to relocate the m_pControlArray later.
-int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int p1, int p2)
+int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int comboID, int p1, int p2)
 {
 	if (!pWindow->m_pControlArray)
 	{
@@ -694,6 +742,7 @@ int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int 
 	pControl->m_type    = type;
 	pControl->m_dataPtr = NULL;
 	pControl->m_rect    = rect;
+	pControl->m_comboID = comboID;
 	pControl->m_parm1   = p1;
 	pControl->m_parm2   = p2;
 	pControl->m_bMarkedForDeletion = false;
@@ -707,6 +756,9 @@ int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int 
 	
 	//register an event for the window:
 	//WindowRegisterEvent(pWindow, EVENT_PAINT, 0, 0);
+	
+	//call EVENT_CREATE to let the ctl initialize its data
+	pControl->OnEvent(pControl, EVENT_CREATE, 0, 0, pWindow);
 	
 	return index;
 }
@@ -751,6 +803,7 @@ void RenderWindow (Window* pWindow)
 	//ACQUIRE_LOCK(g_screenLock);
 	VBEData* backup = g_vbeData;
 	g_vbeData = &g_mainScreenVBEData;
+	int sx = GetScreenSizeX(), sy = GetScreenSizeY();
 	
 	int windIndex = pWindow - g_windows;
 	int x = pWindow->m_rect.left,  y = pWindow->m_rect.top;
@@ -762,13 +815,22 @@ void RenderWindow (Window* pWindow)
 	
 	for (int j = y; j != y2; j++)
 	{
+		if (j >= sy) break;
 		for (int i = x; i != x2; i++)
 		{
-			short n = GetWindowIndexInDepthBuffer (i, j);
-			if (n == windIndex || n == -1)
+			if (i < sx && i > 0)
 			{
-				if (texture[o] != TRANSPARENT)
-					VidPlotPixel (i, j, texture[o]);
+				short n = GetWindowIndexInDepthBuffer (i, j);
+				if (n == -1)
+				{
+					UpdateDepthBuffer();
+					n = GetWindowIndexInDepthBuffer (i, j);
+				}
+				if (n == windIndex)
+				{
+					if (texture[o] != TRANSPARENT)
+						VidPlotPixel (i, j, texture[o]);
+				}
 			}
 			o++;
 		}
@@ -817,10 +879,18 @@ void PaintWindowBorder(Window* pWindow)
 	rectb.bottom = rectb.top + TITLE_BAR_HEIGHT;
 	
 	//todo: gradients?
-	VidFillRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR : WINDOW_TITLE_INACTIVE_COLOR, rectb);
+	//VidFillRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR : WINDOW_TITLE_INACTIVE_COLOR, rectb);
+	VidFillRectHGradient(
+		pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR   : WINDOW_TITLE_INACTIVE_COLOR, 
+		pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR_B : WINDOW_TITLE_INACTIVE_COLOR_B, 
+		rectb.left,
+		rectb.top,
+		rectb.right,
+		rectb.bottom
+	);
 	
-	VidTextOut(pWindow->m_title, rectb.left + 2, rectb.top + 2, WINDOW_TITLE_TEXT_COLOR_SHADOW, TRANSPARENT);
-	VidTextOut(pWindow->m_title, rectb.left + 1, rectb.top + 1, WINDOW_TITLE_TEXT_COLOR, TRANSPARENT);
+	VidTextOut(pWindow->m_title, rectb.left + 2, rectb.top + 3, WINDOW_TITLE_TEXT_COLOR_SHADOW, TRANSPARENT);
+	VidTextOut(pWindow->m_title, rectb.left + 1, rectb.top + 2, WINDOW_TITLE_TEXT_COLOR, TRANSPARENT);
 	
 #undef X
 }
@@ -862,6 +932,8 @@ bool HandleMessages(Window* pWindow)
 		
 		//reset to main screen
 		VidSetVBEData (NULL);
+		if (pWindow->m_vbeData.m_dirty)
+			pWindow->m_renderFinished = true;
 		
 		//if the contents of this window have been modified, redraw them:
 		//if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)

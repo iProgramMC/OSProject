@@ -8,6 +8,8 @@
 #include <misc.h>
 #include <memory.h>
 #include <video.h>
+#include <print.h>
+#include <string.h>
 
 int g_nRtcTicks = 0;
 void GetTimeStampCounter(int* high, int* low)
@@ -64,6 +66,58 @@ const char* GetCPUName()
 CPUIDFeatureBits GetCPUFeatureBits()
 {
 	return g_cpuidFeatureBits;
+}
+
+enum
+{
+	FORMAT_TYPE_FIXED, //hh:mm:ss
+	FORMAT_TYPE_VAR,   //H hours, M minutes, S seconds
+};
+
+//note: recommend an output buffer of at least 50 chars
+void FormatTime(char* output, int formatType, int seconds)
+{
+	switch (formatType)
+	{
+		case FORMAT_TYPE_FIXED: {
+			//sprintf(output, "SECONDS: %05d", seconds);
+			int sec = seconds % 60;
+			int min = seconds / 60 % 60;
+			int hrs = seconds / 3600;
+			sprintf(output, "%02d:%02d:%02d", hrs, min, sec);
+			break;
+		}
+		case FORMAT_TYPE_VAR: {
+			int sec = seconds % 60;
+			int min = seconds / 60 % 60;
+			int hrs = seconds / 3600;
+			
+			char buf[50];
+			if (hrs)
+			{
+				sprintf(buf, "%d hour%s", hrs, hrs == 1 ? "" : "s");
+				strcat (output, buf);
+			}
+			if (min)
+			{
+				if (hrs)
+					sprintf(buf, ", %d min%s", min, min == 1 ? "" : "s");
+				else
+					sprintf(buf,   "%d min%s", min, min == 1 ? "" : "s");
+				strcat (output, buf);
+			}
+			if (sec || !seconds)
+			{
+				if (min)
+					sprintf(buf, ", %d sec%s", sec, sec == 1 ? "" : "s");
+				else
+					sprintf(buf,   "%d sec%s", sec, sec == 1 ? "" : "s");
+				strcat (output, buf);
+			}
+			
+			break;
+		}
+	}
 }
 
 void KePrintSystemInfoAdvanced()
@@ -128,9 +182,12 @@ void KePrintSystemInfo()
 	LogMsgNoCr("         \x01\x10/\x01\x0F");																					LogMsg("\x01\x0C ");
 	LogMsg("\x01\x0F");*/
 	
+	char timingInfo[128];
+	timingInfo[0] = 0;
+	FormatTime(timingInfo, FORMAT_TYPE_VAR, GetTickCount() / 1000);
 	LogMsg("\x01\x0E N    N       "      "\x01\x0C OS:       \x01\x0FNanoShell Operating System");
 	LogMsg("\x01\x0E NN   N       "      "\x01\x0C Kernel:   \x01\x0F%s (%d)", VersionString, VersionNumber);
-	LogMsg("\x01\x0E N N  N       "      "\x01\x0C Uptime:   \x01\x0F?");
+	LogMsg("\x01\x0E N N  N       "      "\x01\x0C Uptime:   \x01\x0F%s", timingInfo);
 	LogMsg("\x01\x0E N  N N       "      "\x01\x0C CPU:      \x01\x0F%s", GetCPUName());
 	LogMsg("\x01\x0E N   NN       "      "\x01\x0C CPU type: \x01\x0F%s", GetCPUType());
 	LogMsg("\x01\x0E N    N\x01\x0D SSSS  \x01\x0C Memory:   \x01\x0F%d KB / %d KB", (npp-nfpp)*4, npp*4);

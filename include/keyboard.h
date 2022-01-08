@@ -123,6 +123,7 @@ void KbAddKeyToBuffer(char key);
 char KbGetKeyFromBuffer();
 char KbWaitForKeyAndGet();
 void KbFlushBuffer();
+bool KbIsBufferEmpty();
 KeyState KbGetKeyState(unsigned char keycode);
 
 // max_size is not optional, contrary to popular belief :)

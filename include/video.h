@@ -190,6 +190,20 @@ void VidDrawRect(unsigned color, int left, int top, int right, int bottom);
 void VidFillRectangle(unsigned color, Rectangle rect);
 
 /**
+ * Fills a rectangle on the screen.  The ranges of pixels are all inclusive, so
+ * pixels[rect.right][rect.bottom] is also getting drawn.
+ * This fills in a left-to-right gradient from colorL to colorR.
+ */
+void VidFillRectHGradient(unsigned colorL, unsigned colorR, int left, int top, int right, int bottom);
+
+/**
+ * Fills a rectangle on the screen.  The ranges of pixels are all inclusive, so
+ * pixels[rect.right][rect.bottom] is also getting drawn.
+ * This fills in a top-to-bottom gradient from colorU to colorD.
+ */
+void VidFillRectVGradient(unsigned colorU, unsigned colorD, int left, int top, int right, int bottom);
+
+/**
  * Draws a rectangle's contour on the screen.  The ranges of pixels are all inclusive, so
  * pixels[rect.right][rect.bottom] is also getting drawn.
  */

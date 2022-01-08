@@ -11,9 +11,28 @@
 // The kernel task is task 0.  Other tasks are 1-indexed.
 // This means g_runningTasks[0] is unused.
 
+__attribute__((aligned(16)))
 Task g_runningTasks[C_MAX_TASKS];
+
+static int s_lastRunningTaskIndex = 1;
+
 static int s_currentRunningTask = -1;
 static CPUSaveState g_kernelSaveState;
+__attribute__((aligned(16)))
+static int          g_kernelFPUState[128];
+
+void KeFindLastRunningTaskIndex()
+{
+	for (int i = C_MAX_TASKS - 1; i > 0; i--)
+	{
+		if (g_runningTasks[i].m_bExists)
+		{
+			s_lastRunningTaskIndex = i + 1;
+			return;
+		}
+	}
+	s_lastRunningTaskIndex = 1;
+}
 
 void KeTaskDebugDump()
 {
@@ -51,6 +70,8 @@ void KeConstructTask (Task* pTask)
 	pTask->m_state.cs  = 0x8;//same as our CS
 	pTask->m_state.eflags = 0x297; //same as our own EFL register
 	pTask->m_state.cr3 = g_curPageDirP; //same as our own CR3 register
+	
+	ZeroMemory (pTask->m_fpuState, sizeof(pTask->m_fpuState));
 	
 	//clear the stack
 	ZeroMemory (pTask->m_pStack, C_STACK_BYTES_PER_TASK);
@@ -97,6 +118,9 @@ Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, co
 		if (pErrorCodeOut)
 			*pErrorCodeOut = TASK_SUCCESS;
 		sti;
+		
+		KeFindLastRunningTaskIndex ();
+		
 		return pTask;
 	}
 	else
@@ -161,7 +185,7 @@ Task* KeGetRunningTask()
 {
 	if (s_currentRunningTask == -1) return NULL;
 	return &g_runningTasks[s_currentRunningTask];
-} 
+}
 void KiTaskSystemInitialize()
 {
 	for (int i = 0; i < C_MAX_TASKS; i++)
@@ -201,16 +225,29 @@ void KeExit()
 	KeGetRunningTask()->m_bMarkedForDeletion = true;
 	while (1) hlt;
 }
+
+void KeFxSave(int *fpstate)
+{
+	asm("fxsave (%0)" :: "r"(fpstate));
+}
+void KeFxRestore(int *fpstate)
+{
+	asm("fxrstor (%0)" :: "r"(fpstate));
+}
+
 void KeSwitchTask(CPUSaveState* pSaveState)
 {
 	Task* pTask = KeGetRunningTask();
+	//Please note that tasking code does not use the FPU, so we should be safe just saving it here.
 	if (pTask)
 	{
 		memcpy (& pTask -> m_state, pSaveState, sizeof(CPUSaveState));
+		KeFxSave (pTask -> m_fpuState);
 	}
 	else
 	{
 		memcpy (&g_kernelSaveState, pSaveState, sizeof(CPUSaveState));
+		KeFxSave (g_kernelFPUState); //perhaps we won't use this.
 	}
 	
 	// Acknowledge the interrupt:
@@ -233,19 +270,22 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 	}
 	
 	int i = s_currentRunningTask + 1;
-	for (; i < C_MAX_TASKS; i++)
+	int task = s_lastRunningTaskIndex;
+	for (; i < task; i++)
 	{
 		if (g_runningTasks[i].m_bExists)
 			break;
 	}
 	
 	Task* pNewTask = NULL;
-	if (i < C_MAX_TASKS) pNewTask = g_runningTasks + i;
+	if (i < task) pNewTask = g_runningTasks + i;
 	
 	if (pNewTask)
 	{
 		s_currentRunningTask = i;
 		
+		//first, restore this task's FPU registers:
+		KeFxRestore(pNewTask->m_fpuState);
 		KeRestoreStandardTask(pNewTask);
 	}
 	else
@@ -253,6 +293,8 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		//Kernel task
 		s_currentRunningTask = -1;
 		
+		//first, restore the kernel task's FPU registers:
+		KeFxRestore(g_kernelFPUState);
 		KeRestoreKernelTask();
 	}
 }

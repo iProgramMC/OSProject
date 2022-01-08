@@ -22,13 +22,13 @@ void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int 
 			Rectangle r = {108, 190, 208, 220};
 			
 			//parm1 is the button number that we're being fed in EVENT_COMMAND
-			AddControl (pWindow, CONTROL_BUTTON, r, "Click Me!", 1, 0);
+			AddControl (pWindow, CONTROL_BUTTON, r, "Click Me!", 1, 0, 0);
 			
 			Rectangle r1 = {250,108,320,120};
-			AddControl (pWindow, CONTROL_TEXT, r1, "Hello", 0xFFFFFF, TRANSPARENT);
+			AddControl (pWindow, CONTROL_TEXT, r1, "Hello", 2, 0xFFFFFF, TRANSPARENT);
 			
 			Rectangle r2 = {200,100,232,120};
-			AddControl (pWindow, CONTROL_ICON, r2, NULL, ICON_GLOBE, 0);
+			AddControl (pWindow, CONTROL_ICON, r2, NULL, 3, ICON_GLOBE, 0);
 			
 			break;
 		}
@@ -198,6 +198,19 @@ enum {
 	LAUNCHER_NOTEPAD,
 	LAUNCHER_PAINT,
 	LAUNCHER_CABINET,
+	LAUNCHER_TEXTBOX1,
+	
+	
+	LAUNCHER_LABEL1 = 0xE0,
+	LAUNCHER_LABEL2,
+	LAUNCHER_LABEL3,
+	LAUNCHER_LABEL4,
+	LAUNCHER_LABEL5,
+	LAUNCHER_ICON1 = 0xF0,
+	LAUNCHER_ICON2,
+	LAUNCHER_ICON3,
+	LAUNCHER_ICON4,
+	LAUNCHER_ICON5,
 };
 
 #define RECT(rect,x,y,w,h) do {\
@@ -216,35 +229,41 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 			// Add a label welcoming the user to NanoShell.
 			Rectangle r;
 			RECT(r, START_X, 20, 200, 20);
-			AddControl (pWindow, CONTROL_TEXT, r, "Welcome to NanoShell!", 0, TRANSPARENT);
+			AddControl (pWindow, CONTROL_TEXT, r, "Welcome to NanoShell!", LAUNCHER_LABEL1, 0, TRANSPARENT);
 			
 			// Add the system icon.
 			RECT(r, START_X, START_Y+0*DIST_ITEMS, 32, 32);
-			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_COMPUTER, 0);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, LAUNCHER_ICON1, ICON_COMPUTER, 0);
 			
 			RECT(r, STEXT_X, START_Y+0*DIST_ITEMS, 200, 32);
-			AddControl(pWindow, CONTROL_CLICKLABEL, r, "System", LAUNCHER_SYSTEM, 0);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "System", LAUNCHER_SYSTEM, 0, 0);
 			
 			// Add the notepad icon.
 			RECT(r, START_X, START_Y+1*DIST_ITEMS, 32, 32);
-			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_CABINET, 0);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, LAUNCHER_ICON2, ICON_CABINET, 0);
 			
 			RECT(r, STEXT_X, START_Y+1*DIST_ITEMS, 200, 32);
-			AddControl(pWindow, CONTROL_CLICKLABEL, r, "File cabinet", LAUNCHER_CABINET, 0);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "File cabinet", LAUNCHER_CABINET, 0, 0);
 			
 			// Add the notepad icon.
 			RECT(r, START_X, START_Y+2*DIST_ITEMS, 32, 32);
-			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_NOTES, 0);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, LAUNCHER_ICON3, ICON_NOTES, 0);
 			
 			RECT(r, STEXT_X, START_Y+2*DIST_ITEMS, 200, 32);
-			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Notepad", LAUNCHER_NOTEPAD, 0);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Notepad", LAUNCHER_NOTEPAD, 0, 0);
 			
 			// Add the paint icon.
 			RECT(r, START_X, START_Y+3*DIST_ITEMS, 32, 32);
-			AddControl(pWindow, CONTROL_ICON, r, NULL, ICON_DRAW, 0);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, LAUNCHER_ICON4, ICON_DRAW, 0);
 			
 			RECT(r, STEXT_X, START_Y+3*DIST_ITEMS, 200, 32);
-			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Scribble!", LAUNCHER_PAINT, 0);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Scribble!", LAUNCHER_PAINT, 0, 0);
+			
+			// Add a testing textbox.
+			RECT(r, 200, 50, 300, 15);
+			
+			//parms after rectangle: default text, comboID for getting the text from the textbox, max characters
+			AddControl(pWindow, CONTROL_TEXTINPUT, r, NULL, LAUNCHER_TEXTBOX1, 128, 0);
 			
 			//DefaultWindowProc(pWindow, messageType, parm1, parm2);
 			

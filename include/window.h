@@ -19,7 +19,7 @@
 #define WINDOW_TITLE_MAX 250
 #define EVENT_QUEUE_MAX 256
 
-#define TITLE_BAR_HEIGHT 10
+#define TITLE_BAR_HEIGHT 11
 #define WINDOW_RIGHT_SIDE_THICKNESS 3
 
 #define BACKGROUND_COLOR 0xFF007F7F
@@ -28,6 +28,8 @@
 #define WINDOW_EDGE_COLOR 0xFF000000
 #define WINDOW_TITLE_ACTIVE_COLOR 0xFF00007F
 #define WINDOW_TITLE_INACTIVE_COLOR 0xFF7F7F7F
+#define WINDOW_TITLE_ACTIVE_COLOR_B 0xFF0000FF
+#define WINDOW_TITLE_INACTIVE_COLOR_B 0xFFBFBFBF
 #define WINDOW_TITLE_TEXT_COLOR_SHADOW 0xFF00003F
 #define WINDOW_TITLE_TEXT_COLOR 0x00FFFFFF
 
@@ -46,6 +48,7 @@ enum {
 	EVENT_CLICKCURSOR,
 	EVENT_RELEASECURSOR,
 	EVENT_COMMAND,
+	EVENT_KEYPRESS,
 	EVENT_MAX
 };
 
@@ -70,6 +73,7 @@ typedef struct ControlStruct
 	bool      m_active;
 	int       m_type;//CONTROL_XXX
 	int       m_parm1, m_parm2;
+	int       m_comboID;
 	char      m_text[128];
 	void*     m_dataPtr;
 	Rectangle m_rect;
@@ -86,6 +90,8 @@ typedef struct WindowStruct
 	bool       m_hidden;
 	bool       m_isBeingDragged;
 	bool       m_isSelected;
+	
+	bool       m_renderFinished;
 	
 	char       m_title [250];
 	
@@ -164,7 +170,7 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 /**
  * Adds a control to the window.
  */
-int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int p1, int p2);
+int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int comboID, int p1, int p2);
 
 
 #endif//_WINDOW_H

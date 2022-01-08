@@ -19,16 +19,18 @@ typedef unsigned uint;
 #define false 0
 #define true 1
 
-#define hlt __asm__("hlt\n\t")
-#define cli __asm__("cli\n\t")//do{__asm__("cli\n\t");SLogMsg("CLI request at " __FILE__ ":%d",__LINE__);}while(0)
-#define sti __asm__("sti\n\t")//do{__asm__("sti\n\t");SLogMsg("STI request at " __FILE__ ":%d",__LINE__);}while(0)
+#define asm __asm__ volatile
+
+#define hlt __asm__ volatile("hlt\n\t")
+#define cli __asm__ volatile("cli\n\t")//do{__asm__("cli\n\t");SLogMsg("CLI request at " __FILE__ ":%d",__LINE__);}while(0)
+#define sti __asm__ volatile("sti\n\t")//do{__asm__("sti\n\t");SLogMsg("STI request at " __FILE__ ":%d",__LINE__);}while(0)
 
 #define VersionNumber 11
 #define VersionString "V0.11"
 
 #define UNUSED __attribute__((unused))
 
-#define crash __asm__("int $0x10\n\t") // Int 0x10 doesn't work in pmode! Might as well make use of it.
+#define crash __asm__ volatile("int $0x10\n\t") // Int 0x10 doesn't work in pmode! Might as well make use of it.
 
 #define KERNEL_MEM_START 0xC0000000
 

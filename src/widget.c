@@ -87,7 +87,7 @@ void WidgetButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int
 			{
 				//send a command event to the window:
 				//WindowRegisterEvent(pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
-				pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
+				pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_comboID, this->m_parm1);
 			}
 		}
 		//! fallthrough intentional - need the button to redraw itself as pushing back up
@@ -132,7 +132,7 @@ void WidgetClickLabel_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED
 			{
 				//send a command event to the window:
 				//WindowRegisterEvent(pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
-				pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
+				pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_comboID, this->m_parm1);
 			}
 		}
 		//! fallthrough intentional - need the button to redraw itself as pushing back up

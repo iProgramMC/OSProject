@@ -13,13 +13,34 @@ void ___swap(char*a, char*b) {
 }
 
 void vsprintf(char* memory, const char* format, va_list list) {
+	int padding_info = -1; char padding_char = ' ';
 	while (*format) {
 		char m = *format;
 		format++;
 		if (m == '%') {
 			m = *format++;
 			// parse the m
-			if (m == 0) return;
+			if (!m) return;
+			padding_info = -1;
+			if (m == '0')
+			{
+				padding_info = m - '0';
+				m = *format++;
+				if (!m) return;
+				if (m >= '0' && m <= '9')
+				{
+					padding_info = m - '0';
+					padding_char = '0';
+					m = *format++;
+				}
+			}
+			else if (m >= '1' && m <= '9')
+			{
+				padding_info = m - '0';
+				padding_char = ' ';
+				m = *format++;
+				if (!m) return;
+			}
 			switch (m) {
 				case 's': {
 					char* stringToPrint = va_arg(list, char*);
@@ -36,13 +57,13 @@ void vsprintf(char* memory, const char* format, va_list list) {
 				}
 				case 'd':case'i': {
 					int32_t num = va_arg(list, int32_t);
-					char str[14] = {0, };
+					char str[17] = {0, };
 					int i = 0;
 					bool isNegative = false;
 					if (num == 0) {
 						str[i++] = '0'; 
-						str[i] = '\0'; 
-						goto skip1;
+						//str[i] = '\0'; 
+						//goto skip1;
 					}
 					if (num == -2147483648) {
 						char* e = "-2147483648";
@@ -65,7 +86,10 @@ void vsprintf(char* memory, const char* format, va_list list) {
 						int rem = num % base; 
 						str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0'; 
 						num = num/base; 
-					} 
+					}
+					// add padding:
+					for (; i < padding_info; )
+						str[i++] = padding_char;
 					// If number is negative, append '-' 
 					if (isNegative) 
 						str[i++] = '-'; 
@@ -77,8 +101,7 @@ void vsprintf(char* memory, const char* format, va_list list) {
 						___swap((str+start), (str+end)); 
 						start++; 
 						end--; 
-					} 
-				skip1:;
+					}
 					int length = i;
 					memcpy(memory, str, length);
 					memory += length;
@@ -91,8 +114,8 @@ void vsprintf(char* memory, const char* format, va_list list) {
 					int i = 0;
 					if (num == 0) {
 						str[i++] = '0'; 
-						str[i] = '\0'; 
-						goto skip2;
+						//str[i] = '\0'; 
+						//goto skip2;
 					}
 					int base = 10;
 					// Process individual digits 
@@ -102,6 +125,9 @@ void vsprintf(char* memory, const char* format, va_list list) {
 						str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0'; 
 						num = num/base; 
 					} 
+					// add padding:
+					for (; i < padding_info; )
+						str[i++] = padding_char;
 					str[i] = '\0'; // Append string terminator 
 					int start = 0; 
 					int end = i -1; 
@@ -110,8 +136,7 @@ void vsprintf(char* memory, const char* format, va_list list) {
 						___swap((str+start), (str+end)); 
 						start++; 
 						end--; 
-					} 
-				skip2:;
+					}
 					int length = i;
 					memcpy(memory, str, length);
 					memory += length;

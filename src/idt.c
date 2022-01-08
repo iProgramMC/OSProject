@@ -121,7 +121,15 @@ void KeTimerInit()
 	//note that the PIT frequency divider has been hardcoded to 65535
 	//for testing.
 	
-	int pit_frequency = 65536/4096;//~ 74.573875 KHz
+	/*
+		1000 HZ: 1194
+		2000 HZ: 597
+		4000 HZ: 299
+		8000 HZ: 149
+	
+	*/
+	
+	int pit_frequency = 597;//65536/4096;//~ 74.573875 KHz
 	WritePort(0x40, (uint8_t)( pit_frequency       & 0xff));
 	WritePort(0x40, (uint8_t)((pit_frequency >> 8) & 0xff));
 }
@@ -230,7 +238,7 @@ void KiIdtInit()
 	KeIdtLoad1 (&ptr);
 	
 	KeTimerInit();
-	//KeClockInit();
+	KeClockInit();
 	
 	//flush the PICs
 	for (int i=0; i<64; i++)
@@ -239,7 +247,7 @@ void KiIdtInit()
 		WritePort(0xA0, 0x20);
 	}
 	
-	sti;
+	//sti;
 }
 
 /**
@@ -258,7 +266,7 @@ void KeClockInit()
 	
 	//32768>>(5-1) = 2048 hz.  The fastest you can pick is a division rate of
 	//3, which gets you a 8192Hz interrupt rate.
-	int divisionRate = 5;
+	int divisionRate = 8;
 	WritePort(0x70, 0x8A);
 	flags = ReadPort(0x71);
 	WritePort(0x70, 0x8A);
@@ -273,7 +281,7 @@ extern int g_nRtcTicks;//misc.c
  */
 void IrqClock()
 {
-	LogMsg("Clock!");
+	//LogMsg("Clock!");
 	g_nRtcTicks++;
 	//acknowledge interrupt
 	WritePort(0x20, 0x20);
@@ -282,5 +290,4 @@ void IrqClock()
 	WritePort(0x70, 0x0C);
 	__attribute__((unused)) char flags = ReadPort(0x71);
 	//LogMsgNoCr("R");
-	g_nRtcTicks++;
 }

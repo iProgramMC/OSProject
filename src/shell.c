@@ -271,7 +271,10 @@ void ShellExecuteCommand(char* p)
 	}
 	else if (strcmp (token, "w") == 0)
 	{
-		WindowManagerTask(0);
+		if (VidIsAvailable())
+			WindowManagerTask(0);
+		else
+			LogMsg("Cannot run window manager in text mode.  Restart your computer, then make sure the gfxpayload is valid in GRUB.");
 	}
 	else if (strcmp (token, "mrd") == 0)
 	{
@@ -464,8 +467,17 @@ void ShellExecuteCommand(char* p)
 		GetTimeStampCounter(&hi, &lo);
 		LogMsg("Timestamp counter: %x%x (%d, %d)", hi, lo, hi, lo);
 		
-		int tkc = GetTickCount(), rtkc = GetRawTickCount();
-		LogMsg("Tick count: %d, Raw tick count: %d", tkc, rtkc);
+		//int tkc = GetTickCount(), rtkc = GetRawTickCount();
+		//LogMsgNoCr("Tick count: %d, Raw tick count: %d", tkc, rtkc);
+		LogMsg("Press any key to stop timing.");
+		
+		while (KbIsBufferEmpty())
+		{
+			int tkc = GetTickCount(), rtkc = GetRawTickCount();
+			LogMsgNoCr("\rTick count: %d, Raw tick count: %d        ", tkc, rtkc);
+			//for(int i=0; i<50; i++) 
+			hlt;
+		}
 	}
 	else if (strcmp (token, "mode") == 0)
 	{

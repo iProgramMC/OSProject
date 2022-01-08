@@ -14,8 +14,13 @@ void CALLBACK TerminalHostProc (UNUSED Window* pWindow, UNUSED int messageType, 
 	switch (messageType)
 	{
 		case EVENT_CLICKCURSOR:
-			CLogMsgNoCr(pConsole, "Clicked! ");
+			//CLogMsgNoCr(pConsole, "Clicked! ");
 			break;
+		case EVENT_KEYPRESS:
+		{
+			CoPrintChar(pConsole, (char)parm1);
+			break;
+		}
 		case EVENT_PAINT:
 		{
 			//re-draw every character.
@@ -44,8 +49,8 @@ void TerminalHostTask(int arg)
 	Window *pWindow = CreateWindow(
 		"nsterm", 
 		array[0], array[1], 
-		array[2] * 6 + 4 + WINDOW_RIGHT_SIDE_THICKNESS, 
-		array[3] * 8 + 4 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
+		array[2] * 6 + 6 + WINDOW_RIGHT_SIDE_THICKNESS, 
+		array[3] * 8 + 8 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
 		TerminalHostProc);
 	if (!pWindow)
 	{
@@ -64,7 +69,7 @@ void TerminalHostTask(int arg)
 	basic_console.width  = array[2];
 	basic_console.height = array[3];
 	basic_console.offX = 2;
-	basic_console.offY = 2 + TITLE_BAR_HEIGHT;
+	basic_console.offY = 4 + TITLE_BAR_HEIGHT;
 	basic_console.color = 0x06;//green background
 	basic_console.curX = basic_console.curY = 0;
 	basic_console.pushOrWrap = 0; //wrap for now
@@ -85,7 +90,7 @@ void TerminalHostTask(int arg)
 	}*/
 	
 	CoClearScreen(&basic_console);
-	CLogMsg(&basic_console, "Click on this rectangle to type stuff.");
+	CLogMsg(&basic_console, "Select this window and type something.");
 	
 	while (HandleMessages (pWindow));
 	

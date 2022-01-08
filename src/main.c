@@ -18,6 +18,7 @@
 #include <mouse.h>
 #include <misc.h>
 #include <vfs.h>
+#include <fpu.h>
 
 __attribute__((noreturn))
 void KeStopSystem()
@@ -122,6 +123,16 @@ extern void KeCPUID();//io.asm
 
 extern char g_initrdStart[];
 
+#define VERBOSE_START 1
+#if VERBOSE_START
+#define VerboseLogMsg LogMsg
+#else
+#define VerboseLogMsg
+#endif
+
+extern VBEData* g_vbeData;
+
+void FpuTest();
 __attribute__((noreturn))
 void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 {
@@ -139,7 +150,7 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	{
 		SwitchMode(0);
 		CoInitAsText(&g_debugConsole);
-		LogMsg("NanoShell has not found enough extended memory.  8Mb of extended memory is\nrequired to run NanoShell.  You may need to upgrade your computer.");
+		LogMsg("NanoShell has not booted from a Multiboot-compatible bootloader.  A bootloader such as GRUB is required to run NanoShell.");
 		KeStopSystem();
 	}
 	
@@ -153,6 +164,10 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	//grab the CPUID
 	KeCPUID();
 	
+	KiFpuInit();
+	
+	FpuTest();
+	
 	KiIdtInit();
 	cli;
 	// Initialize the Memory Management Subsystem
@@ -165,8 +180,9 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	FsInitializeInitRd(g_initrdStart);
 	
 	//Initialize the mouse driver too
-	MouseInit();
 	sti;
+	if (VidIsAvailable())
+		MouseInit();
 	
 	//LogMsg("C_MAX_TASKS: %d", C_MAX_TASKS);
 	//LogMsg("Sizeof Task: %d", sizeof(Task)); <-- Currently 80 bytes.
@@ -176,6 +192,8 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	
 	//print the hello text, to see if the OS booted ok
 	KePrintSystemVersion();
+	if (!VidIsAvailable())
+		LogMsg("\n\x01\x0CWARNING\x01\x0F: Running NanoShell in text mode is deprecated and will be removed in the future.\n");
 	
 	//TestAllocFunctions();
 	//ElfPerformTest();
