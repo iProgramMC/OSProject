@@ -15,10 +15,14 @@ int DoSyscall(int type_esi, int eax, int ebx, int ecx, int edx);
 
 // syscalls:
 enum {
+	//misc syscalls
 	LOGMSG = 1,
 	MALLOC = 2,
 	FREE   = 3,
 	DUMPMEM= 4,
+	
+	//GUI syscalls
+	WINDOW_CREATE = 0x1000,
 };
 
 void PutString(const char* text);

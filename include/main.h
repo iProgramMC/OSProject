@@ -25,8 +25,8 @@ typedef unsigned uint;
 #define cli __asm__ volatile("cli\n\t")//do{__asm__("cli\n\t");SLogMsg("CLI request at " __FILE__ ":%d",__LINE__);}while(0)
 #define sti __asm__ volatile("sti\n\t")//do{__asm__("sti\n\t");SLogMsg("STI request at " __FILE__ ":%d",__LINE__);}while(0)
 
-#define VersionNumber 11
-#define VersionString "V0.11"
+#define VersionNumber 15
+#define VersionString "V0.15"
 
 #define UNUSED __attribute__((unused))
 

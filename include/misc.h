@@ -66,6 +66,11 @@ const char* GetCPUType();
 CPUIDFeatureBits GetCPUFeatureBits();
 
 /**
+ * Prints memory ranges in the system.
+ */
+void KePrintMemoryMapInfo();
+
+/**
  * Prints info about the system.
  */
 void KePrintSystemInfo();

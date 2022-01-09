@@ -8,11 +8,12 @@
 
 # Include directory
 IDIR=./include
+IDIRLIB=../lib/include
 
 # C Compiler and flags
 CC=i686-elf-gcc
 CFLAGS_BEG=-DTEST
-CFLAGS=-I$(IDIR) -ffreestanding -g -Wall -Wextra -fno-exceptions -std=c99
+CFLAGS=-I$(IDIR) -I$(IDIRLIB) -ffreestanding -g -Wall -Wextra -fno-exceptions -std=c99
 
 # Special flags for linker
 CLFLAGS_BEG=-T ./link.ld 
@@ -25,7 +26,7 @@ AFLAGS=-felf32
 
 BUILD=build
 SRC=src
-LIBSRC=lib/src
+LIBSRC=../lib/src
 
 C_FILES_USER=$(wildcard $(SRC)/*.c)
 S_FILES_USER=$(wildcard $(SRC)/asm/*.asm)

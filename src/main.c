@@ -34,7 +34,7 @@ int g_nKbExtRam = 0;
 void KePrintSystemVersion()
 {
 	LogMsg("NanoShell (TM), January 2022 - " VersionString);
-	LogMsg("[%d Kb System Memory]", g_nKbExtRam);
+	LogMsg("[%d Kb System Memory, %d Kb Usable Memory]", g_nKbExtRam, GetNumPhysPages() * 4);
 }
 void TestAllocFunctions()
 {
@@ -132,6 +132,8 @@ extern char g_initrdStart[];
 
 extern VBEData* g_vbeData;
 
+multiboot_info_t* g_pMultibootInfo;
+
 void FpuTest();
 __attribute__((noreturn))
 void KiStartupSystem (unsigned long check, unsigned long mbaddr)
@@ -155,11 +157,12 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	}
 	
 	// Read the multiboot data:
-	multiboot_info_t *mbi = (multiboot_info_t*)(mbaddr + BASE_ADDRESS);
+	multiboot_info_t  *mbi = (multiboot_info_t*)(mbaddr + BASE_ADDRESS);
+	g_pMultibootInfo = mbi;
 	
 	g_nKbExtRam = mbi->mem_upper;
 	KiPerformRamCheck();
-	MmFirstThingEver(g_nKbExtRam);
+	MmFirstThingEver();
 	
 	//grab the CPUID
 	KeCPUID();
@@ -171,7 +174,7 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	KiIdtInit();
 	cli;
 	// Initialize the Memory Management Subsystem
-	MmInit();
+	MmInit(mbi);
 	// Initialize the video subsystem
 	VidInitialize (mbi);
 	// Initialize the task scheduler

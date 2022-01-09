@@ -98,6 +98,11 @@ GDTPostSetup:
 	; Please note that it's marked __attribute__((noreturn)), so 
 	; returning from this crashes the OS.
 	call KiStartupSystem
+	
+	cli
+.mmmm:
+	hlt
+	jmp .mmmm
 
 
 GDTStart:

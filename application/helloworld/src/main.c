@@ -2,6 +2,9 @@
 
 int addtodata=3;
 int addtobss;
+
+
+
 int main ()
 {
 	addtodata++;

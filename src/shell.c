@@ -138,6 +138,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("help       - shows this list");
 		LogMsg("gt         - run a graphical test");
 		LogMsg("lm         - list memory allocations");
+		LogMsg("lr         - list the memory ranges provided by the bootloader");
 		LogMsg("ls         - list the current working directory (right now just /)");
 		LogMsg("lt         - list currently running threads (pauses them during the print)");
 		LogMsg("mode X     - change the screen mode");
@@ -248,6 +249,10 @@ void ShellExecuteCommand(char* p)
 			}
 			LogMsg("");
 		}
+	}
+	else if (strcmp (token, "lr") == 0)
+	{
+		KePrintMemoryMapInfo();
 	}
 	else if (strcmp (token, "ls") == 0)
 	{

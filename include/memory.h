@@ -9,6 +9,7 @@
 
 #define BASE_ADDRESS 0xC0000000
 #include <main.h>
+#include <multiboot.h>
 
 typedef struct {
 	bool m_bPresent:1;
@@ -56,13 +57,13 @@ typedef struct
 Heap;
 
 
-void MmFirstThingEver(unsigned long mbiAddr);
+void MmFirstThingEver();
 
 
 /**
  * Initializes the memory manager and heap.
  */
-void MmInit();
+void MmInit(multiboot_info_t*);
 
 /**
  * Allocates a single page (4096 bytes).

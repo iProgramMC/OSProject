@@ -11,6 +11,8 @@
 #include <print.h>
 #include <string.h>
 
+extern multiboot_info_t* g_pMultibootInfo;//main.c
+
 int g_nRtcTicks = 0;
 void GetTimeStampCounter(int* high, int* low)
 {
@@ -120,6 +122,29 @@ void FormatTime(char* output, int formatType, int seconds)
 	}
 }
 
+void KePrintMemoryMapInfo()
+{
+	multiboot_info_t* mbi = g_pMultibootInfo;
+	int len, addr;
+	len = mbi->mmap_length, addr = mbi->mmap_addr;
+	
+	//turn this into a virt address:
+	multiboot_memory_map_t* pMemoryMap;
+	
+	LogMsg("mmapAddr=%x mmapLen=%x", addr, len);
+	addr += 0xC0000000;
+	
+	for (pMemoryMap = (multiboot_memory_map_t*)addr;
+		 (unsigned long) pMemoryMap < addr + mbi->mmap_length;
+		 pMemoryMap = (multiboot_memory_map_t*) ((unsigned long) pMemoryMap + pMemoryMap->size + sizeof(pMemoryMap->size)))
+	{
+		LogMsg("S:%x A:%x%x L:%x%x T:%x", pMemoryMap->size, 
+			(unsigned)(pMemoryMap->addr >> 32), (unsigned)pMemoryMap->addr,
+			(unsigned)(pMemoryMap->len  >> 32), (unsigned)pMemoryMap->len,
+			pMemoryMap->type
+		);
+	}
+}
 void KePrintSystemInfoAdvanced()
 {
 	//oldstyle:
@@ -141,7 +166,7 @@ void KePrintSystemInfoAdvanced()
 	LogMsg("\x01\x09[CPU] Name: %s", GetCPUName());
 	LogMsg("\x01\x09[CPU] x86 Family %d Model %d Stepping %d.  Feature bits: %d",
 			g_cpuidFeatureBits.m_familyID, g_cpuidFeatureBits.m_model, g_cpuidFeatureBits.m_steppingID);
-	LogMsg("\x01\x0A[RAM] PageSize: 4K. Physical pages: %d. Total physical RAM: %d Kb", GetNumPhysPages(), GetNumPhysPages()*4);
+	LogMsg("\x01\x0A[RAM] PageSize: 4K. Physical pages: %d. Total usable RAM: %d Kb", GetNumPhysPages(), GetNumPhysPages()*4);
 	LogMsg("\x01\x0A[VID] Screen resolution: %dx%d.  Textmode size: %dx%d characters, of type %d.", GetScreenSizeX(), GetScreenSizeY(), 
 																						g_debugConsole.width, g_debugConsole.height, g_debugConsole.type);
 	LogMsg("\x01\x0F");

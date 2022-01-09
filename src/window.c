@@ -580,13 +580,13 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	ACQUIRE_LOCK (g_screenLock);
 	//wait a bit
 	
-	for (int i = 0; i < 500; i++)
+	for (int i = 0; i < 50; i++)
 		hlt;
 	//we're done.  Redraw everything.
 	//UpdateDepthBuffer();
 	RedrawEverything();
 	
-	for (int i = 0; i < 500; i++)
+	for (int i = 0; i < 50; i++)
 		hlt;
 	
 	FREE_LOCK (g_screenLock);
@@ -629,9 +629,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		#endif
 			cli;
-			if (pWindow->m_renderFinished && !pWindow->m_hidden)
+			if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
 			{
-				pWindow->m_renderFinished = false;
+				pWindow->m_vbeData.m_dirty = false;
 				RenderWindow(pWindow);
 			}
 			sti;
@@ -880,7 +880,7 @@ void PaintWindowBorder(Window* pWindow)
 	
 	//todo: gradients?
 	//VidFillRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR : WINDOW_TITLE_INACTIVE_COLOR, rectb);
-	VidFillRectHGradient(
+	VidFillRectVGradient(
 		pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR   : WINDOW_TITLE_INACTIVE_COLOR, 
 		pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR_B : WINDOW_TITLE_INACTIVE_COLOR_B, 
 		rectb.left,

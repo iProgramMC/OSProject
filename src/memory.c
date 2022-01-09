@@ -7,6 +7,7 @@
 #include <memory.h>
 #include <print.h>
 #include <string.h>
+#include <vga.h>
 
 extern uint32_t g_kernelPageDirectory[];
 extern uint32_t g_pageTableArray[];
@@ -40,16 +41,19 @@ void MmRevertToKernelPageDir()
 }*/
 
 extern void MmStartupStuff(); //io.asm
-void MmFirstThingEver(unsigned long memorySizeKb)
+void MmFirstThingEver()
 {
 	MmStartupStuff();
-	e_frameBitsetSize = (memorySizeKb >> 2); //nBytesRAM >> 12 = (nKbExtRam << 10) >> 12 = nKbExtRam >> 2
+	e_frameBitsetSize = 131072;//(memorySizeKb >> 2); //nBytesRAM >> 12 = (nKbExtRam << 10) >> 12 = nKbExtRam >> 2
 	e_placement += e_frameBitsetSize;
 }
 
+int g_numPagesAvailable = 0;
+
 int GetNumPhysPages()
 {
-	return e_frameBitsetSize;
+	return g_numPagesAvailable;
+	//return e_frameBitsetSize;
 }
 
 /**
@@ -112,7 +116,6 @@ static void MmSetFrame (uint32_t frameAddr)
 	e_frameBitsetVirt[idx] |= (0x1 << off);
 	FREE_LOCK (g_memoryPmmLock);
 }
-/*
 static void MmClrFrame (uint32_t frameAddr)
 {
 	uint32_t frame = frameAddr >> 12;
@@ -120,7 +123,7 @@ static void MmClrFrame (uint32_t frameAddr)
 			 off =OFFSET_FROM_BIT (frame);
 	e_frameBitsetVirt[idx] &=~(0x1 << off);
 }
-static bool MmTestFrame(uint32_t frameAddr) 
+/*static bool MmTestFrame(uint32_t frameAddr) 
 {
 	uint32_t frame = frameAddr >> 12;
 	uint32_t idx = INDEX_FROM_BIT (frame),
@@ -147,11 +150,10 @@ static uint32_t MmFindFreeFrame()
 		//no, continue
 	}
 	//what
-	SLogMsg("WARNING: No more free memory?!");
+	LogMsg("WARNING: No more free memory?!  This can result in bad stuff!!");
 	FREE_LOCK (g_memoryPmmLock);
 	return 0xffffffffu/*ck you*/;
 }
-
 int GetNumFreePhysPages()
 {
 	ACQUIRE_LOCK (g_memoryPmmLock);
@@ -174,12 +176,55 @@ int GetNumFreePhysPages()
 	return result;
 }
 
-void MmInitializePMM()
+void MmInitializePMM(multiboot_info_t* mbi)
 {
 	for (uint32_t i=0; i<INDEX_FROM_BIT(e_frameBitsetSize); i++)
 	{
-		e_frameBitsetVirt[i] = 0;
+		e_frameBitsetVirt[i] = 0xFFFFFFFF;
 	}
+	
+	//parse the multiboot mmap and mark the respective memory frames as free:
+	int len, addr;
+	len = mbi->mmap_length, addr = mbi->mmap_addr;
+	
+	//adding extra complexity is a no-go for now
+	if (addr >= 0x100000)
+	{
+		SwitchMode(0);
+		CoInitAsText(&g_debugConsole);
+		LogMsg("OS state not supported.  Mmap address: %x  Mmap len: %x", addr, len);
+		KeStopSystem();
+	}
+	
+	//turn this into a virt address:
+	addr += 0xC0000000;
+	//addr -= 4; //make size visible
+	multiboot_memory_map_t* pMemoryMap;
+	
+	//logmsg's are for debugging and should be removed.
+	//LogMsg("Logging memory map entries.");
+	for (pMemoryMap = (multiboot_memory_map_t*)addr;
+		 (unsigned long) pMemoryMap < addr + mbi->mmap_length;
+		 pMemoryMap = (multiboot_memory_map_t*) ((unsigned long) pMemoryMap + pMemoryMap->size + sizeof(pMemoryMap->size)))
+	{
+		/*LogMsg("S:%x A:%x%x L:%x%x T:%x", pMemoryMap->size, 
+			(unsigned)(pMemoryMap->addr >> 32), (unsigned)pMemoryMap->addr,
+			(unsigned)(pMemoryMap->len  >> 32), (unsigned)pMemoryMap->len,
+			pMemoryMap->type
+		);
+		*/
+		// if this memory range is not reserved AND it doesn't bother our kernel space, free it
+		if (pMemoryMap->type == MULTIBOOT_MEMORY_AVAILABLE)
+			for (int i = 0; i < (int)pMemoryMap->len; i += 0x1000)
+			{
+				uint32_t addr = pMemoryMap->addr + i;
+				if (addr >= e_placement)// || addr < 0x100000)
+					MmClrFrame (addr);
+			}
+	}
+	//LogMsg("Finished.");
+	
+	g_numPagesAvailable = GetNumFreePhysPages();
 }
 
 #endif
@@ -348,7 +393,7 @@ bool AllocateHeapD (Heap* pHeap, int size, const char* callerFile, int callerLin
 
 
 int g_offset = 0;
-void MmInit()
+void MmInit(multiboot_info_t* pInfo)
 {
 	e_placement += 0x1000;
 	e_placement &= ~0xFFF;
@@ -357,7 +402,7 @@ void MmInit()
 	
 	g_memoryStart = e_placement;
 	
-	MmInitializePMM();
+	MmInitializePMM(pInfo);
 	MmRevertToKernelPageDir();
 	MmSetupKernelHeapPages();
 }
@@ -385,7 +430,7 @@ void* MmSetupPage(int i, uint32_t* pPhysOut, const char* callFile, int callLine)
 	g_pageEntries[i].m_bPresent = true;
 	g_pageEntries[i].m_bReadWrite = true;
 	g_pageEntries[i].m_bUserSuper = true;
-	g_pageEntries[i].m_pAddress = frame + g_offset;
+	g_pageEntries[i].m_pAddress = frame;// + g_offset;
 	
 	g_memoryAllocationSize[i] = 0;
 	g_memoryAllocationAuthor[i] = callFile;
@@ -461,7 +506,10 @@ void MmFreePage(void* pAddr)
 		//lol?
 		return;
 	}
-	// Yes. Let's mark this as present, and return a made-up address from the index.
+	
+	//also clear the pmm's frame:
+	MmClrFrame(g_pageEntries[addr].m_pAddress << 12);
+	
 	g_pageEntries[addr].m_bPresent = false;
 	g_memoryAllocationSize[addr] = 0;
 	
