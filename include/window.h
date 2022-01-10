@@ -49,20 +49,59 @@ enum {
 	EVENT_RELEASECURSOR,
 	EVENT_COMMAND,
 	EVENT_KEYPRESS,
+	EVENT_CLOSE,
 	EVENT_MAX
 };
 
 enum {
+	//A null control.  Does nothing.
 	CONTROL_NONE,
+	//A text control printing text in its top-left corner.
 	CONTROL_TEXT,
+	//A control displaying an icon in the center of the rectangle.
 	CONTROL_ICON,
+	//A clickable button which triggers an EVENT_COMMAND with its comboID
+	//as its first parm.
 	CONTROL_BUTTON,
+	//A text input field.  Not Finished
 	CONTROL_TEXTINPUT,
+	//A checkbox.  Not Finished.
 	CONTROL_CHECKBOX,
+	//A clickable label, which renders its text in the center-left.
+	//Does the same as the CONTROL_BUTTON.
 	CONTROL_CLICKLABEL,
+	//A text control printing text in the center of the rectangle.
 	CONTROL_TEXTCENTER,
+	//A clickable button which triggers an event based on this->m_parm1
+	//with its comboID as its first parm.
+	CONTROL_BUTTON_EVENT,
+	//This control is purely to identify how many controls we support
+	//currently.  This control is unsupported and will crash your application
+	//if you use this.
 	CONTROL_COUNT
 };
+
+enum
+{
+	MBID_OK = 0x10010,
+	MBID_CANCEL,
+	MBID_ABORT,
+	MBID_RETRY,
+	MBID_IGNORE,
+	MBID_YES,
+	MBID_NO,
+	MBID_TRY_AGAIN,
+	MBID_CONTINUE,
+	MBID_COUNT,
+};
+
+#define MB_OK                 0x00000000 //The message box contains one push button: OK.  This is the default.
+#define MB_OKCANCEL           0x00000001 //The message box contains two push buttons: OK and Cancel.
+#define MB_ABORTRETRYIGNORE   0x00000002 //The message box contains three push buttons: Abort, Retry and Ignore.
+#define MB_YESNOCANCEL        0x00000003 //The message box contains three push buttons: Yes, No, and Cancel.
+#define MB_YESNO              0x00000004 //The message box contains two push buttons: Yes, and No.
+#define MB_RETRYCANCEL        0x00000005 //The message box contains two push buttons: Retry and Cancel.
+#define MB_CANCELTRYCONTINUE  0x00000006 //The message box contains three push buttons: Cancel, Retry, and Continue.
 
 struct WindowStruct;
 struct ControlStruct;
@@ -85,6 +124,9 @@ typedef struct ControlStruct
 }
 Control;
 
+#define WF_NOCLOSE 0x00000001
+#define WF_FROZEN  0x00000002
+
 typedef struct WindowStruct
 {
 	bool       m_used;
@@ -95,6 +137,8 @@ typedef struct WindowStruct
 	bool       m_renderFinished;
 	
 	char       m_title [250];
+	
+	int 	   m_flags;
 	
 	WindowProc m_callback;
 	Rectangle  m_rect;
@@ -155,7 +199,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument);
  *
  * while (HandleMessages(pWindow));
  */
-Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc);
+Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc, int flags);
 
 /**
  * Updates the window, and handles its messages.
@@ -172,6 +216,13 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
  * Requests a safe window destruction from the window manager.
  */
 void DestroyWindow (Window* pWindow);
+
+/**
+ * Displays a modal dialog box that contains a system icon, a set of buttons, and 
+ * a brief application-specific message, such as status or error information.  The message
+ * box returns an integer value that indicates which button the user clicked.
+ */
+int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32_t type);
 
 /**
  * Adds a control to the window.

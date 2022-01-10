@@ -158,6 +158,12 @@ void VidBlitImage(Image* pImage, int x, int y);
 void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/);
 
 /**
+ * Prints a string in "colorFg" with an optional colorBg (if it's 0xFFFFFFFF we don't draw any).
+ * Requires widthx and widthy to be valid pointers to integers.  Use this to measure text.
+ */
+void VidTextOutInternal(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg, bool doNotActuallyDraw, int* widthx, int* heightx);
+
+/**
  * Draws text inside a rectangle with the specified flags.
  */
 #define TEXTSTYLE_HCENTERED 1

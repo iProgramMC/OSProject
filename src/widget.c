@@ -70,7 +70,7 @@ void WidgetTextCenter_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED
 	switch (eventType)
 	{
 		case EVENT_PAINT:
-			VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, this->m_parm1, this->m_parm2);
+			VidDrawText(this->m_text, this->m_rect, this->m_parm2, this->m_parm1, TRANSPARENT);
 			break;
 	}
 }
@@ -97,6 +97,52 @@ void WidgetButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int
 				//send a command event to the window:
 				//WindowRegisterEvent(pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
 				pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_comboID, this->m_parm1);
+			}
+		}
+		//! fallthrough intentional - need the button to redraw itself as pushing back up
+		case EVENT_PAINT:
+	#pragma GCC diagnostic pop
+		{
+			//draw a green rectangle:
+			//VidFillRectangle(0xFF00, this->m_rect);
+			RenderButtonShape (this->m_rect, 0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+			//then fill in the text:
+			VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
+			
+			break;
+		}
+		case EVENT_CLICKCURSOR:
+		{
+			Rectangle r = this->m_rect;
+			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
+			if (RectangleContains (&r, &p))
+			{
+				//draw the button as slightly pushed in
+				r.left++; r.right++; r.bottom++; r.top++;
+				
+				RenderButtonShape (this->m_rect, 0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				//then fill in the text:
+				VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
+			}
+			break;
+		}
+	}
+}
+//for the top bar of the window.  Uses this->m_parm1 as the event type.
+void WidgetActionButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int parm1, UNUSED int parm2, UNUSED Window* pWindow)
+{
+	switch (eventType)
+	{
+	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+		case EVENT_RELEASECURSOR:
+		{
+			Rectangle r = this->m_rect;
+			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
+			if (RectangleContains (&r, &p))
+			{
+				//send a command event to the window:
+				//WindowRegisterEvent(pWindow, EVENT_COMMAND, this->m_parm1, this->m_parm2);
+				pWindow->m_callback (pWindow, this->m_parm1, this->m_comboID, this->m_parm2);
 			}
 		}
 		//! fallthrough intentional - need the button to redraw itself as pushing back up
@@ -182,6 +228,7 @@ WidgetEventHandler g_widgetEventHandlerLUT[] = {
 	WidgetCheckbox_OnEvent,
 	WidgetClickLabel_OnEvent,
 	WidgetTextCenter_OnEvent,
+	WidgetActionButton_OnEvent,
 	NULL
 };
 WidgetEventHandler GetWidgetOnEventFunction (int type)

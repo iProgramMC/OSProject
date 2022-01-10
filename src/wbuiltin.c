@@ -28,13 +28,13 @@ void CALLBACK VersionProgramProc (Window* pWindow, int messageType, int parm1, i
 			RECT(r, 0, TITLE_BAR_HEIGHT, 320, 20);
 			
 			//parm1 is the button number that we're being fed in EVENT_COMMAND
-			AddControl (pWindow, CONTROL_TEXTCENTER, r, "NanoShell Operating System", 1, 0, TRANSPARENT);
+			AddControl (pWindow, CONTROL_TEXTCENTER, r, "NanoShell Operating System", 1, 0, TEXTSTYLE_HCENTERED | TEXTSTYLE_VCENTERED);
 			
 			RECT(r, 0, TITLE_BAR_HEIGHT+20, 320, 50);
 			AddControl (pWindow, CONTROL_ICON, r, NULL, 2, ICON_NANOSHELL, 0);
 			
 			RECT(r, 0, TITLE_BAR_HEIGHT+70, 320, 10);
-			AddControl (pWindow, CONTROL_TEXTCENTER, r, "Copyright (C) 2019-2022, iProgramInCpp", 3, 0, TRANSPARENT);
+			AddControl (pWindow, CONTROL_TEXTCENTER, r, "Copyright (C) 2019-2022, iProgramInCpp", 3, 0, TEXTSTYLE_HCENTERED | TEXTSTYLE_VCENTERED);
 			
 			RECT(r, (320-70)/2, TITLE_BAR_HEIGHT+85, 70, 20);
 			AddControl (pWindow, CONTROL_BUTTON, r, "OK", VERSION_BUTTON_OK_COMBO, 0, 0);
@@ -65,7 +65,7 @@ void CALLBACK VersionProgramProc (Window* pWindow, int messageType, int parm1, i
 void VersionProgramTask (__attribute__((unused)) int argument)
 {
 	// create ourself a window:
-	Window* pWindow = CreateWindow ("NanoShell", 100, 100, 320, 115 + TITLE_BAR_HEIGHT, VersionProgramProc);
+	Window* pWindow = CreateWindow ("NanoShell", 100, 100, 320, 115 + TITLE_BAR_HEIGHT, VersionProgramProc, 0);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the window couldn't be created");
@@ -106,7 +106,7 @@ void CALLBACK IconTestProc (Window* pWindow, int messageType, int parm1, int par
 void IconTestTask (__attribute__((unused)) int argument)
 {
 	// create ourself a window:
-	Window* pWindow = CreateWindow ("Icon Test", 300, 200, 320, 240, IconTestProc);
+	Window* pWindow = CreateWindow ("Icon Test", 300, 200, 320, 240, IconTestProc, 0);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the window couldn't be created");
@@ -160,7 +160,7 @@ void CALLBACK PrgPaintProc (Window* pWindow, int messageType, int parm1, int par
 void PrgPaintTask (__attribute__((unused)) int argument)
 {
 	// create ourself a window:
-	Window* pWindow = CreateWindow ("Scribble!", 200, 300, 500, 400, PrgPaintProc);
+	Window* pWindow = CreateWindow ("Scribble!", 200, 300, 500, 400, PrgPaintProc, 0);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the window couldn't be created");
@@ -188,19 +188,22 @@ void LaunchNotepad()
 {
 	int errorCode = 0;
 	Task* pTask = KeStartTask(TerminalHostTask, 0, &errorCode);
-	DebugLogMsg("Created System window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
+	DebugLogMsg("Created Notepad window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 }
 void LaunchPaint()
 {
 	int errorCode = 0;
 	Task* pTask = KeStartTask(PrgPaintTask, 0, &errorCode);
-	DebugLogMsg("Created System window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
+	DebugLogMsg("Created Paint window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 }
-void LaunchCabinet()
+void LaunchCabinet(Window* pWindow)
 {
-	int errorCode = 0;
-	Task* pTask = KeStartTask(IconTestTask, 0, &errorCode);
-	DebugLogMsg("Created System window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
+	if (MessageBox (pWindow, "Would you like to launch Cabinet?", "Home Menu", MB_YESNO | ICON_CABINET << 16) == MBID_YES)
+	{
+		int errorCode = 0;
+		Task* pTask = KeStartTask(IconTestTask, 0, &errorCode);
+		DebugLogMsg("Created Cabinet window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
+	}
 }
 
 enum {
@@ -304,7 +307,7 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 					LaunchPaint();
 					break;
 				case LAUNCHER_CABINET:
-					LaunchCabinet();
+					LaunchCabinet(pWindow);
 					break;
 				/*{
 					//The only button:
@@ -325,10 +328,10 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 void LauncherProgramTask(__attribute__((unused)) int arg)
 {
 	// create ourself a window:
-	int ww = 300, wh = 200, sw = GetScreenSizeX(), sh = GetScreenSizeY();
+	int ww = 320, wh = 240, sw = GetScreenSizeX(), sh = GetScreenSizeY();
 	int wx = (sw - ww) / 2, wy = (sh - wh) / 2;
 	
-	Window* pWindow = CreateWindow ("Home", wx, wy, ww, wh, LauncherProgramProc);
+	Window* pWindow = CreateWindow ("Home", wx, wy, ww, wh, LauncherProgramProc, WF_NOCLOSE);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the main launcher window couldn't be created");

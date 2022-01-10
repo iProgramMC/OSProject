@@ -248,6 +248,11 @@ void UpdateDepthBuffer (void)
 //Registers an event to a window.  Not recommended for use.
 void WindowRegisterEventUnsafe (Window* pWindow, short eventType, int parm1, int parm2)
 {
+	if (pWindow->m_flags & WF_FROZEN)
+	{
+		//return.  Do not queue up events (it can overflow)
+		return;
+	}
 	if (pWindow->m_eventQueueSize < EVENT_QUEUE_MAX - 1)
 	{
 		pWindow->m_eventQueue[pWindow->m_eventQueueSize] = eventType;
@@ -343,8 +348,7 @@ void ReadyToDestroyWindow (Window* pWindow)
 		MmFree(pWindow->m_pControlArray);
 		pWindow->m_controlArrayLen = 0;
 	}
-	pWindow->m_used = false;
-	pWindow->m_eventQueueSize = 0;
+	memset (pWindow, 0, sizeof (*pWindow));
 }
 
 void DestroyWindow (Window* pWindow)
@@ -383,7 +387,7 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 
 // Window creation
 #if 1
-Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc)
+Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc, int flags)
 {
 	ACQUIRE_LOCK(g_createLock);
 	int freeArea = -1;
@@ -403,6 +407,7 @@ Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, Win
 	pWnd->m_hidden = false;
 	pWnd->m_isBeingDragged = false;
 	pWnd->m_isSelected = false;
+	pWnd->m_flags = flags;
 	
 	int strl = strlen (title) + 1;
 	if (strl >= WINDOW_TITLE_MAX) strl = WINDOW_TITLE_MAX - 1;
@@ -465,14 +470,16 @@ void OnUILeftClick (int mouseX, int mouseY)
 	if (idx > -1)
 	{
 		Window* window = GetWindowFromIndex(idx);
-		
-		SelectThisWindowAndUnselectOthers (window);
-		
-		g_currentlyClickedWindow = idx;
-		
-		int x = mouseX - window->m_rect.left;
-		int y = mouseY - window->m_rect.top;
-		WindowRegisterEvent (window, EVENT_CLICKCURSOR, MAKE_MOUSE_PARM (x, y), 0);
+		if (!(window->m_flags & WF_FROZEN))
+		{
+			SelectThisWindowAndUnselectOthers (window);
+			
+			g_currentlyClickedWindow = idx;
+			
+			int x = mouseX - window->m_rect.left;
+			int y = mouseY - window->m_rect.top;
+			WindowRegisterEvent (window, EVENT_CLICKCURSOR, MAKE_MOUSE_PARM (x, y), 0);
+		}
 	}
 	else
 		g_currentlyClickedWindow = -1;
@@ -492,38 +499,41 @@ void OnUILeftClickDrag (int mouseX, int mouseY)
 	
 	Window* window = GetWindowFromIndex(g_currentlyClickedWindow);
 	
-	if (!window->m_isBeingDragged)
+	if (!(window->m_flags & WF_FROZEN))
 	{
-		//are we in the title bar region? TODO
-		Rectangle recta = window->m_rect;
-		recta.right  -= recta.left; recta.left = 0;
-		recta.bottom -= recta.top;  recta.top  = 0;
-		recta.right  -= WINDOW_RIGHT_SIDE_THICKNESS;
-		recta.bottom -= WINDOW_RIGHT_SIDE_THICKNESS;
-		recta.left++; recta.right--; recta.top++; recta.bottom = recta.top + TITLE_BAR_HEIGHT;
-		
-		int x = mouseX - window->m_rect.left;
-		int y = mouseY - window->m_rect.top;
-		Point mousePoint = {x, y};
-		
-		if (RectangleContains(&recta, &mousePoint))
+		if (!window->m_isBeingDragged)
 		{
-			window->m_isBeingDragged = true;
+			//are we in the title bar region? TODO
+			Rectangle recta = window->m_rect;
+			recta.right  -= recta.left; recta.left = 0;
+			recta.bottom -= recta.top;  recta.top  = 0;
+			recta.right  -= WINDOW_RIGHT_SIDE_THICKNESS;
+			recta.bottom -= WINDOW_RIGHT_SIDE_THICKNESS;
+			recta.left++; recta.right--; recta.top++; recta.bottom = recta.top + TITLE_BAR_HEIGHT;
 			
-			HideWindow(window);
+			int x = mouseX - window->m_rect.left;
+			int y = mouseY - window->m_rect.top;
+			Point mousePoint = {x, y};
 			
-			//change cursor:
-			g_windowDragCursor.width    = window->m_vbeData.m_width;
-			g_windowDragCursor.height   = window->m_vbeData.m_height;
-			g_windowDragCursor.leftOffs = mouseX - window->m_rect.left;
-			g_windowDragCursor.topOffs  = mouseY - window->m_rect.top;
-			g_windowDragCursor.bitmap   = window->m_vbeData.m_framebuffer32;//cast to fix warning
-			
-			SetCursor (&g_windowDragCursor);
-		}
-		else
-		{
-			WindowRegisterEvent (window, EVENT_CLICKCURSOR, MAKE_MOUSE_PARM (x, y), 0);
+			if (RectangleContains(&recta, &mousePoint))
+			{
+				window->m_isBeingDragged = true;
+				
+				HideWindow(window);
+				
+				//change cursor:
+				g_windowDragCursor.width    = window->m_vbeData.m_width;
+				g_windowDragCursor.height   = window->m_vbeData.m_height;
+				g_windowDragCursor.leftOffs = mouseX - window->m_rect.left;
+				g_windowDragCursor.topOffs  = mouseY - window->m_rect.top;
+				g_windowDragCursor.bitmap   = window->m_vbeData.m_framebuffer32;
+				
+				SetCursor (&g_windowDragCursor);
+			}
+			else
+			{
+				WindowRegisterEvent (window, EVENT_CLICKCURSOR, MAKE_MOUSE_PARM (x, y), 0);
+			}
 		}
 	}
 	
@@ -900,6 +910,236 @@ void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)
 
 #endif
 
+// Modal dialog box code.
+#if 1
+
+//Forward declaration
+void PaintWindowBorderNoBackgroundOverpaint(Window* pWindow);
+
+void CALLBACK MessageBoxWindowLightCallback (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	DefaultWindowProc (pWindow, messageType, parm1, parm2);
+}
+
+void CALLBACK MessageBoxCallback (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	if (messageType == EVENT_COMMAND)
+	{
+		//Which button did we click?
+		if (parm1 >= MBID_OK && parm1 < MBID_COUNT)
+		{
+			//We clicked a valid button.  Return.
+			pWindow->m_data = (void*)parm1;
+		}
+	}
+	else
+		DefaultWindowProc (pWindow, messageType, parm1, parm2);
+}
+
+int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32_t style)
+{
+	// Free the locks that have been acquired.
+	bool eqLock = pWindow->m_eventQueueLock, wnLock = g_windowLock, scLock = g_screenLock;
+	if  (eqLock) FREE_LOCK (pWindow->m_eventQueueLock);
+	if  (wnLock) FREE_LOCK (g_windowLock);
+	if  (scLock) FREE_LOCK (g_screenLock);
+	
+	bool wasSelectedBefore = pWindow->m_isSelected;
+	if (wasSelectedBefore)
+	{
+		pWindow->m_isSelected = false;
+		PaintWindowBorderNoBackgroundOverpaint (pWindow);
+	}
+	
+	VBEData* pBackup = g_vbeData;
+	
+	VidSetVBEData(NULL);
+	// Freeze the current window.
+	WindowProc pProc = pWindow->m_callback;
+	int old_flags = pWindow->m_flags;
+	pWindow->m_callback = MessageBoxWindowLightCallback;
+	pWindow->m_flags |= WF_FROZEN;//Do not respond to user attempts to move/other
+	
+	int szX, szY;
+	// Measure the pText text.
+	VidTextOutInternal (pText, 0, 0, 0, 0, true, &szX, &szY);
+	
+	int  iconID = style >> 16;
+	bool iconAvailable = iconID != ICON_NULL;
+	
+	if (iconAvailable)
+		if (szY < 32)
+			szY = 32;
+	
+	int buttonWidth  = 70;
+	int buttonWidthG = 76;
+	int buttonHeight = 20;
+	
+	// We now have the text's size in szX and szY.  Get the window size.
+	int wSzX = szX + 
+			   40 + //X padding on both sides
+			   10 + //Gap between icon and text.
+			   32 + //Icon's size.
+			   5 +
+			   WINDOW_RIGHT_SIDE_THICKNESS;//End.
+	int wSzY = szY + 
+			   20 + //Y padding on both sides
+			   buttonHeight + //Button's size.
+			   TITLE_BAR_HEIGHT +
+			   5 + 
+			   WINDOW_RIGHT_SIDE_THICKNESS;
+	
+	int wPosX = (GetScreenSizeX() - wSzX) / 2,
+		wPosY = (GetScreenSizeY() - wSzY) / 2;
+	
+	// Spawn a new window.
+	Window* pBox = CreateWindow (pCaption, wPosX, wPosY, wSzX, wSzY, MessageBoxCallback, WF_NOCLOSE);
+	
+	// Add the basic controls required.
+	Rectangle rect;
+	rect.left   = 20 + iconAvailable*32 + 10;
+	rect.top    = 20;
+	rect.right  = wSzX - 20;
+	rect.bottom = wSzY - buttonHeight - 20;
+	AddControl (pBox, CONTROL_TEXTCENTER, rect, pText, 0x10000, 0, TEXTSTYLE_VCENTERED);
+	
+	if (iconAvailable)
+	{
+		rect.left = 20;
+		rect.top  = 20 + (szY - 32) / 2;
+		rect.right = rect.left + 32;
+		rect.bottom= rect.top  + 32;
+		AddControl (pBox, CONTROL_ICON, rect, NULL, 0x10001, iconID, 0);
+	}
+	
+	int buttonStyle = style & 0x7;
+	switch (buttonStyle)
+	{
+		case MB_OK:
+		{
+			rect.left = (wSzX - buttonWidth) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "OK", MBID_OK, 0, 0);
+			break;
+		}
+		case MB_YESNOCANCEL:
+		{
+			rect.left = (wSzX - buttonWidth) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "No", MBID_NO, 0, 0);
+			rect.right -= buttonWidthG;
+			rect.left  -= buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Yes", MBID_YES, 0, 0);
+			rect.right += 2 * buttonWidthG;
+			rect.left  += 2 * buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Cancel", MBID_CANCEL, 0, 0);
+			break;
+		}
+		case MB_ABORTRETRYIGNORE:
+		{
+			rect.left = (wSzX - buttonWidth) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Retry", MBID_RETRY, 0, 0);
+			rect.right -= buttonWidthG;
+			rect.left  -= buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Abort", MBID_ABORT, 0, 0);
+			rect.right += 2 * buttonWidthG;
+			rect.left  += 2 * buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Ignore", MBID_IGNORE, 0, 0);
+			break;
+		}
+		case MB_CANCELTRYCONTINUE:
+		{
+			rect.left = (wSzX - buttonWidth) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Try again", MBID_TRY_AGAIN, 0, 0);
+			rect.right -= buttonWidthG;
+			rect.left  -= buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Cancel", MBID_CANCEL, 0, 0);
+			rect.right += 2 * buttonWidthG;
+			rect.left  += 2 * buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Continue", MBID_CONTINUE, 0, 0);
+			break;
+		}
+		case MB_YESNO:
+		{
+			rect.left = (wSzX - buttonWidthG * 2) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Yes", MBID_YES, 0, 0);
+			rect.right += buttonWidthG;
+			rect.left  += buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "No", MBID_NO, 0, 0);
+			break;
+		}
+		case MB_OKCANCEL:
+		{
+			rect.left = (wSzX - buttonWidthG * 2) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "OK", MBID_OK, 0, 0);
+			rect.right += buttonWidthG;
+			rect.left  += buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Cancel", MBID_CANCEL, 0, 0);
+			break;
+		}
+		case MB_RETRYCANCEL:
+		{
+			rect.left = (wSzX - buttonWidthG * 2) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Retry", MBID_RETRY, 0, 0);
+			rect.right += buttonWidthG;
+			rect.left  += buttonWidthG;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Cancel", MBID_CANCEL, 0, 0);
+			break;
+		}
+	}
+	
+	// Handle messages for this modal dialog window.
+	while (HandleMessages(pBox))
+	{
+		if (pBox->m_data)
+		{
+			break;//we're done.
+		}
+		hlt;
+	}
+	
+	int dataReturned = (int)pBox->m_data;
+	
+	ReadyToDestroyWindow (pBox);
+	
+	pWindow->m_callback = pProc;
+	pWindow->m_flags    = old_flags;
+	g_vbeData = pBackup;
+	
+	if (wasSelectedBefore)
+	{
+		pWindow->m_isSelected = true;
+		PaintWindowBorderNoBackgroundOverpaint (pWindow);
+	}
+	
+	// Re-acquire the locks that have been freed before.
+	if (eqLock) ACQUIRE_LOCK (pWindow->m_eventQueueLock);
+	if (wnLock) ACQUIRE_LOCK (g_windowLock);
+	if (scLock) ACQUIRE_LOCK (g_screenLock);
+	return dataReturned;
+}
+
+#endif
+
 // Event processors called by user processes.
 #if 1
 void RenderWindow (Window* pWindow)
@@ -944,7 +1184,7 @@ void RenderWindow (Window* pWindow)
 	//FREE_LOCK(g_screenLock);
 }
 
-void PaintWindowBorder(Window* pWindow)
+void PaintWindowBorderNoBackgroundOverpaint(Window* pWindow)
 {
 	Rectangle recta = pWindow->m_rect;
 	recta.right  -= recta.left; recta.left = 0;
@@ -956,7 +1196,7 @@ void PaintWindowBorder(Window* pWindow)
 	
 	Rectangle rectb = recta;
 	
-	VidFillRectangle(WINDOW_BACKGD_COLOR, recta);
+	//VidFillRectangle(WINDOW_BACKGD_COLOR, recta);
 	VidDrawRectangle(WINDOW_EDGE_COLOR, recta);
 	
 	for (int i = 0; i < WINDOW_RIGHT_SIDE_THICKNESS; i++) {
@@ -1013,6 +1253,19 @@ void PaintWindowBorder(Window* pWindow)
 	
 #undef X
 }
+void PaintWindowBorder(Window* pWindow)
+{
+	Rectangle recta = pWindow->m_rect;
+	recta.right  -= recta.left; recta.left = 0;
+	recta.bottom -= recta.top;  recta.top  = 0;
+	
+	//! X adjusts the size of the dropshadow on the window.
+	recta.right  -= WINDOW_RIGHT_SIDE_THICKNESS+1;
+	recta.bottom -= WINDOW_RIGHT_SIDE_THICKNESS+1;
+	
+	VidFillRectangle(WINDOW_BACKGD_COLOR, recta);
+	PaintWindowBorderNoBackgroundOverpaint (pWindow);
+}
 void PaintWindowBackgroundAndBorder(Window* pWindow)
 {
 	VidFillScreen(TRANSPARENT);
@@ -1041,8 +1294,15 @@ bool HandleMessages(Window* pWindow)
 	{
 		//setup paint stuff so the window can only paint in their little box
 		VidSetVBEData (&pWindow->m_vbeData);
-		if (pWindow->m_eventQueue[i] == EVENT_CREATE || pWindow->m_eventQueue[i] == EVENT_PAINT)
+		if (pWindow->m_eventQueue[i] == EVENT_CREATE)
+		{
 			PaintWindowBackgroundAndBorder(pWindow);
+			DefaultWindowProc (pWindow, EVENT_CREATE, 0, 0);
+		}
+		if (pWindow->m_eventQueue[i] == EVENT_PAINT)
+		{
+			PaintWindowBackgroundAndBorder(pWindow);
+		}
 		
 		pWindow->m_callback(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
 		
@@ -1107,12 +1367,19 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 	switch (messageType)
 	{
 		case EVENT_CREATE:
-			//VidFillScreen(0xFFAAAAAA);
+		{
+			// Add a default QUIT button control.
+			Rectangle rect;
+			rect.right = pWindow->m_vbeData.m_width - 3 - WINDOW_RIGHT_SIDE_THICKNESS;
+			rect.left  = rect.right - 12; //The button will be 8x8.
+			rect.top   = 3;
+			rect.bottom= rect.top + 12;
 			
-			//paint window border:
-			//also call an EVENT_PAINT
-			pWindow->m_callback(pWindow, EVENT_PAINT, 0, 0);
+			if (!(pWindow->m_flags & WF_NOCLOSE))
+				AddControl (pWindow, CONTROL_BUTTON_EVENT, rect, "X", 0xFFFF0000, EVENT_CLOSE, 0);
+			
 			break;
+		}
 		case EVENT_PAINT:
 			//nope, user should handle this themselves
 			//Actually EVENT_PAINT just requests a paint event,
@@ -1122,6 +1389,9 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 		case EVENT_SETFOCUS:
 		case EVENT_KILLFOCUS:
 			PaintWindowBorder(pWindow);
+			break;
+		case EVENT_CLOSE:
+			DestroyWindow(pWindow);
 			break;
 		case EVENT_DESTROY:
 			//ReadyToDestroyWindow(pWindow);//exits

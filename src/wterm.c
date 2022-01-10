@@ -51,7 +51,8 @@ void TerminalHostTask(int arg)
 		array[0], array[1], 
 		array[2] * 6 + 8 + WINDOW_RIGHT_SIDE_THICKNESS, 
 		array[3] * 8 + 9 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
-		TerminalHostProc);
+		TerminalHostProc,
+		0);
 	if (!pWindow)
 	{
 		DebugLogMsg("ERROR: Could not create window for nsterm");
