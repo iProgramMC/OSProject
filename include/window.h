@@ -29,7 +29,7 @@
 #define WINDOW_TITLE_ACTIVE_COLOR 0xFF00007F
 #define WINDOW_TITLE_INACTIVE_COLOR 0xFF7F7F7F
 #define WINDOW_TITLE_ACTIVE_COLOR_B 0xFF0000FF
-#define WINDOW_TITLE_INACTIVE_COLOR_B 0xFFBFBFBF
+#define WINDOW_TITLE_INACTIVE_COLOR_B 0xFFAAAAAA
 #define WINDOW_TITLE_TEXT_COLOR_SHADOW 0xFF00003F
 #define WINDOW_TITLE_TEXT_COLOR 0x00FFFFFF
 
@@ -60,6 +60,7 @@ enum {
 	CONTROL_TEXTINPUT,
 	CONTROL_CHECKBOX,
 	CONTROL_CLICKLABEL,
+	CONTROL_TEXTCENTER,
 	CONTROL_COUNT
 };
 
@@ -166,6 +167,11 @@ bool HandleMessages(Window* pWindow);
  * how to handle an event properly.
  */
 void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUSED int parm2);
+
+/**
+ * Requests a safe window destruction from the window manager.
+ */
+void DestroyWindow (Window* pWindow);
 
 /**
  * Adds a control to the window.

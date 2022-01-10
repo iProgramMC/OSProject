@@ -65,12 +65,21 @@ void WidgetText_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int p
 			break;
 	}
 }
+void WidgetTextCenter_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int parm1, UNUSED int parm2, UNUSED Window* pWindow)
+{
+	switch (eventType)
+	{
+		case EVENT_PAINT:
+			VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, this->m_parm1, this->m_parm2);
+			break;
+	}
+}
 void WidgetIcon_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int parm1, UNUSED int parm2, UNUSED Window* pWindow)
 {
 	switch (eventType)
 	{
 		case EVENT_PAINT:
-			RenderIcon(this->m_parm1, this->m_rect.left, this->m_rect.top);
+			RenderIcon(this->m_parm1, this->m_rect.left + (this->m_rect.right - this->m_rect.left - 32) / 2, this->m_rect.top + (this->m_rect.bottom - this->m_rect.top - 32) / 2);
 			break;
 	}
 }
@@ -172,6 +181,7 @@ WidgetEventHandler g_widgetEventHandlerLUT[] = {
 	WidgetTextInput_OnEvent,
 	WidgetCheckbox_OnEvent,
 	WidgetClickLabel_OnEvent,
+	WidgetTextCenter_OnEvent,
 	NULL
 };
 WidgetEventHandler GetWidgetOnEventFunction (int type)

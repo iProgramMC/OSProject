@@ -10,43 +10,50 @@
 
 #define DebugLogMsg  SLogMsg
 
+#define RECT(rect,x,y,w,h) do {\
+	rect.left = x, rect.top = y, rect.right = x+w, rect.bottom = y+h;\
+} while (0)
+
 // Test program application.
 #if 1
-void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
+
+#define VERSION_BUTTON_OK_COMBO 0x1000
+void CALLBACK VersionProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
 {
-	int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();
 	switch (messageType)
 	{
 		case EVENT_CREATE: {
 			//add a predefined list of controls:
-			Rectangle r = {108, 190, 208, 220};
+			Rectangle r;
+			RECT(r, 0, TITLE_BAR_HEIGHT, 320, 20);
 			
 			//parm1 is the button number that we're being fed in EVENT_COMMAND
-			AddControl (pWindow, CONTROL_BUTTON, r, "Click Me!", 1, 0, 0);
+			AddControl (pWindow, CONTROL_TEXTCENTER, r, "NanoShell Operating System", 1, 0, TRANSPARENT);
 			
-			Rectangle r1 = {250,108,320,120};
-			AddControl (pWindow, CONTROL_TEXT, r1, "Hello", 2, 0xFFFFFF, TRANSPARENT);
+			RECT(r, 0, TITLE_BAR_HEIGHT+20, 320, 50);
+			AddControl (pWindow, CONTROL_ICON, r, NULL, 2, ICON_NANOSHELL, 0);
 			
-			Rectangle r2 = {200,100,232,120};
-			AddControl (pWindow, CONTROL_ICON, r2, NULL, 3, ICON_GLOBE, 0);
+			RECT(r, 0, TITLE_BAR_HEIGHT+70, 320, 10);
+			AddControl (pWindow, CONTROL_TEXTCENTER, r, "Copyright (C) 2019-2022, iProgramInCpp", 3, 0, TRANSPARENT);
+			
+			RECT(r, (320-70)/2, TITLE_BAR_HEIGHT+85, 70, 20);
+			AddControl (pWindow, CONTROL_BUTTON, r, "OK", VERSION_BUTTON_OK_COMBO, 0, 0);
 			
 			break;
 		}
 		case EVENT_PAINT: {
-			char test[100];
-			sprintf(test, "Hi!  Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
+			/*char test[100];
+			printf(test, "Hi!  Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
 			VidFillRect (0xFF00FF, 10, 40, 100, 120);
-			VidTextOut (test, 10, 30, 0, TRANSPARENT);
+			VidTextOut (test, 10, 30, 0, TRANSPARENT);*/
 			break;
 		}
 		case EVENT_COMMAND: {
-			if (parm1 == 1)
+			if (parm1 == VERSION_BUTTON_OK_COMBO)
 			{
-				//The only button:
-				int randomX = GetRandom() % 320;
-				int randomY = GetRandom() % 240;
-				int randomColor = GetRandom();
-				VidTextOut("*click*", randomX, randomY, randomColor, TRANSPARENT);
+				//ReadyToDestroyWindow(pWindow);
+				//KeExit();
+				DestroyWindow(pWindow);
 			}
 			break;
 		}
@@ -55,10 +62,10 @@ void CALLBACK TestProgramProc (Window* pWindow, int messageType, int parm1, int 
 	}
 }
 
-void TestProgramTask (__attribute__((unused)) int argument)
+void VersionProgramTask (__attribute__((unused)) int argument)
 {
 	// create ourself a window:
-	Window* pWindow = CreateWindow ("Hello World", 100, 100, 320, 240, TestProgramProc);
+	Window* pWindow = CreateWindow ("NanoShell", 100, 100, 320, 115 + TITLE_BAR_HEIGHT, VersionProgramProc);
 	
 	if (!pWindow)
 		DebugLogMsg("Hey, the window couldn't be created");
@@ -70,6 +77,9 @@ void TestProgramTask (__attribute__((unused)) int argument)
 #if THREADING_ENABLED
 	while (HandleMessages (pWindow));
 #endif
+
+	LogMsg("Exited");
+
 }
 #endif
 
@@ -171,7 +181,7 @@ void PrgPaintTask (__attribute__((unused)) int argument)
 void LaunchSystem()
 {
 	int errorCode = 0;
-	Task* pTask = KeStartTask(TestProgramTask, 0, &errorCode);
+	Task* pTask = KeStartTask(VersionProgramTask, 0, &errorCode);
 	DebugLogMsg("Created System window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 }
 void LaunchNotepad()
@@ -213,9 +223,6 @@ enum {
 	LAUNCHER_ICON5,
 };
 
-#define RECT(rect,x,y,w,h) do {\
-	rect.left = x, rect.top = y, rect.right = x+w, rect.bottom = y+h;\
-} while (0)
 void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
 {
 	//int npp = GetNumPhysPages(), nfpp = GetNumFreePhysPages();

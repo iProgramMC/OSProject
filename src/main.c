@@ -177,6 +177,7 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	MmInit(mbi);
 	// Initialize the video subsystem
 	VidInitialize (mbi);
+	KePrintMemoryMapInfo();
 	// Initialize the task scheduler
 	KiTaskSystemInitialize();
 	// Initialize the ramdisk

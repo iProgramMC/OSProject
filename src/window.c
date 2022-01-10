@@ -21,6 +21,77 @@
 #include <keyboard.h>
 #include <wbuiltin.h>
 
+//background code:
+#if 1
+
+#define BG_WHITE 0xFF007F7F
+#define BG_BLACK 0xFF005C5C
+const uint32_t g_placeholderBackground[] = {
+	//BACKGROUND_COLOR,
+	/*00*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*01*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*02*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*03*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*04*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*05*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*06*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*07*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*08*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*09*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*0A*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*0B*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*0C*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*0D*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*0E*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*0F*/BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,
+	/*10*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*11*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*12*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*13*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*14*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*15*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*16*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*17*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*18*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*19*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*1A*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*1B*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*1C*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*1D*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*1E*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+	/*1F*/BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_WHITE,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,BG_BLACK,
+};
+
+Image* g_background, g_defaultBackground = {
+	//1, 1, g_placeholderBackground
+	32, 32, g_placeholderBackground
+};
+
+void RedrawBackground (Rectangle rect)
+{
+	rect.bottom++, rect.right++;
+	for (int y = rect.top; y != rect.bottom; y++)
+	{
+		for (int x = rect.left; x != rect.right; x++)
+		{
+			//TODO: is a z-buffer check necessary?
+			if (true/* && ...*/)
+			{
+				VidPlotPixel (x, y, g_background->framebuffer[(x % g_background->width) + g_background->width * (y % g_background->height)]);
+			}
+		}
+	}
+	//simple background:
+	//VidFillRectangle (BACKGROUND_COLOR, rect);
+}
+
+void SetDefaultBackground()
+{
+	g_background = &g_defaultBackground;
+}
+
+#endif
+
 //util:
 #if 1
 bool RectangleContains(Rectangle*r, Point*p) 
@@ -47,7 +118,7 @@ bool g_screenLock = false;
 bool g_bufferLock = false;
 bool g_createLock = false;
 
-void TestProgramTask(int argument);
+void VersionProgramTask(int argument);
 void IconTestTask   (int argument);
 void PrgPaintTask   (int argument);
 #endif
@@ -55,7 +126,37 @@ void PrgPaintTask   (int argument);
 // Window depth buffer
 #if 1
 short* g_windowDepthBuffer = NULL; //must be allocated
+short  g_windowDrawOrder[WINDOWS_MAX];
+
+void ResetWindowDrawOrder()
+{
+	memset(g_windowDrawOrder, 0xFF, sizeof(g_windowDrawOrder));
+}
+
+void AddWindowToDrawOrder(short windowIndex)
+{
+	memcpy (g_windowDrawOrder, g_windowDrawOrder+1, sizeof(g_windowDrawOrder)-sizeof(short));
+	g_windowDrawOrder[WINDOWS_MAX-1] = windowIndex;
+}
+
+void MovePreExistingWindowToFront(short windowIndex)
+{
+	//where is our window located?
+	for (int i = WINDOWS_MAX - 1; i >= 0; i--)
+	{
+		if (g_windowDrawOrder[i] == windowIndex)
+		{
+			//move everything after it back
+			memcpy (g_windowDrawOrder + i, g_windowDrawOrder + i + 1, sizeof (short) * (WINDOWS_MAX - i - 1));
+			g_windowDrawOrder[WINDOWS_MAX-1] = windowIndex;
+			
+			return;
+		}
+	}
+}
+
 size_t g_windowDepthBufferSzBytes = 0;
+
 void KillWindowDepthBuffer ()
 {
 	if (g_windowDepthBuffer)
@@ -83,7 +184,8 @@ short GetWindowIndexInDepthBuffer (int x, int y)
 	short test = g_windowDepthBuffer[GetScreenSizeX() * y + x];
 	return test;
 }
-void FillDepthBufferWithWindowIndex (Rectangle r, int index)
+//TODO: make this really work
+void FillDepthBufferWithWindowIndex (Rectangle r, /*uint32_t* framebuffer, */int index)
 {
 	//if (!framebuffer)
 	{
@@ -122,39 +224,30 @@ void FillDepthBufferWithWindowIndex (Rectangle r, int index)
 		}
 	}*/
 }
-void UpdateDepthBuffer ()
+void UpdateDepthBuffer (void)
 {
-	//ACQUIRE_LOCK(g_bufferLock);
 	memset (g_windowDepthBuffer, 0xFF, g_windowDepthBufferSzBytes);
 	
 	for (int i = 0; i < WINDOWS_MAX; i++)
 	{
-		if (g_windows[i].m_used)
-			if (!g_windows[i].m_hidden)
+		short j = g_windowDrawOrder[i];
+		if (j == -1) continue;
+		if (g_windows[j].m_used)
+			if (!g_windows[j].m_hidden)
 			{
 				//if (!g_windows[i].m_isSelected)
-					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, i);
+					FillDepthBufferWithWindowIndex (g_windows[j].m_rect, j);//g_windows[j].m_vbeData.m_framebuffer32, j);
 			}
 	}
-	for (int i = 0; i < WINDOWS_MAX; i++)
-	{
-		if (g_windows[i].m_used)
-			if (!g_windows[i].m_hidden)
-			{
-				if (g_windows[i].m_isSelected)
-					FillDepthBufferWithWindowIndex (g_windows[i].m_rect, i);
-			}
-	}
-	//FREE_LOCK(g_bufferLock);
 }
 #endif
 
 // Window event processor
 #if 1
-void WindowRegisterEvent (Window* pWindow, short eventType, int parm1, int parm2)
+
+//Registers an event to a window.  Not recommended for use.
+void WindowRegisterEventUnsafe (Window* pWindow, short eventType, int parm1, int parm2)
 {
-	ACQUIRE_LOCK (pWindow->m_eventQueueLock);
-	
 	if (pWindow->m_eventQueueSize < EVENT_QUEUE_MAX - 1)
 	{
 		pWindow->m_eventQueue[pWindow->m_eventQueueSize] = eventType;
@@ -165,17 +258,16 @@ void WindowRegisterEvent (Window* pWindow, short eventType, int parm1, int parm2
 	}
 	else
 		DebugLogMsg("Could not register event %d for window %x", eventType, pWindow);
+}
+
+//This is what you should use in most cases.
+void WindowRegisterEvent (Window* pWindow, short eventType, int parm1, int parm2)
+{
+	ACQUIRE_LOCK (pWindow->m_eventQueueLock);
+	
+	WindowRegisterEventUnsafe (pWindow, eventType, parm1, parm2);
 	
 	FREE_LOCK (pWindow->m_eventQueueLock);
-}
-#endif
-
-// Background code
-#if 1
-void RedrawBackground (Rectangle rect)
-{
-	//simple background:
-	VidFillRectangle (BACKGROUND_COLOR, rect);
 }
 #endif
 
@@ -219,21 +311,25 @@ void HideWindow (Window* pWindow)
 	// over the window aren't overwritten.
 	//DebugLogMsg("Drawing %d windows below this one", sz);
 	for (int i=0; i<sz; i++) 
-		WindowRegisterEvent (windowDrawList[i], EVENT_PAINT, 0, 0);
+	{
+		//WindowRegisterEvent (windowDrawList[i], EVENT_PAINT, 0, 0);
+		windowDrawList[i]->m_vbeData.m_dirty = true;
+	}
 	
-	WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
+	//WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
 }
 
 void ShowWindow (Window* pWindow)
 {
 	pWindow->m_hidden = false;
 	UpdateDepthBuffer();
-	WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
+	//WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
+	pWindow->m_vbeData.m_dirty = true;
 }
+extern VBEData* g_vbeData, g_mainScreenVBEData;
 
 void ReadyToDestroyWindow (Window* pWindow)
 {
-	ACQUIRE_LOCK(g_createLock);
 	HideWindow (pWindow);
 	
 	if (pWindow->m_vbeData.m_framebuffer32)
@@ -249,12 +345,11 @@ void ReadyToDestroyWindow (Window* pWindow)
 	}
 	pWindow->m_used = false;
 	pWindow->m_eventQueueSize = 0;
-	FREE_LOCK(g_createLock);
 }
 
 void DestroyWindow (Window* pWindow)
 {
-	WindowRegisterEvent (pWindow, EVENT_DESTROY, 0, 0);
+	WindowRegisterEventUnsafe(pWindow, EVENT_DESTROY, 0, 0);
 	// the task's last WindowCheckMessages call will see this and go
 	// "ah yeah they want my window gone", then the WindowCallback will reply and say
 	// "yeah you're good to go" and call ReadyToDestroyWindow().
@@ -271,13 +366,17 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 					g_windows[i].m_isSelected = false;
 					WindowRegisterEvent(&g_windows[i], EVENT_KILLFOCUS, 0, 0);
 					WindowRegisterEvent(&g_windows[i], EVENT_PAINT, 0, 0);
+					g_windows[i].m_vbeData.m_dirty = true;
 				}
 			}
 		}
+		
+		MovePreExistingWindowToFront (pWindow - g_windows);
 		pWindow->m_isSelected = true;
 		UpdateDepthBuffer();
 		WindowRegisterEvent(pWindow, EVENT_SETFOCUS, 0, 0);
 		WindowRegisterEvent(pWindow, EVENT_PAINT, 0, 0);
+		pWindow->m_vbeData.m_dirty = true;
 	}
 }
 #endif
@@ -334,6 +433,9 @@ Window* CreateWindow (char* title, int xPos, int yPos, int xSize, int ySize, Win
 	UpdateDepthBuffer();
 	
 	WindowRegisterEvent(pWnd, EVENT_CREATE, 0, 0);
+	
+	AddWindowToDrawOrder (pWnd - g_windows);
+	
 	SelectThisWindowAndUnselectOthers(pWnd);
 	
 	cli;
@@ -458,7 +560,8 @@ void OnUILeftClickRelease (int mouseX, int mouseY)
 		}
 		
 		ShowWindow(window);
-		WindowRegisterEvent(window, EVENT_PAINT, 0, 0);
+		//WindowRegisterEvent(window, EVENT_PAINT, 0, 0);
+		window->m_vbeData.m_dirty = true;
 		window->m_isBeingDragged = false;
 	}
 	int x = mouseX - window->m_rect.left;
@@ -533,11 +636,12 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	g_windowManagerRunning = true;
 	
 	UpdateDepthBuffer();
-	VidFillScreen(BACKGROUND_COLOR);
+	//VidFillScreen(BACKGROUND_COLOR);
+	SetDefaultBackground ();
 	
 	//redraw background?
-	__attribute__((unused)) Rectangle r = {0, 0, GetScreenSizeX(), GetScreenSizeY() };
-	//RedrawBackground (r);
+	Rectangle r = {0, 0, GetScreenSizeX(), GetScreenSizeY() };
+	RedrawBackground (r);
 	
 	//CreateTestWindows();
 	UpdateDepthBuffer();
@@ -549,9 +653,10 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	
 	//test:
 #if !THREADING_ENABLED
-	TestProgramTask (0);
-	IconTestTask(0);
-	PrgPaintTask(0);
+	//VersionProgramTask (0);
+	//IconTestTask(0);
+	//PrgPaintTask(0);
+	LauncherProgramTask(0);
 #else
 	int errorCode = 0;
 	Task* pTask;
@@ -624,7 +729,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		#if !THREADING_ENABLED
 			if (!HandleMessages (pWindow))
 			{
-				ReadyToDestroyWindow(pWindow);
+				//ReadyToDestroyWindow(pWindow);
 				continue;
 			}
 		#endif
@@ -797,7 +902,6 @@ void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)
 
 // Event processors called by user processes.
 #if 1
-extern VBEData* g_vbeData, g_mainScreenVBEData;
 void RenderWindow (Window* pWindow)
 {
 	//ACQUIRE_LOCK(g_screenLock);
@@ -856,7 +960,8 @@ void PaintWindowBorder(Window* pWindow)
 	VidDrawRectangle(WINDOW_EDGE_COLOR, recta);
 	
 	for (int i = 0; i < WINDOW_RIGHT_SIDE_THICKNESS; i++) {
-		recta.left++; recta.right++; recta.bottom++; recta.top++;
+		//recta.left++;  recta.top++;
+		recta.right++; recta.bottom++;
 		VidDrawHLine(WINDOW_EDGE_COLOR, recta.left, recta.right, recta.bottom);
 		VidDrawVLine(WINDOW_EDGE_COLOR, recta.top, recta.bottom, recta.right);
 	}
@@ -872,11 +977,25 @@ void PaintWindowBorder(Window* pWindow)
 	VidDrawVLine (WINDOW_TITLE_TEXT_COLOR,     rectb.top, rectb.bottom, rectb.left);
 	VidDrawVLine (WINDOW_TITLE_INACTIVE_COLOR, rectb.top, rectb.bottom, rectb.right);
 	
+	Rectangle rectc = rectb;
+	rectc.left++;
+	rectc.top += TITLE_BAR_HEIGHT;
+	rectc.right--;
+	rectc.bottom--;
+	
+	VidDrawRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR_B : WINDOW_TITLE_INACTIVE_COLOR_B, rectc);
+	/*
+	rectc.left++;
+	rectc.top++;
+	rectc.right--;
+	rectc.bottom--;
+	VidDrawRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR_B : WINDOW_TITLE_INACTIVE_COLOR_B, rectc);*/
+	
 	//draw the window title:
 	rectb.left++;
 	rectb.top ++;
 	rectb.right--;
-	rectb.bottom = rectb.top + TITLE_BAR_HEIGHT;
+	rectb.bottom = rectb.top + TITLE_BAR_HEIGHT + 1;
 	
 	//todo: gradients?
 	//VidFillRectangle(pWindow->m_isSelected ? WINDOW_TITLE_ACTIVE_COLOR : WINDOW_TITLE_INACTIVE_COLOR, rectb);
@@ -939,7 +1058,25 @@ bool HandleMessages(Window* pWindow)
 		//if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
 		//	RenderWindow(pWindow);
 		
-		if (pWindow->m_eventQueue[i] == EVENT_DESTROY) return false;
+		if (pWindow->m_eventQueue[i] == EVENT_DESTROY)
+		{
+			pWindow->m_eventQueueSize = 0;
+			
+			FREE_LOCK (pWindow->m_eventQueueLock);
+			FREE_LOCK (g_windowLock);
+			FREE_LOCK (g_screenLock);
+			hlt; //give it a good halt
+			
+			//Ready to destroy the window.
+			//VBEData* p = g_vbeData;
+			//p = &g_mainScreenVBEData;
+			
+			ReadyToDestroyWindow(pWindow);
+			//BOOM!
+			//p = backup;
+			
+			return false;
+		}
 	}
 	pWindow->m_eventQueueSize = 0;
 	
@@ -949,16 +1086,22 @@ bool HandleMessages(Window* pWindow)
 	hlt; //give it a good halt
 	return true;
 }
-
+/*
 void PostQuitMessage (Window* pWindow)
 {
+	VBEData* backup = g_vbeData;
+	g_vbeData = &g_mainScreenVBEData;
+	LogMsg("ReadyToDestroyWindow");
 	ReadyToDestroyWindow(pWindow);
 	
 	#if THREADING_ENABLED
+	LogMsg("KeExit");
 	KeExit();
+	LogMsg("KeExit done?");
 	#endif
+	g_vbeData = backup;
 }
-
+*/
 void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUSED int parm2)
 {
 	switch (messageType)
@@ -981,7 +1124,7 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 			PaintWindowBorder(pWindow);
 			break;
 		case EVENT_DESTROY:
-			PostQuitMessage(pWindow);//exits
+			//ReadyToDestroyWindow(pWindow);//exits
 			break;
 		default:
 			break;

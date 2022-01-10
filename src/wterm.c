@@ -49,8 +49,8 @@ void TerminalHostTask(int arg)
 	Window *pWindow = CreateWindow(
 		"nsterm", 
 		array[0], array[1], 
-		array[2] * 6 + 6 + WINDOW_RIGHT_SIDE_THICKNESS, 
-		array[3] * 8 + 8 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
+		array[2] * 6 + 8 + WINDOW_RIGHT_SIDE_THICKNESS, 
+		array[3] * 8 + 9 + WINDOW_RIGHT_SIDE_THICKNESS + TITLE_BAR_HEIGHT, 
 		TerminalHostProc);
 	if (!pWindow)
 	{
@@ -68,8 +68,8 @@ void TerminalHostTask(int arg)
 	basic_console.textBuffer = pBuffer;
 	basic_console.width  = array[2];
 	basic_console.height = array[3];
-	basic_console.offX = 2;
-	basic_console.offY = 4 + TITLE_BAR_HEIGHT;
+	basic_console.offX = 4;
+	basic_console.offY = 5 + TITLE_BAR_HEIGHT;
 	basic_console.color = 0x06;//green background
 	basic_console.curX = basic_console.curY = 0;
 	basic_console.pushOrWrap = 0; //wrap for now

@@ -218,6 +218,7 @@ void KeExit()
 {
 	if (!KeGetRunningTask())
 	{
+		LogMsg("Stopping system!?");
 		KeStopSystem();
 	}
 	

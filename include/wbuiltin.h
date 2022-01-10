@@ -14,7 +14,7 @@
 #include <widget.h>
 #include <misc.h>
 
-void TestProgramTask (int argument);
+void VersionProgramTask (int argument);
 void PrgPaintTask (int argument);
 void IconTestTask (int argument);
 void LauncherProgramTask(int arg);
