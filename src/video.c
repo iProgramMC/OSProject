@@ -399,7 +399,7 @@ void SetMousePos (unsigned newX, unsigned newY)
 			}
 		}
 	}
-	//Then, redraw all the pixels under where the cursor was previously:
+	//Redraw all the pixels under where the cursor was previously:
 	for (int i = 0; i < g_currentCursor->height; i++)
 	{
 		for (int j = 0; j < g_currentCursor->width; j++)
@@ -486,6 +486,12 @@ void VidPlotPixelRaw32 (unsigned x, unsigned y, unsigned color)
 	g_vbeData->m_dirty = 1;
 	g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
 }
+__attribute__((always_inline))
+inline void VidPlotPixelRaw32I (unsigned x, unsigned y, unsigned color)
+{
+	g_vbeData->m_dirty = 1;
+	g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
+}
 /*static void VidPlotPixelIgnoreCursorChecks(unsigned x, unsigned y, unsigned color)
 {
 	VidPlotPixelRaw32(x, y, color);
@@ -497,10 +503,10 @@ void VidPlotPixelRaw32 (unsigned x, unsigned y, unsigned color)
 		case 2: VidPlotPixelRaw32(x, y, color); break;
 	}
 }*/
-void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color)
+inline void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
-	VidPlotPixelRaw32(x, y, color);
+	VidPlotPixelRaw32I(x, y, color);
 	
 	/*switch (g_vbeData->m_bitdepth)
 	{
@@ -509,7 +515,7 @@ void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned colo
 		case 2: VidPlotPixelRaw32(x, y, color); break;
 	}*/
 }
-static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
+inline static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
 	if (g_vbeData == &g_mainScreenVBEData)
@@ -540,7 +546,7 @@ void VidPlotPixel(unsigned x, unsigned y, unsigned color)
 			}
 		}
 	}
-	VidPlotPixelRaw32 (x, y, color);
+	VidPlotPixelRaw32I (x, y, color);
 }
 void VidPrintTestingPattern()
 {

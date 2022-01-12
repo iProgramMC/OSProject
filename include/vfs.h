@@ -12,14 +12,19 @@
 struct FSNodeS;
 struct DirEntS;
 
+#define PATH_MAX (260)
+#define PATH_SEP ('/')
+#define PATH_THISDIR (".")
+#define PATH_PARENTDIR ("..")
+
 enum
 {
 	FILE_TYPE_NONE = 0,
 	FILE_TYPE_FILE,
-	FILE_TYPE_DIRECTORY,
 	FILE_TYPE_CHAR_DEVICE,
 	FILE_TYPE_BLOCK_DEVICE,
-	FILE_TYPE_MOUNTPOINT = 8 //to be OR'd into the other flags
+	FILE_TYPE_DIRECTORY  = 8,
+	FILE_TYPE_MOUNTPOINT = 16 //to be OR'd into the other flags
 };
 
 // Function pointer definitions so we can just call `file_node->Read(...);` etc.

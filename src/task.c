@@ -20,6 +20,7 @@ static int s_currentRunningTask = -1;
 static CPUSaveState g_kernelSaveState;
 __attribute__((aligned(16)))
 static int          g_kernelFPUState[128];
+static VBEData*     g_kernelVBEContext = NULL;
 
 void KeFindLastRunningTaskIndex()
 {
@@ -55,6 +56,7 @@ void KeTaskDebugDump()
 // execution.
 extern void KeTaskStartup();
 extern uint32_t g_curPageDirP; //memory.c
+extern VBEData* g_vbeData, g_mainScreenVBEData;
 void KeConstructTask (Task* pTask)
 {
 	pTask->m_state.esp = ((int)pTask->m_pStack + C_STACK_BYTES_PER_TASK) & ~0xF; //Align to 4 bits
@@ -79,6 +81,8 @@ void KeConstructTask (Task* pTask)
 	// push the iretd worthy registers on the stack:
 	pTask->m_state.esp -= sizeof(int) * 5;
 	memcpy ((void*)(pTask->m_state.esp), &pTask->m_state.eip, sizeof(int)*3);
+	
+	pTask->m_pVBEContext = &g_mainScreenVBEData;
 }
 
 Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, const char* authorFile, const char* authorFunc, int authorLine)
@@ -235,7 +239,6 @@ void KeFxRestore(int *fpstate)
 {
 	asm("fxrstor (%0)" :: "r"(fpstate));
 }
-
 void KeSwitchTask(CPUSaveState* pSaveState)
 {
 	Task* pTask = KeGetRunningTask();
@@ -244,11 +247,13 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 	{
 		memcpy (& pTask -> m_state, pSaveState, sizeof(CPUSaveState));
 		KeFxSave (pTask -> m_fpuState);
+		pTask->m_pVBEContext = g_vbeData;
 	}
 	else
 	{
 		memcpy (&g_kernelSaveState, pSaveState, sizeof(CPUSaveState));
 		KeFxSave (g_kernelFPUState); //perhaps we won't use this.
+		g_kernelVBEContext = g_vbeData;
 	}
 	
 	// Acknowledge the interrupt:
@@ -287,6 +292,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		
 		//first, restore this task's FPU registers:
 		KeFxRestore(pNewTask->m_fpuState);
+		g_vbeData = pNewTask->m_pVBEContext;
 		KeRestoreStandardTask(pNewTask);
 	}
 	else
@@ -296,6 +302,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		
 		//first, restore the kernel task's FPU registers:
 		KeFxRestore(g_kernelFPUState);
+		g_vbeData = g_kernelVBEContext;
 		KeRestoreKernelTask();
 	}
 }

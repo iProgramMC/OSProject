@@ -407,6 +407,7 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	pWnd->m_hidden = false;
 	pWnd->m_isBeingDragged = false;
 	pWnd->m_isSelected = false;
+	pWnd->m_eventQueueLock = false;
 	pWnd->m_flags = flags;
 	
 	int strl = strlen (title) + 1;
@@ -606,7 +607,7 @@ void OnUIRightClick (int mouseX, int mouseY)
 
 void RedrawEverything()
 {
-	cli;
+	//cli;
 //	Rectangle r = {0, 0, GetScreenSizeX(), GetScreenSizeY() };
 	/*VidFillScreen(BACKGROUND_COLOR);
 	
@@ -618,6 +619,8 @@ void RedrawEverything()
 	
 	UpdateDepthBuffer();
 	
+	//sti;
+	
 	//for each window, send it a EVENT_PAINT:
 	for (int p = 0; p < WINDOWS_MAX; p++)
 	{
@@ -626,8 +629,6 @@ void RedrawEverything()
 		
 		WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
 	}
-	
-	sti;
 }
 
 bool HandleMessages(Window* pWindow);
@@ -692,7 +693,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 #endif
 	
 	ACQUIRE_LOCK (g_clickQueueLock);
-	ACQUIRE_LOCK (g_screenLock);
+	//ACQUIRE_LOCK (g_screenLock);
 	//wait a bit
 	
 	for (int i = 0; i < 50; i++)
@@ -704,7 +705,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	for (int i = 0; i < 50; i++)
 		hlt;
 	
-	FREE_LOCK (g_screenLock);
+	//FREE_LOCK (g_screenLock);
 	FREE_LOCK (g_clickQueueLock);
 	
 	int timeout = 10;
@@ -764,7 +765,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		
 		//cli;
 		ACQUIRE_LOCK (g_clickQueueLock);
-		ACQUIRE_LOCK (g_screenLock);
+		//ACQUIRE_LOCK (g_screenLock);
 		for (int i = 0; i < g_clickQueueSize; i++)
 		{
 			switch (g_clickQueue[i].clickType)
@@ -776,7 +777,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		}
 		g_clickQueueSize = 0;
-		FREE_LOCK (g_screenLock);
+		//FREE_LOCK (g_screenLock);
 		FREE_LOCK (g_clickQueueLock);
 		//sti;
 		
@@ -1145,7 +1146,6 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 void RenderWindow (Window* pWindow)
 {
 	//ACQUIRE_LOCK(g_screenLock);
-	VBEData* backup = g_vbeData;
 	g_vbeData = &g_mainScreenVBEData;
 	int sx = GetScreenSizeX(), sy = GetScreenSizeY();
 	
@@ -1179,8 +1179,6 @@ void RenderWindow (Window* pWindow)
 			o++;
 		}
 	}
-	
-	g_vbeData = backup;
 	//FREE_LOCK(g_screenLock);
 }
 
@@ -1286,12 +1284,14 @@ bool IsEventDestinedForControlsToo(int type)
 bool HandleMessages(Window* pWindow)
 {
 	// grab the lock
-	ACQUIRE_LOCK (g_screenLock);
-	ACQUIRE_LOCK (g_windowLock);
+	//ACQUIRE_LOCK (g_screenLock);
+	//ACQUIRE_LOCK (g_windowLock);
 	ACQUIRE_LOCK (pWindow->m_eventQueueLock);
+	SLogMsg("Lock Acquired!");
 	
 	for (int i = 0; i < pWindow->m_eventQueueSize; i++)
 	{
+		SLogMsg("A loop! i is now %d", i);
 		//setup paint stuff so the window can only paint in their little box
 		VidSetVBEData (&pWindow->m_vbeData);
 		if (pWindow->m_eventQueue[i] == EVENT_CREATE)
@@ -1303,28 +1303,35 @@ bool HandleMessages(Window* pWindow)
 		{
 			PaintWindowBackgroundAndBorder(pWindow);
 		}
+		SLogMsg("Stuff 1");
 		
 		pWindow->m_callback(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
 		
+		SLogMsg("Stuff 2");
 		if (IsEventDestinedForControlsToo(pWindow->m_eventQueue[i]))
 			ControlProcessEvent(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
 		
+		SLogMsg("Stuff 3");
 		//reset to main screen
 		VidSetVBEData (NULL);
 		if (pWindow->m_vbeData.m_dirty)
 			pWindow->m_renderFinished = true;
 		
+		SLogMsg("Stuff 4");
 		//if the contents of this window have been modified, redraw them:
 		//if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
 		//	RenderWindow(pWindow);
 		
+		SLogMsg("Stuff 5");
 		if (pWindow->m_eventQueue[i] == EVENT_DESTROY)
 		{
+			SLogMsg("Stuff !!! 6");
 			pWindow->m_eventQueueSize = 0;
 			
 			FREE_LOCK (pWindow->m_eventQueueLock);
-			FREE_LOCK (g_windowLock);
-			FREE_LOCK (g_screenLock);
+			LogMsg("Stuff !!! 7");
+			//FREE_LOCK (g_windowLock);
+			//FREE_LOCK (g_screenLock);
 			hlt; //give it a good halt
 			
 			//Ready to destroy the window.
@@ -1337,12 +1344,15 @@ bool HandleMessages(Window* pWindow)
 			
 			return false;
 		}
+		SLogMsg("Stuff 6");
 	}
+	SLogMsg("Stuff 7");
 	pWindow->m_eventQueueSize = 0;
 	
+	SLogMsg("Freeing!");
 	FREE_LOCK (pWindow->m_eventQueueLock);
-	FREE_LOCK (g_windowLock);
-	FREE_LOCK (g_screenLock);
+	//FREE_LOCK (g_windowLock);
+	//FREE_LOCK (g_screenLock);
 	hlt; //give it a good halt
 	return true;
 }

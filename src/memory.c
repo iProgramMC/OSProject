@@ -443,6 +443,13 @@ void* MmSetupPage(int i, uint32_t* pPhysOut, const char* callFile, int callLine)
 	uint32_t retaddr = (g_pageAllocationBase + (i << 12));
 	MmInvalidateSinglePage(retaddr);
 	
+#ifdef RANDOMIZE_MALLOCED_MEMORY
+	for (int i = 0; i < 1024; i++)
+	{
+		*((uint32_t*)retaddr + i) = i * 0x01010101;
+	}
+#endif
+	
 	FREE_LOCK (g_memoryPageLock);
 	return (void*)retaddr;
 }

@@ -95,9 +95,13 @@ int g_ramDiskID = 0;
 int g_lastReturnCode = 0;
 bool CoPrintCharInternal (Console* this, char c, char next);
 
+char g_cwd[PATH_MAX+1];
+FileNode* g_pCwdNode = NULL;
+
+
 void funnytest(UNUSED int argument)
 {
-	FileNode* pNode = FsGetInitrdNode();
+	FileNode* pNode = g_pCwdNode;
 	FileNode* pFile = FsFindDir(pNode, "main.nse");
 	if (!pFile)
 		LogMsg("No such file or directory");
@@ -115,7 +119,6 @@ void funnytest(UNUSED int argument)
 	}
 	LogMsg("");
 }
-
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -131,8 +134,11 @@ void ShellExecuteCommand(char* p)
 		LogMsg("cat        - prints the contents of a file");
 		LogMsg("cls        - clear screen");
 		LogMsg("cm         - character map");
+		LogMsg("cd         - change directory");
 		LogMsg("crash      - attempt to crash the kernel");
 		LogMsg("color XX   - change the screen color");
+		LogMsg("fd         - attempts to resolve a path, prints non-zero if found");
+		LogMsg("ft         - attempts to write 'Hello, world\\n' to a file");
 		LogMsg("e          - executes an ELF from the initrd");
 		LogMsg("el         - prints the last returned value from an executed ELF");
 		LogMsg("help       - shows this list");
@@ -161,6 +167,54 @@ void ShellExecuteCommand(char* p)
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
 	}
+	else if (strcmp (token, "cd") == 0)
+	{
+		char* fileName = Tokenize (&state, NULL, " ");
+		if (!fileName)
+			LogMsg("Expected filename");
+		else if (*fileName == 0)
+			LogMsg("Expected filename");
+		else
+		{
+			if (strcmp (fileName, PATH_THISDIR) == 0) return;
+			if (strcmp (fileName, PATH_PARENTDIR) == 0)
+			{
+				for (int i = PATH_MAX - 1; i >= 0; i--)
+				{
+					if (g_cwd[i] == PATH_SEP)
+					{
+						g_cwd[i+1] = 0;
+						g_pCwdNode = FsResolvePath(g_cwd);
+						if (!g_pCwdNode)
+						{
+							LogMsg("Fatal: could not find parent directory?!");
+							return;
+						}
+						break;
+					}
+				}
+				return;
+			}
+			if (strlen (g_cwd) + strlen (fileName) < PATH_MAX - 3)
+			{
+				char cwd_copy[sizeof(g_cwd)];
+				memcpy(cwd_copy, g_cwd, sizeof(g_cwd));
+				if (g_cwd[1] != 0)
+					strcat (g_cwd, "/");
+				strcat (g_cwd, fileName);
+				FileNode *pPrev = g_pCwdNode;
+				g_pCwdNode = FsResolvePath(g_cwd);
+				if (!g_pCwdNode)
+				{
+					memcpy(g_cwd, cwd_copy, sizeof(g_cwd));
+					g_pCwdNode = pPrev;
+					LogMsg("No such file or directory");
+				}
+			}
+			else
+				LogMsg("Path would be too large");
+		}
+	}
 	else if (strcmp (token, "cm") == 0)
 	{
 		for (int y = 0; y < 16; y++)
@@ -180,6 +234,22 @@ void ShellExecuteCommand(char* p)
 		
 		LogMsg("Started task!  Pointer: %x, errcode: %x", pTask, erc);
 	}
+	else if (strcmp (token, "fd") == 0)
+	{
+		char* fileName = Tokenize (&state, NULL, " ");
+		if (!fileName)
+		{
+			LogMsg("Expected filename");
+		}
+		else if (*fileName == 0)
+		{
+			LogMsg("Expected filename");
+		}
+		else
+		{
+			LogMsg("Got: %x", FsResolvePath (fileName));
+		}
+	}
 	else if (strcmp (token, "e") == 0)
 	{
 		char* fileName = Tokenize (&state, NULL, " ");
@@ -194,7 +264,7 @@ void ShellExecuteCommand(char* p)
 		else
 		{
 			//TODO: open/close
-			FileNode* pNode = FsGetInitrdNode();
+			FileNode* pNode = g_pCwdNode;
 			FileNode* pFile = FsFindDir(pNode, fileName);
 			if (!pFile)
 				LogMsg("No such file or directory");
@@ -227,7 +297,7 @@ void ShellExecuteCommand(char* p)
 		else
 		{
 			//TODO: open/close
-			FileNode* pNode = FsGetInitrdNode();
+			FileNode* pNode = g_pCwdNode;
 			FileNode* pFile = FsFindDir(pNode, fileName);
 			if (!pFile)
 				LogMsg("No such file or directory");
@@ -250,13 +320,41 @@ void ShellExecuteCommand(char* p)
 			LogMsg("");
 		}
 	}
+	else if (strcmp (token, "ft") == 0)
+	{
+		char* fileName = Tokenize (&state, NULL, " ");
+		if (!fileName)
+		{
+			LogMsg("Expected filename");
+		}
+		else if (*fileName == 0)
+		{
+			LogMsg("Expected filename");
+		}
+		else
+		{
+			//TODO: open/close
+			FileNode* pNode = g_pCwdNode;
+			FileNode* pFile = FsFindDir(pNode, fileName);
+			if (!pFile)
+				LogMsg("No such file or directory");
+			else
+			{
+				int length = pFile->m_length;
+				char pData[] = "Hello, world\n";
+				
+				FsWrite(pFile, 0, sizeof(pData)-1, pData);
+			}
+			LogMsg("");
+		}
+	}
 	else if (strcmp (token, "lr") == 0)
 	{
 		KePrintMemoryMapInfo();
 	}
 	else if (strcmp (token, "ls") == 0)
 	{
-		FileNode* pNode = FsGetInitrdNode();
+		FileNode* pNode = g_pCwdNode;
 		LogMsg("Directory of %s (%x)", pNode->m_name, pNode);
 		DirEnt* pDirEnt;
 		int i = 0;
@@ -266,7 +364,7 @@ void ShellExecuteCommand(char* p)
 			if (!pSubnode)
 				LogMsg("- [NULL?!]");
 			else
-				LogMsg("- %s\t%d\t%s", pSubnode->m_type & FILE_TYPE_DIRECTORY ? "<DIR>" : "     ", pSubnode->m_length, pSubnode->m_name);
+				LogMsg("- %s\t%d\t%s", (pSubnode->m_type & FILE_TYPE_DIRECTORY) ? "<DIR>" : "     ", pSubnode->m_length, pSubnode->m_name);
 			i++;
 		}
 	}
@@ -571,9 +669,11 @@ void ShellExecuteCommand(char* p)
 
 void ShellRun(UNUSED int unused_arg)
 {
+	strcpy (g_cwd, "/");
+	g_pCwdNode = FsResolvePath (g_cwd);
 	while (1) 
 	{
-		LogMsgNoCr("shell>");
+		LogMsgNoCr("%s>", g_cwd);
 		char buffer[256];
 		KbGetString (buffer, 256);
 		memcpy (g_lastCommandExecuted, buffer, 256);
