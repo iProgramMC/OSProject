@@ -657,10 +657,10 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//CreateTestWindows();
 	UpdateDepthBuffer();
 	
-	//VidSetFont(FONT_BASIC);
+	VidSetFont(FONT_BASIC);
 	//VidSetFont(FONT_TAMSYN_BOLD);
 	//VidSetFont(FONT_FAMISANS);
-	VidSetFont(FONT_GLCD);
+	//VidSetFont(FONT_GLCD);
 	
 	//test:
 #if !THREADING_ENABLED
@@ -1143,6 +1143,32 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 
 // Event processors called by user processes.
 #if 1
+
+//copied the VidPlotPixelInline code from video.c for speed:
+extern uint32_t* g_framebufferCopy;
+__attribute__((always_inline))
+inline void blpx2cp(unsigned x, unsigned y, unsigned color)
+{
+	if (g_vbeData == &g_mainScreenVBEData)
+		g_framebufferCopy[x + y * g_vbeData->m_width] = color;
+}
+__attribute__((always_inline))
+inline void blpx2ver (unsigned x, unsigned y, unsigned color)
+{
+	g_vbeData->m_dirty = 1;
+	g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
+}
+
+__attribute__((always_inline))
+inline void blpxinl(unsigned x, unsigned y, unsigned color)
+{
+	if (!((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()))
+	{
+		blpx2cp (x, y, color);
+		blpx2ver(x, y, color);
+	}
+}
+
 void RenderWindow (Window* pWindow)
 {
 	//ACQUIRE_LOCK(g_screenLock);
@@ -1173,7 +1199,7 @@ void RenderWindow (Window* pWindow)
 				if (n == windIndex)
 				{
 					if (texture[o] != TRANSPARENT)
-						VidPlotPixel (i, j, texture[o]);
+						blpxinl (i, j, texture[o]);
 				}
 			}
 			o++;

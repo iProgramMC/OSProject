@@ -314,6 +314,8 @@ void SetMouseVisible (bool b)
 	}
 }
 
+//small break to add this function, needed to make windows not flicker while dragged
+void VidPlotPixelCheckCursor(unsigned x, unsigned y, unsigned color);
 void SetMousePos (unsigned newX, unsigned newY)
 {
 	//NOTE: As this is called in an interrupt too, a call here might end up coming right
@@ -333,23 +335,6 @@ void SetMousePos (unsigned newX, unsigned newY)
 	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
 	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
 	
-	//Redraw all the pixels under where the cursor was previously:
-	for (int i = 0; i < g_currentCursor->height; i++)
-	{
-		for (int j = 0; j < g_currentCursor->width; j++)
-		{
-			int id = i * g_currentCursor->width + j;
-			if (g_currentCursor->bitmap[id] != TRANSPARENT)
-			{
-				int kx = j + oldX - g_currentCursor->leftOffs,
-					ky = i + oldY - g_currentCursor->topOffs;
-				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
-				VidPlotPixel (
-					kx, ky, VidReadPixel (kx, ky)
-				);
-			}
-		}
-	}
 	//Draw the cursor image at the new position:
 	if (g_vbeData->m_bitdepth == 2)
 	{
@@ -413,6 +398,23 @@ void SetMousePos (unsigned newX, unsigned newY)
 						g_currentCursor->bitmap[id]
 					);
 				}
+			}
+		}
+	}
+	//Redraw all the pixels under where the cursor was previously:
+	for (int i = 0; i < g_currentCursor->height; i++)
+	{
+		for (int j = 0; j < g_currentCursor->width; j++)
+		{
+			int id = i * g_currentCursor->width + j;
+			if (g_currentCursor->bitmap[id] != TRANSPARENT)
+			{
+				int kx = j + oldX - g_currentCursor->leftOffs,
+					ky = i + oldY - g_currentCursor->topOffs;
+				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+				VidPlotPixelCheckCursor (
+					kx, ky, VidReadPixel (kx, ky)
+				);
 			}
 		}
 	}
@@ -492,28 +494,10 @@ inline void VidPlotPixelRaw32I (unsigned x, unsigned y, unsigned color)
 	g_vbeData->m_dirty = 1;
 	g_vbeData->m_framebuffer32[x + y * g_vbeData->m_pitch32] = color;
 }
-/*static void VidPlotPixelIgnoreCursorChecks(unsigned x, unsigned y, unsigned color)
-{
-	VidPlotPixelRaw32(x, y, color);
-	
-	switch (g_vbeData->m_bitdepth)
-	{
-		case 0: VidPlotPixelRaw8 (x, y, color); break;
-		case 1: VidPlotPixelRaw16(x, y, color); break;
-		case 2: VidPlotPixelRaw32(x, y, color); break;
-	}
-}*/
 inline void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
 	VidPlotPixelRaw32I(x, y, color);
-	
-	/*switch (g_vbeData->m_bitdepth)
-	{
-		case 0: VidPlotPixelRaw8 (x, y, color); break;
-		case 1: VidPlotPixelRaw16(x, y, color); break;
-		case 2: VidPlotPixelRaw32(x, y, color); break;
-	}*/
 }
 __attribute__((always_inline))
 inline void VidPlotPixelToCopyInlineUnsafe(unsigned x, unsigned y, unsigned color)
@@ -521,20 +505,28 @@ inline void VidPlotPixelToCopyInlineUnsafe(unsigned x, unsigned y, unsigned colo
 	if (g_vbeData == &g_mainScreenVBEData)
 		g_framebufferCopy[x + y * g_vbeData->m_width] = color;
 }
-/*
-static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
+void VidPlotPixel(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
-	if (g_vbeData == &g_mainScreenVBEData)
-		g_framebufferCopy[x + y * g_vbeData->m_width] = color;
-}*/
-void VidPlotPixel(unsigned x, unsigned y, unsigned color)
+	VidPlotPixelToCopyInlineUnsafe(x, y, color);
+	VidPlotPixelRaw32I (x, y, color);
+}
+__attribute__((always_inline))
+inline void VidPlotPixelInline(unsigned x, unsigned y, unsigned color)
+{
+	if (!((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()))
+	{
+		VidPlotPixelToCopyInlineUnsafe(x, y, color);
+		VidPlotPixelRaw32I (x, y, color);
+	}
+}
+void VidPlotPixelCheckCursor(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
 	VidPlotPixelToCopyInlineUnsafe(x, y, color);
 	
 	// if inside the cursor area, don't display this pixel on the screen:
-	/*if (g_vbeData == &g_mainScreenVBEData)
+	if (g_vbeData == &g_mainScreenVBEData)
 	{
 		if (g_currentCursor && g_isMouseVisible)
 		{
@@ -552,17 +544,8 @@ void VidPlotPixel(unsigned x, unsigned y, unsigned color)
 				}
 			}
 		}
-	}*/
-	VidPlotPixelRaw32I (x, y, color);
-}
-__attribute__((always_inline))
-inline void VidPlotPixelInline(unsigned x, unsigned y, unsigned color)
-{
-	if (!((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()))
-	{
-		VidPlotPixelToCopyInlineUnsafe(x, y, color);
-		VidPlotPixelRaw32I (x, y, color);
 	}
+	VidPlotPixelRaw32I (x, y, color);
 }
 void VidPrintTestingPattern()
 {
