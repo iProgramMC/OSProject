@@ -333,6 +333,23 @@ void SetMousePos (unsigned newX, unsigned newY)
 	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
 	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
 	
+	//Redraw all the pixels under where the cursor was previously:
+	for (int i = 0; i < g_currentCursor->height; i++)
+	{
+		for (int j = 0; j < g_currentCursor->width; j++)
+		{
+			int id = i * g_currentCursor->width + j;
+			if (g_currentCursor->bitmap[id] != TRANSPARENT)
+			{
+				int kx = j + oldX - g_currentCursor->leftOffs,
+					ky = i + oldY - g_currentCursor->topOffs;
+				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+				VidPlotPixel (
+					kx, ky, VidReadPixel (kx, ky)
+				);
+			}
+		}
+	}
 	//Draw the cursor image at the new position:
 	if (g_vbeData->m_bitdepth == 2)
 	{
@@ -396,23 +413,6 @@ void SetMousePos (unsigned newX, unsigned newY)
 						g_currentCursor->bitmap[id]
 					);
 				}
-			}
-		}
-	}
-	//Redraw all the pixels under where the cursor was previously:
-	for (int i = 0; i < g_currentCursor->height; i++)
-	{
-		for (int j = 0; j < g_currentCursor->width; j++)
-		{
-			int id = i * g_currentCursor->width + j;
-			if (g_currentCursor->bitmap[id] != TRANSPARENT)
-			{
-				int kx = j + oldX - g_currentCursor->leftOffs,
-					ky = i + oldY - g_currentCursor->topOffs;
-				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
-				VidPlotPixel (
-					kx, ky, VidReadPixel (kx, ky)
-				);
 			}
 		}
 	}
@@ -515,19 +515,26 @@ inline void VidPlotPixelIgnoreCursorChecksChecked(unsigned x, unsigned y, unsign
 		case 2: VidPlotPixelRaw32(x, y, color); break;
 	}*/
 }
-inline static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
+__attribute__((always_inline))
+inline void VidPlotPixelToCopyInlineUnsafe(unsigned x, unsigned y, unsigned color)
+{
+	if (g_vbeData == &g_mainScreenVBEData)
+		g_framebufferCopy[x + y * g_vbeData->m_width] = color;
+}
+/*
+static void VidPlotPixelToCopy(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
 	if (g_vbeData == &g_mainScreenVBEData)
 		g_framebufferCopy[x + y * g_vbeData->m_width] = color;
-}
+}*/
 void VidPlotPixel(unsigned x, unsigned y, unsigned color)
 {
 	if ((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()) return;
-	VidPlotPixelToCopy(x, y, color);
+	VidPlotPixelToCopyInlineUnsafe(x, y, color);
 	
 	// if inside the cursor area, don't display this pixel on the screen:
-	if (g_vbeData == &g_mainScreenVBEData)
+	/*if (g_vbeData == &g_mainScreenVBEData)
 	{
 		if (g_currentCursor && g_isMouseVisible)
 		{
@@ -545,8 +552,17 @@ void VidPlotPixel(unsigned x, unsigned y, unsigned color)
 				}
 			}
 		}
-	}
+	}*/
 	VidPlotPixelRaw32I (x, y, color);
+}
+__attribute__((always_inline))
+inline void VidPlotPixelInline(unsigned x, unsigned y, unsigned color)
+{
+	if (!((int)x < 0 || (int)y < 0 || (int)x >= GetScreenSizeX() || (int)y >= GetScreenSizeY()))
+	{
+		VidPlotPixelToCopyInlineUnsafe(x, y, color);
+		VidPlotPixelRaw32I (x, y, color);
+	}
 }
 void VidPrintTestingPattern()
 {
@@ -555,7 +571,7 @@ void VidPrintTestingPattern()
 		for (int x = 0; x < GetScreenSizeX(); x++)
 		{
 			int pixel = (x + y) * 0x010101;
-			VidPlotPixel(x, y, pixel);
+			VidPlotPixelInline(x, y, pixel);
 		}
 	}
 }
@@ -605,7 +621,7 @@ void VidFillRect(unsigned color, int left, int top, int right, int bottom)
 	for (int y = top; y <= bottom; y++)
 	{
 		for (int x = left; x <= right; x++)
-			VidPlotPixel(x, y, color);
+			VidPlotPixelInline(x, y, color);
 	}
 }
 void VidFillRectHGradient(unsigned colorL, unsigned colorR, int left, int top, int right, int bottom)
@@ -633,7 +649,7 @@ void VidFillRectHGradient(unsigned colorL, unsigned colorR, int left, int top, i
 		unsigned color = a << 24 | rc << 16 | gc << 8 | bc;
 		
 		for (int y = top; y <= bottom; y++)
-			VidPlotPixel(x, y, color);
+			VidPlotPixelInline(x, y, color);
 	}
 }
 void VidFillRectVGradient(unsigned colorL, unsigned colorR, int left, int top, int right, int bottom)
@@ -661,7 +677,7 @@ void VidFillRectVGradient(unsigned colorL, unsigned colorR, int left, int top, i
 		unsigned color = a << 24 | rc << 16 | gc << 8 | bc;
 		
 		for (int x = left; x <= right; x++)
-			VidPlotPixel(x, y, color);
+			VidPlotPixelInline(x, y, color);
 	}
 }
 void VidDrawHLine(unsigned color, int left, int right, int y)
@@ -674,8 +690,8 @@ void VidDrawHLine(unsigned color, int left, int right, int y)
 	
 	for (int x = left; x <= right; x++)
 	{
-		VidPlotPixel(x, y, color);
-		VidPlotPixel(x, y, color);
+		VidPlotPixelInline(x, y, color);
+		VidPlotPixelInline(x, y, color);
 	}
 }
 void VidDrawVLine(unsigned color, int top, int bottom, int x)
@@ -688,8 +704,8 @@ void VidDrawVLine(unsigned color, int top, int bottom, int x)
 	
 	for (int y = top; y <= bottom; y++)
 	{
-		VidPlotPixel(x, y, color);
-		VidPlotPixel(x, y, color);
+		VidPlotPixelInline(x, y, color);
+		VidPlotPixelInline(x, y, color);
 	}
 }
 int absinl(int i)
@@ -740,7 +756,7 @@ void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2)
 			x = x2, y = y2, xe = x1;
 		}
 		
-		VidPlotPixel(x, y, p);
+		VidPlotPixelInline(x, y, p);
 		
 		for (int i = 0; x < xe; i++)
 		{
@@ -752,7 +768,7 @@ void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2)
 				if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y++; else y--;
 				px += 2 * (dy1 - dx1);
 			}
-			VidPlotPixel(x, y, p);
+			VidPlotPixelInline(x, y, p);
 		}
 	}
 	else
@@ -766,7 +782,7 @@ void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2)
 			x = x2, y = y2, ye = y1;
 		}
 		
-		VidPlotPixel(x, y, p);
+		VidPlotPixelInline(x, y, p);
 		
 		for (int i = 0; y < ye; i++)
 		{
@@ -778,7 +794,7 @@ void VidDrawLine(unsigned p, int x1, int y1, int x2, int y2)
 				if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x++; else x--;
 				py += 2 * (dx1 - dy1);
 			}
-			VidPlotPixel(x, y, p);
+			VidPlotPixelInline(x, y, p);
 		}
 	}
 }
@@ -791,7 +807,7 @@ void VidBlitImage(Image* pImage, int x, int y)
 		for (int ix = x; ix < ixe; ix++)
 		{
 			if (*fb != TRANSPARENT)
-				VidPlotPixel(ix, iy, *fb);
+				VidPlotPixelInline(ix, iy, *fb);
 			fb++;
 		}
 }
@@ -805,13 +821,13 @@ void VidDrawRect(unsigned color, int left, int top, int right, int bottom)
 	
 	for (int x = left; x <= right; x++)
 	{
-		VidPlotPixel(x, top,    color);
-		VidPlotPixel(x, bottom, color);
+		VidPlotPixelInline(x, top,    color);
+		VidPlotPixelInline(x, bottom, color);
 	}
 	for (int y = top; y <= bottom; y++)
 	{
-		VidPlotPixel(left,  y, color);
-		VidPlotPixel(right, y, color);
+		VidPlotPixelInline(left,  y, color);
+		VidPlotPixelInline(right, y, color);
 	}
 }
 void VidFillRectangle(unsigned color, Rectangle rect)
@@ -870,15 +886,15 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 			for (int y = 0, bitmask = 1; y < height; y++, bitmask <<= 1)
 			{
 				if (test[c * width + x] & bitmask)
-					VidPlotPixel(ox + x, oy + y, colorFg);
+					VidPlotPixelInline(ox + x, oy + y, colorFg);
 				else if (colorBg != TRANSPARENT)
-					VidPlotPixel(ox + x, oy + y, colorBg);
+					VidPlotPixelInline(ox + x, oy + y, colorBg);
 			}
 		}
 		for (int y = 0; y < height; y++)
 		{
 			if (colorBg != TRANSPARENT)
-				VidPlotPixel(ox + x, oy + y, colorBg);
+				VidPlotPixelInline(ox + x, oy + y, colorBg);
 		}
 		
 		return;
@@ -890,9 +906,9 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 			for (int x = 0, bitmask = (1 << (width - 1)); x < width; x++, bitmask >>= 1)
 			{
 				if (test[c * height + y] & bitmask)
-					VidPlotPixel(ox + x, oy + y, colorFg);
+					VidPlotPixelInline(ox + x, oy + y, colorFg);
 				else if (colorBg != TRANSPARENT)
-					VidPlotPixel(ox + x, oy + y, colorBg);
+					VidPlotPixelInline(ox + x, oy + y, colorBg);
 			}
 		}
 	}
@@ -975,7 +991,7 @@ void VidShiftScreen (int howMuch)
 		return;
 	/*for (int i = howMuch; i < GetScreenSizeY(); i++) {
 		for (int k = 0; k < GetScreenSizeX(); k++) {
-			VidPlotPixel (k, i-howMuch, VidReadPixel (k, i));
+			VidPlotPixelInline (k, i-howMuch, VidReadPixel (k, i));
 		}
 	}*/
 	

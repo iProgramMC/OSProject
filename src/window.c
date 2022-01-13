@@ -1287,11 +1287,9 @@ bool HandleMessages(Window* pWindow)
 	//ACQUIRE_LOCK (g_screenLock);
 	//ACQUIRE_LOCK (g_windowLock);
 	ACQUIRE_LOCK (pWindow->m_eventQueueLock);
-	SLogMsg("Lock Acquired!");
 	
 	for (int i = 0; i < pWindow->m_eventQueueSize; i++)
 	{
-		SLogMsg("A loop! i is now %d", i);
 		//setup paint stuff so the window can only paint in their little box
 		VidSetVBEData (&pWindow->m_vbeData);
 		if (pWindow->m_eventQueue[i] == EVENT_CREATE)
@@ -1303,33 +1301,26 @@ bool HandleMessages(Window* pWindow)
 		{
 			PaintWindowBackgroundAndBorder(pWindow);
 		}
-		SLogMsg("Stuff 1");
 		
 		pWindow->m_callback(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
 		
-		SLogMsg("Stuff 2");
 		if (IsEventDestinedForControlsToo(pWindow->m_eventQueue[i]))
 			ControlProcessEvent(pWindow, pWindow->m_eventQueue[i], pWindow->m_eventQueueParm1[i], pWindow->m_eventQueueParm2[i]);
 		
-		SLogMsg("Stuff 3");
 		//reset to main screen
 		VidSetVBEData (NULL);
 		if (pWindow->m_vbeData.m_dirty)
 			pWindow->m_renderFinished = true;
 		
-		SLogMsg("Stuff 4");
 		//if the contents of this window have been modified, redraw them:
 		//if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
 		//	RenderWindow(pWindow);
 		
-		SLogMsg("Stuff 5");
 		if (pWindow->m_eventQueue[i] == EVENT_DESTROY)
 		{
-			SLogMsg("Stuff !!! 6");
 			pWindow->m_eventQueueSize = 0;
 			
 			FREE_LOCK (pWindow->m_eventQueueLock);
-			LogMsg("Stuff !!! 7");
 			//FREE_LOCK (g_windowLock);
 			//FREE_LOCK (g_screenLock);
 			hlt; //give it a good halt
@@ -1344,12 +1335,9 @@ bool HandleMessages(Window* pWindow)
 			
 			return false;
 		}
-		SLogMsg("Stuff 6");
 	}
-	SLogMsg("Stuff 7");
 	pWindow->m_eventQueueSize = 0;
 	
-	SLogMsg("Freeing!");
 	FREE_LOCK (pWindow->m_eventQueueLock);
 	//FREE_LOCK (g_windowLock);
 	//FREE_LOCK (g_screenLock);
