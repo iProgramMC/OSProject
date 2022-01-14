@@ -17,7 +17,7 @@ CC=i686-elf-gcc
 CFLAGS_BEG=-DTEST
 
 # TODO: not sure what -O1 and -O2 breaks, but it keeps triplefaulting somewhere
-CFLAGS=-I$(IDIR) -I$(BDIR) -ffreestanding -O0 -Wall -Wextra -fno-exceptions -std=c99 -DRANDOMIZE_MALLOCED_MEMORY
+CFLAGS=-I$(IDIR) -I$(BDIR) -ffreestanding -g -Wall -Wextra -fno-exceptions -std=c99 -DRANDOMIZE_MALLOCED_MEMORY
 
 # Special flags for linker
 CLFLAGS_BEG=-T ./link.ld 

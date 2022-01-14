@@ -19,6 +19,7 @@
 #include <misc.h>
 #include <vfs.h>
 #include <fpu.h>
+#include <wcall.h>
 
 __attribute__((noreturn))
 void KeStopSystem()
@@ -155,6 +156,8 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 		LogMsg("NanoShell has not booted from a Multiboot-compatible bootloader.  A bootloader such as GRUB is required to run NanoShell.");
 		KeStopSystem();
 	}
+	
+	WindowCallDeinitialize();
 	
 	// Read the multiboot data:
 	multiboot_info_t  *mbi = (multiboot_info_t*)(mbaddr + BASE_ADDRESS);

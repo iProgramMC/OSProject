@@ -24,15 +24,29 @@ void CALLBACK TerminalHostProc (UNUSED Window* pWindow, UNUSED int messageType, 
 		case EVENT_PAINT:
 		{
 			//re-draw every character.
-			for (int j = 0; j < pConsole->height; j++)
+			if (pConsole->textBuffer)
 			{
-				for (int i = 0; i < pConsole->width; i++)
+				for (int j = 0; j < pConsole->height; j++)
 				{
-					CoPlotChar(pConsole, i, j, pConsole->textBuffer[i + j * pConsole->width]);
+					for (int i = 0; i < pConsole->width; i++)
+					{
+						CoPlotChar(pConsole, i, j, pConsole->textBuffer[i + j * pConsole->width]);
+					}
 				}
+			}
+			else
+			{
+				VidTextOut ("No console buffer associated with this.", 10, 20, 0xFFFFFF, TRANSPARENT);
 			}
 			break;
 		}
+		case EVENT_DESTROY:
+			if (pConsole->textBuffer)
+			{
+				MmFree(pConsole->textBuffer);
+				pConsole->textBuffer = NULL;
+			}
+			break;
 		default:
 			DefaultWindowProc(pWindow, messageType, parm1, parm2);
 			break;

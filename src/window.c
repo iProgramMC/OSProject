@@ -118,6 +118,10 @@ bool g_screenLock = false;
 bool g_bufferLock = false;
 bool g_createLock = false;
 
+bool g_shutdownSentDestroySignals = false;
+bool g_shutdownWaiting 			  = false;
+bool g_shutdownRequest 			  = false;
+
 void VersionProgramTask(int argument);
 void IconTestTask   (int argument);
 void PrgPaintTask   (int argument);
@@ -278,6 +282,12 @@ void WindowRegisterEvent (Window* pWindow, short eventType, int parm1, int parm2
 
 // Window utilitary functions:
 #if 1
+
+void WindowManagerShutdown()
+{
+	g_shutdownRequest = true;
+}
+
 void HideWindow (Window* pWindow)
 {
 	pWindow->m_hidden = true;
@@ -332,10 +342,14 @@ void ShowWindow (Window* pWindow)
 	pWindow->m_vbeData.m_dirty = true;
 }
 extern VBEData* g_vbeData, g_mainScreenVBEData;
+extern Heap* g_pHeap;
 
 void ReadyToDestroyWindow (Window* pWindow)
 {
 	HideWindow (pWindow);
+	
+	Heap *pHeapBackup = g_pHeap;
+	ResetToKernelHeap ();
 	
 	if (pWindow->m_vbeData.m_framebuffer32)
 	{
@@ -349,6 +363,7 @@ void ReadyToDestroyWindow (Window* pWindow)
 		pWindow->m_controlArrayLen = 0;
 	}
 	memset (pWindow, 0, sizeof (*pWindow));
+	UseHeap (pHeapBackup);
 }
 
 void DestroyWindow (Window* pWindow)
@@ -390,6 +405,10 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySize, WindowProc proc, int flags)
 {
 	ACQUIRE_LOCK(g_createLock);
+	
+	Heap *pHeapBackup  = g_pHeap;
+	ResetToKernelHeap ();
+	
 	int freeArea = -1;
 	for (int i = 0; i < WINDOWS_MAX; i++)
 	{
@@ -447,6 +466,8 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	cli;
 	UpdateDepthBuffer();
 	sti;
+	
+	UseHeap (pHeapBackup);
 	
 	FREE_LOCK(g_createLock);
 	return pWnd;
@@ -646,6 +667,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	
 	g_windowManagerRunning = true;
 	
+	g_shutdownSentDestroySignals = false;
+	g_shutdownWaiting			 = false;
+	
 	UpdateDepthBuffer();
 	//VidFillScreen(BACKGROUND_COLOR);
 	SetDefaultBackground ();
@@ -709,7 +733,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	FREE_LOCK (g_clickQueueLock);
 	
 	int timeout = 10;
-	int UpdateTimeout = 100;
+	int UpdateTimeout = 100, shutdownTimeout = 500;
 	
 	while (g_windowManagerRunning)
 	{
@@ -783,10 +807,62 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		
 		timeout--;
 		
+		if (g_shutdownRequest && !g_shutdownWaiting)
+		{
+			g_shutdownRequest = false;
+			g_shutdownWaiting = true;
+			
+			SLogMsg("Sending kill messages to windows...");
+			for (int i = 0; i < WINDOWS_MAX; i++)
+			{
+				WindowRegisterEvent (g_windows + i, EVENT_DESTROY, 0, 0);
+			}
+		}
+		if (g_shutdownWaiting)
+		{
+			shutdownTimeout--;
+			LogMsg("(Waiting for all windows to shut down... -- %d ticks left.)", shutdownTimeout);
+			bool noMoreWindows = true;
+			for (int i = 0; i < WINDOWS_MAX; i++)
+			{
+				if (g_windows[i].m_used)
+				{
+					noMoreWindows = false;
+					break;
+				}
+			}
+			if (noMoreWindows)
+			{
+				LogMsg("All windows have shutdown gracefully?  Quitting...");
+				LogMsg("STATUS: We survived!  Exitting in a brief moment.");
+				g_windowManagerRunning = false;
+				continue;
+			}
+			//Shutdown timeout equals zero.  If there are any windows still up, force-kill them.
+			if (shutdownTimeout <= 0)
+			{
+				LogMsg("Window TIMEOUT (no response, all tasks dead/froze due to crash?)! Forcing *EMERGENCY EXIT* now! (Applying defibrillator)");
+				for (int i = 0; i < WINDOWS_MAX; i++)
+				{
+					if (g_windows[i].m_used)
+					{
+						if (g_windows[i].m_pOwnerThread)
+							KeKillTask (g_windows[i].m_pOwnerThread);
+						
+						ReadyToDestroyWindow (&g_windows[i]);
+					}
+				}
+				
+				g_windowManagerRunning = false;
+			}
+		}
+		
 		for (int i = 0; i < 2; i++)
 			hlt;
 	}
 	KillWindowDepthBuffer();
+	g_debugConsole.pushOrWrap = 0;
+	VidSetFont (FONT_TAMSYN_REGULAR);
 }
 #endif
 

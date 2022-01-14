@@ -21,6 +21,8 @@ static CPUSaveState g_kernelSaveState;
 __attribute__((aligned(16)))
 static int          g_kernelFPUState[128];
 static VBEData*     g_kernelVBEContext = NULL;
+static Heap*        g_kernelHeapContext = NULL;
+extern Heap*        g_pHeap;
 
 void KeFindLastRunningTaskIndex()
 {
@@ -83,6 +85,7 @@ void KeConstructTask (Task* pTask)
 	memcpy ((void*)(pTask->m_state.esp), &pTask->m_state.eip, sizeof(int)*3);
 	
 	pTask->m_pVBEContext = &g_mainScreenVBEData;
+	pTask->m_pCurrentHeap = g_pHeap;//default kernel heap.
 }
 
 Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, const char* authorFile, const char* authorFunc, int authorLine)
@@ -248,13 +251,16 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		memcpy (& pTask -> m_state, pSaveState, sizeof(CPUSaveState));
 		KeFxSave (pTask -> m_fpuState);
 		pTask->m_pVBEContext = g_vbeData;
+		pTask->m_pCurrentHeap = g_pHeap;
 	}
 	else
 	{
 		memcpy (&g_kernelSaveState, pSaveState, sizeof(CPUSaveState));
 		KeFxSave (g_kernelFPUState); //perhaps we won't use this.
 		g_kernelVBEContext = g_vbeData;
+		g_kernelHeapContext = g_pHeap;
 	}
+	ResetToKernelHeap();
 	
 	// Acknowledge the interrupt:
 	WritePort (0x20, 0x20);
@@ -293,6 +299,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		//first, restore this task's FPU registers:
 		KeFxRestore(pNewTask->m_fpuState);
 		g_vbeData = pNewTask->m_pVBEContext;
+		UseHeap (pNewTask->m_pCurrentHeap);
 		KeRestoreStandardTask(pNewTask);
 	}
 	else
@@ -303,6 +310,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		//first, restore the kernel task's FPU registers:
 		KeFxRestore(g_kernelFPUState);
 		g_vbeData = g_kernelVBEContext;
+		UseHeap (g_kernelHeapContext);
 		KeRestoreKernelTask();
 	}
 }

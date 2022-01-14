@@ -12,6 +12,7 @@
 #include <video.h>
 #include <console.h>
 #include <memory.h>
+#include <task.h>
 
 #define THREADING_ENABLED 1 //0
 
@@ -158,6 +159,8 @@ typedef struct WindowStruct
 	int        m_controlArrayLen;
 	
 	void*      m_data; //user data
+	
+	Task*      m_pOwnerThread;
 } Window;
 
 /**

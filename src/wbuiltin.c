@@ -28,7 +28,7 @@ void CALLBACK VersionProgramProc (Window* pWindow, int messageType, int parm1, i
 			RECT(r, 0, TITLE_BAR_HEIGHT, 320, 20);
 			
 			//parm1 is the button number that we're being fed in EVENT_COMMAND
-			AddControl (pWindow, CONTROL_TEXTCENTER, r, "NanoShell Operating System", 1, 0, TEXTSTYLE_HCENTERED | TEXTSTYLE_VCENTERED);
+			AddControl (pWindow, CONTROL_TEXTCENTER, r, "NanoShell Operating System " VersionString, 1, 0, TEXTSTYLE_HCENTERED | TEXTSTYLE_VCENTERED);
 			
 			RECT(r, 0, TITLE_BAR_HEIGHT+20, 320, 50);
 			AddControl (pWindow, CONTROL_ICON, r, NULL, 2, ICON_NANOSHELL, 0);
@@ -42,17 +42,11 @@ void CALLBACK VersionProgramProc (Window* pWindow, int messageType, int parm1, i
 			break;
 		}
 		case EVENT_PAINT: {
-			/*char test[100];
-			printf(test, "Hi!  Memory usage: %d KB / %d KB", (npp-nfpp)*4, npp*4);
-			VidFillRect (0xFF00FF, 10, 40, 100, 120);
-			VidTextOut (test, 10, 30, 0, TRANSPARENT);*/
 			break;
 		}
 		case EVENT_COMMAND: {
 			if (parm1 == VERSION_BUTTON_OK_COMBO)
 			{
-				//ReadyToDestroyWindow(pWindow);
-				//KeExit();
 				DestroyWindow(pWindow);
 			}
 			break;
@@ -64,6 +58,13 @@ void CALLBACK VersionProgramProc (Window* pWindow, int messageType, int parm1, i
 
 void VersionProgramTask (__attribute__((unused)) int argument)
 {
+	Heap local_heap;
+	if (!AllocateHeap (&local_heap, 128))
+	{
+		LogMsg("Can't allocate heap?");
+		return;
+	}
+	UseHeap (&local_heap);
 	// create ourself a window:
 	Window* pWindow = CreateWindow ("NanoShell", 100, 100, 320, 115 + TITLE_BAR_HEIGHT, VersionProgramProc, 0);
 	
@@ -78,8 +79,9 @@ void VersionProgramTask (__attribute__((unused)) int argument)
 	while (HandleMessages (pWindow));
 #endif
 
-	LogMsg("Exited");
-
+	//LogMsg("Exited");
+	UseHeap (NULL);
+	FreeHeap (&local_heap);
 }
 #endif
 
@@ -205,6 +207,14 @@ void LaunchCabinet(Window* pWindow)
 		DebugLogMsg("Created Cabinet window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 	}
 }
+void WindowManagerShutdown();
+void ConfirmShutdown(Window* pWindow)
+{
+	if (MessageBox (pWindow, "This will end your NanoShell Window Manager session.", "Home Menu", MB_OKCANCEL | ICON_COMPUTER_SHUTDOWN << 16) == MBID_OK)
+	{
+		WindowManagerShutdown ();
+	}
+}
 
 enum {
 	LAUNCHER_SYSTEM = 0x10,
@@ -224,6 +234,8 @@ enum {
 	LAUNCHER_ICON3,
 	LAUNCHER_ICON4,
 	LAUNCHER_ICON5,
+	
+	LAUNCHER_SHUTDOWN = 0xFF,
 };
 
 void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, int parm2)
@@ -269,6 +281,13 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 			RECT(r, STEXT_X, START_Y+3*DIST_ITEMS, 200, 32);
 			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Scribble!", LAUNCHER_PAINT, 0, 0);
 			
+			// Add the shutdown icon.
+			RECT(r, START_X, START_Y+5*DIST_ITEMS, 32, 32);
+			AddControl(pWindow, CONTROL_ICON, r, NULL, LAUNCHER_ICON5, ICON_COMPUTER_SHUTDOWN, 0);
+			
+			RECT(r, STEXT_X, START_Y+5*DIST_ITEMS, 200, 32);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Exit NanoShell Window Manager", LAUNCHER_SHUTDOWN, 0, 0);
+			
 			// Add a testing textbox.
 			RECT(r, 200, 50, 300, 15);
 			
@@ -309,6 +328,9 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 				case LAUNCHER_CABINET:
 					LaunchCabinet(pWindow);
 					break;
+				case LAUNCHER_SHUTDOWN:
+					ConfirmShutdown(pWindow);
+					break;
 				/*{
 					//The only button:
 					int randomX = GetRandom() % 320;
@@ -328,7 +350,7 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 void LauncherProgramTask(__attribute__((unused)) int arg)
 {
 	// create ourself a window:
-	int ww = 320, wh = 240, sw = GetScreenSizeX(), sh = GetScreenSizeY();
+	int ww = 400, wh = 260, sw = GetScreenSizeX(), sh = GetScreenSizeY();
 	int wx = (sw - ww) / 2, wy = (sh - wh) / 2;
 	
 	Window* pWindow = CreateWindow ("Home", wx, wy, ww, wh, LauncherProgramProc, WF_NOCLOSE);

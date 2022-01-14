@@ -254,6 +254,29 @@ KeCPUID:
 	MOV [g_cpuidBrandingInfo+48], AL
 	
 	RET
+
+
+extern WindowCall
+extern LogMsg
+extern UserCallStuffNotSupportedC
+; Window manager call stuff
+global UserCallStuff
+global UserCallStuffEnd
+UserCallStuff:
+	MOV EBX, [0xC0007CFC]
+	SHL EBX, 2
+	
+	JMP FAR [WindowCall+EBX]
+	
+	RET
+UserCallStuffEnd:
+
+global UserCallStuffNotSupported
+global UserCallStuffNotSupportedEnd
+UserCallStuffNotSupported:
+	MOV EAX, UserCallStuffNotSupportedC
+	JMP EAX
+UserCallStuffNotSupportedEnd:
 	
 section .bss
 
@@ -270,4 +293,8 @@ g_cpuidBrandingInfo resd 49
 
 ; eax=1, eax's value:
 g_cpuidFeatureBits resd 1
+
+
+
+
 	

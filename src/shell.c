@@ -66,13 +66,20 @@ void TemporaryTask(__attribute__((unused)) int arg)
 	}
 }
 
+typedef void (*Pointer)(unsigned color, int left, int top, int right, int bottom);
+
 void GraphicsTest()
 {
 	g_debugConsole.color = 0x2F;
 	CoClearScreen(&g_debugConsole);
 	
 	//demonstrate some of the apis that the kernel provides:
-	VidFillRect(0xFF0000, 10, 150, 210, 310);
+	//VidFillRect(0xFF0000, 10, 150, 210, 310);
+	*((uint32_t*)0xC0007CFC) = 14;
+	
+	Pointer ptr = (Pointer) 0xC0007C00;
+	
+	ptr(0xFF0000, 10, 150, 210, 310);return;
 	VidDrawRect(0x00FF00, 100, 150, 250, 250);
 	
 	//lines, triangles, polygons, circles perhaps?
@@ -119,6 +126,7 @@ void funnytest(UNUSED int argument)
 	}
 	LogMsg("");
 }
+extern Heap* g_pHeap;
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -150,6 +158,7 @@ void ShellExecuteCommand(char* p)
 		LogMsg("mode X     - change the screen mode");
 		LogMsg("mspy       - Memory Spy! (TM)");
 		LogMsg("mrd        - mounts a testing RAM Disk");
+		LogMsg("ph         - prints current heap's address in kernel address space (or NULL for the default heap)");
 		LogMsg("rd         - reads and dumps a sector from the RAM Disk");
 		LogMsg("sysinfo    - dump system information");
 		LogMsg("sysinfoa   - dump advanced system information");
@@ -166,6 +175,10 @@ void ShellExecuteCommand(char* p)
 		LogMsg("ttte       - spawns 1024 threads that prints stuff");
 		LogMsg("ver        - print system version");
 		LogMsg("w          - start desktop manager");
+	}
+	else if (strcmp (token, "ph") == 0)
+	{
+		LogMsg("Current Heap: %x",g_pHeap);
 	}
 	else if (strcmp (token, "cd") == 0)
 	{
