@@ -266,7 +266,8 @@ UserCallStuff:
 	MOV EBX, [0xC0007CFC]
 	SHL EBX, 2
 	
-	JMP FAR [WindowCall+EBX]
+	MOV EAX, [WindowCall+EBX]
+	JMP EAX
 	
 	RET
 UserCallStuffEnd:
@@ -275,7 +276,7 @@ global UserCallStuffNotSupported
 global UserCallStuffNotSupportedEnd
 UserCallStuffNotSupported:
 	MOV EAX, UserCallStuffNotSupportedC
-	JMP EAX
+	JMP [EAX]
 UserCallStuffNotSupportedEnd:
 	
 section .bss

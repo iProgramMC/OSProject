@@ -1,6 +1,57 @@
-
 #ifndef _WINDOW_H
 #define _WINDOW_H
+
+#include "nanoshell.h"
+#include "video.h"
+
+#define RECT(rect,x,y,w,h) do {\
+	rect.left = x, rect.top = y, rect.right = x+w, rect.bottom = y+h;\
+} while (0)
+
+#define TITLE_BAR_HEIGHT 11
+#define WINDOW_RIGHT_SIDE_THICKNESS 3
+
+//WORK: Add in your icons here in this enum:
+enum 
+{
+	ICON_NULL,
+	ICON_CABINET,
+	ICON_CHIP,
+	ICON_CHIP_SQ,
+	ICON_COMPUTER,
+	ICON_COMPUTER_SHUTDOWN,
+	ICON_DESKTOP,
+	ICON_DRAW,
+	ICON_EARTH,
+	ICON_ERROR,
+	ICON_EXECUTE_FILE,
+	ICON_FILE,
+	ICON_FILES,
+	ICON_FOLDER,
+	ICON_FOLDER_BLANK,
+	ICON_FOLDER_MOVE,
+	ICON_FOLDER_PARENT,
+	ICON_FOLDER16_CLOSED,
+	ICON_FOLDER16_OPEN,
+	ICON_GLOBE,
+	ICON_GO,
+	ICON_HAND,
+	ICON_HELP,
+	ICON_INFO,
+	ICON_KEYBOARD,
+	ICON_KEYBOARD2,
+	ICON_LAPTOP,
+	ICON_NOTES,
+	ICON_PAINT,
+	ICON_SERIAL,
+	ICON_STOP,
+	ICON_TEXT_FILE,
+	ICON_WARNING,
+	ICON_NANOSHELL_LETTERS,
+	ICON_NANOSHELL16,
+	ICON_NANOSHELL,
+	ICON_COUNT
+};
 
 enum {
 	EVENT_NULL,
@@ -96,6 +147,8 @@ Control;
 #define WF_NOCLOSE 0x00000001
 #define WF_FROZEN  0x00000002
 
+#define EVENT_QUEUE_MAX 256
+
 typedef struct WindowStruct
 {
 	bool       m_used;
@@ -155,7 +208,7 @@ bool HandleMessages(Window* pWindow);
  * The default window event procedure.  Call this when you don't know
  * how to handle an event properly.
  */
-void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUSED int parm2);
+void DefaultWindowProc (Window* pWindow, int messageType, int parm1, int parm2);
 
 /**
  * Requests a safe window destruction from the window manager.

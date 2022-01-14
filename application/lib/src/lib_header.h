@@ -25,6 +25,38 @@ enum {
 	WINDOW_CREATE = 0x1000,
 };
 
+enum
+{
+	CALL_NOTHING,
+	//Video Driver calls:
+	VID_GET_SCREEN_WIDTH,
+	VID_GET_SCREEN_HEIGHT,
+	VID_PLOT_PIXEL,
+	VID_FILL_SCREEN, //Actually fills the context, not the screen
+	VID_DRAW_H_LINE,
+	VID_DRAW_V_LINE,
+	VID_DRAW_LINE,
+	VID_SET_FONT,
+	VID_PLOT_CHAR,
+	VID_BLIT_IMAGE,
+	VID_TEXT_OUT,
+	VID_TEXT_OUT_INT,
+	VID_DRAW_TEXT,
+	VID_SHIFT_SCREEN,
+	VID_FILL_RECT,
+	VID_DRAW_RECT,
+	VID_FILL_RECT_H_GRADIENT,
+	VID_FILL_RECT_V_GRADIENT,
+	
+	//Window Manager calls:
+	WIN_CREATE,
+	WIN_HANDLE_MESSAGES,
+	WIN_DEFAULT_PROC,
+	WIN_DESTROY,
+	WIN_MESSAGE_BOX,
+	WIN_ADD_CONTROL,
+};
+
 void PutString(const char* text);
 
 int memcmp(const void* ap, const void* bp, size_t size);

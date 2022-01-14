@@ -71,6 +71,8 @@ typedef struct
 	
 	VBEData*       m_pVBEContext;
 	Heap *         m_pCurrentHeap;
+	
+	char 		   m_tag[33];
 }
 Task;
 
@@ -116,6 +118,16 @@ bool KeKillTask(Task* pTask);
 	    Returns NULL if this is the kernel task.
 ***********************************************************/
 Task* KeGetRunningTask();
+
+/***********************************************************
+    Sets the task's tag.
+***********************************************************/
+void KeTaskAssignTag(Task* pTask, const char* pTag);
+
+/***********************************************************
+    Sets the task's tag.
+***********************************************************/
+const char* KeTaskGetTag(Task* pTask);
 
 /***********************************************************
     Queues the current task for deletion, and yields.

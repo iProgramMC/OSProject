@@ -5,6 +5,7 @@
              Debugging module
 ******************************************/
 #include <debug.h>
+#include <task.h>
 
 void DumpRegisters (Registers* pRegs)
 {
@@ -59,25 +60,42 @@ typedef struct StackFrame {
 	uint32_t eip;
 } StackFrame;
 
+const char* GetMemoryRangeString(uint32_t range)
+{
+	if (range >= 0xD0000000) return "Framebuffer (huh?!)";
+	if (range >= 0xC0000000) return "Kernel Executable Data";
+	if (range >= 0x80000000) return "Kernel Heap";
+	if (range >= 0x40000000) return "User Heap";
+	if (range >= 0x00C00000) return "User Application";
+	return "Unknown (perhaps null page?)";
+}
+const char* TransformTag(const char* tag, uint32_t range)
+{
+	if (range >= 0x80000000) return "<kernel>";
+	return tag;
+}
+
 #define MAX_FRAMES 10
 void KeBugCheck (BugCheckReason reason, Registers* pRegs)
 {
 	LogMsg("*** STOP: %x", reason);
-	LogMsg("Type string: %s", g_pBugCheckReasonText[reason]);
+	LogMsg("%s", g_pBugCheckReasonText[reason]);
 	
 	if (!pRegs)
 		LogMsg("No register information was provided.");
 	else
 		DumpRegisters(pRegs);
 	
+	const char* pTag = KeTaskGetTag(KeGetRunningTask());
+	
 	// navigate the stack:
 	StackFrame* stk = (StackFrame*)(pRegs->ebp);
 	//__asm__ volatile ("movl %%ebp, %0"::"r"(stk));
 	LogMsg("Stack trace:");
-	LogMsg("-> 0x%x", pRegs->eip);
+	LogMsg("-> 0x%x %s", pRegs->eip, TransformTag (pTag, pRegs->eip), GetMemoryRangeString (pRegs->eip));
 	for (unsigned int frame = 0; stk && frame < MAX_FRAMES; frame++)
 	{
-		LogMsgNoCr(" * 0x%x ", stk->eip);
+		LogMsgNoCr(" * 0x%x %s\t%s", stk->eip, TransformTag (pTag, stk->eip), GetMemoryRangeString (stk->eip));
 		// TODO: addr2line implementation?
 		LogMsg("");
 		stk = stk->ebp;

@@ -7,6 +7,8 @@
 
 #include <wbuiltin.h>
 #include <wterm.h>
+#include <elf.h>
+#include <vfs.h>
 
 #define DebugLogMsg  SLogMsg
 
@@ -198,19 +200,46 @@ void LaunchPaint()
 	Task* pTask = KeStartTask(PrgPaintTask, 0, &errorCode);
 	DebugLogMsg("Created Paint window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 }
+extern FileNode *g_pCwdNode;
+void ExecuteSomeElfFile(UNUSED int argument)
+{
+	FileNode* pNode = g_pCwdNode;
+	FileNode* pFile = FsFindDir(pNode, "win.nse");
+	if (!pFile)
+		LogMsg("No such file or directory");
+	else
+	{
+		KeTaskAssignTag(KeGetRunningTask(), "win.nse");
+		int length = pFile->m_length;
+		char* pData = (char*)MmAllocate(length + 1);
+		pData[length] = 0;
+		
+		FsRead(pFile, 0, length, pData);
+		
+		ElfExecute(pData, length);
+		
+		MmFree(pData);
+	}
+}
 void LaunchCabinet(Window* pWindow)
 {
-	if (MessageBox (pWindow, "Would you like to launch Cabinet?", "Home Menu", MB_YESNO | ICON_CABINET << 16) == MBID_YES)
+	if (MessageBox (pWindow, "Would you like to launch 'win.nse'?", "Hey!", MB_YESNO | ICON_EXECUTE_FILE << 16) == MBID_YES)
+	{
+		int errorCode = 0;
+		Task* pTask = KeStartTask(ExecuteSomeElfFile, 0, &errorCode);
+		DebugLogMsg("Created ELF TASK. Pointer returned:%x, errorcode:%x", pTask, errorCode);
+	}
+	/*if (MessageBox (pWindow, "Would you like to launch Cabinet?", "Home Menu", MB_YESNO | ICON_CABINET << 16) == MBID_YES)
 	{
 		int errorCode = 0;
 		Task* pTask = KeStartTask(IconTestTask, 0, &errorCode);
 		DebugLogMsg("Created Cabinet window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
-	}
+	}*/
 }
 void WindowManagerShutdown();
 void ConfirmShutdown(Window* pWindow)
 {
-	if (MessageBox (pWindow, "This will end your NanoShell Window Manager session.", "Home Menu", MB_OKCANCEL | ICON_COMPUTER_SHUTDOWN << 16) == MBID_OK)
+	if (MessageBox (pWindow, "This will end your NanoShell Window Manager session.", "Exit NanoShell", MB_OKCANCEL | ICON_COMPUTER_SHUTDOWN << 16) == MBID_OK)
 	{
 		WindowManagerShutdown ();
 	}

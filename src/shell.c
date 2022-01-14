@@ -310,26 +310,36 @@ void ShellExecuteCommand(char* p)
 		else
 		{
 			//TODO: open/close
-			FileNode* pNode = g_pCwdNode;
-			FileNode* pFile = FsFindDir(pNode, fileName);
-			if (!pFile)
-				LogMsg("No such file or directory");
-			else
+			char s[1024];
+			strcpy (s, g_cwd);
+			if (g_cwd[1] != 0) //not just a '/'
+				strcat(s, "/");
+			strcat (s, fileName);
+			
+			int fd = FiOpen (s, O_RDONLY);
+			if (fd < 0)
 			{
-				int length = pFile->m_length;
-				char* pData = (char*)MmAllocate(length + 1);
-				pData[length] = 0;
-				
-				FsRead(pFile, 0, length, pData);
-				
-				for (int i = 0; i < length; i++)
-				{
-					if (CoPrintCharInternal(&g_debugConsole, pData[i], pData[i+1]))
-						i++;
-				}
-				
-				MmFree(pData);
+				LogMsg("Got error code %d when opening file", fd);
+				return;
 			}
+			
+			int length = FiTellSize (fd);
+			char* pData = (char*)MmAllocate(length + 1);
+			pData[length] = 0;
+			
+			FiSeek(fd, 0, SEEK_SET);
+			
+			FiRead(fd, pData, length);
+			
+			for (int i = 0; i < length; i++)
+			{
+				if (CoPrintCharInternal(&g_debugConsole, pData[i], pData[i+1]))
+					i++;
+			}
+			
+			MmFree(pData);
+			
+			FiClose (fd);
 			LogMsg("");
 		}
 	}
@@ -346,19 +356,27 @@ void ShellExecuteCommand(char* p)
 		}
 		else
 		{
-			//TODO: open/close
-			FileNode* pNode = g_pCwdNode;
-			FileNode* pFile = FsFindDir(pNode, fileName);
-			if (!pFile)
-				LogMsg("No such file or directory");
-			else
+			char s[1024];
+			strcpy (s, g_cwd);
+			if (g_cwd[1] != 0) //not just a '/'
+				strcat(s, "/");
+			strcat (s, fileName);
+			
+			int fd = FiOpen (s, O_WRONLY);
+			if (fd < 0)
 			{
-				int length = pFile->m_length;
-				char pData[] = "Hello, world\n";
-				
-				FsWrite(pFile, 0, sizeof(pData)-1, pData);
+				LogMsg("Got error code %d when opening file", fd);
+				return;
 			}
-			LogMsg("");
+			
+			FiSeek(fd, 0, SEEK_END);
+			
+			char text[] = "Hello World from FiWrite!\n\n\n";
+			
+			FiWrite(fd, text, sizeof(text)-1);//do not also print the null terminator
+			
+			FiClose (fd);
+			LogMsg("Done");
 		}
 	}
 	else if (strcmp (token, "lr") == 0)
@@ -377,7 +395,13 @@ void ShellExecuteCommand(char* p)
 			if (!pSubnode)
 				LogMsg("- [NULL?!]");
 			else
-				LogMsg("- %s\t%d\t%s", (pSubnode->m_type & FILE_TYPE_DIRECTORY) ? "<DIR>" : "     ", pSubnode->m_length, pSubnode->m_name);
+				LogMsg("- %s\t%c%c%c\t%d\t%s", 
+						(pSubnode->m_type & FILE_TYPE_DIRECTORY) ? "<DIR>" : "     ", 
+						"-R"[!!(pSubnode->m_perms & PERM_READ )],
+						"-W"[!!(pSubnode->m_perms & PERM_WRITE)],
+						"-X"[!!(pSubnode->m_perms & PERM_EXEC )],
+						pSubnode->m_length, 
+						pSubnode->m_name);
 			i++;
 		}
 	}
@@ -519,6 +543,10 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "ver") == 0)
 	{
 		KePrintSystemVersion();
+	}
+	else if (strcmp (token, "lf") == 0)
+	{
+		FiDebugDump();
 	}
 	else if (strcmp (token, "lm") == 0)
 	{

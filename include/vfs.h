@@ -27,6 +27,10 @@ enum
 	FILE_TYPE_MOUNTPOINT = 16 //to be OR'd into the other flags
 };
 
+#define PERM_READ  (1)
+#define PERM_WRITE (2)
+#define PERM_EXEC  (4)
+
 // Function pointer definitions so we can just call `file_node->Read(...);` etc.
 typedef uint32_t 		(*FileReadFunc)    (struct FSNodeS*, uint32_t, uint32_t, void*);
 typedef uint32_t 		(*FileWriteFunc)   (struct FSNodeS*, uint32_t, uint32_t, void*);
@@ -76,8 +80,9 @@ void     FsOpen   (FileNode* pNode, bool read, bool write);
 void     FsClose  (FileNode* pNode);
 DirEnt*  FsReadDir(FileNode* pNode, uint32_t index);
 FileNode*FsFindDir(FileNode* pNode, const char* pName);
+FileNode*FsResolvePath (const char* pPath);
 
-
+void FiDebugDump();
 
 //Initrd stuff:
 #if 1
@@ -105,6 +110,72 @@ FileNode*FsFindDir(FileNode* pNode, const char* pName);
 	 * Initializes the initial ramdisk.
 	 */
 	void FsInitializeInitRd(void* pRamDisk);
+#endif
+
+// Basic POSIX-like API
+#if 1
+
+	#define O_RDONLY (1)
+	#define O_WRONLY (2)
+	#define O_RDWR   (O_RDONLY | O_WRONLY)
+	#define O_APPEND (4)
+	#define O_CREAT  (8)
+	#define O_EXEC   (1024)
+	
+	//lseek whences
+	#define SEEK_SET 0
+	#define SEEK_CUR 1
+	#define SEEK_END 2
+	
+	enum
+	{
+		ENOTHING,
+		EACCES,
+		EEXIST,
+		EINTR,
+		EINVAL,
+		EIO,
+		EISDIR,
+		ELOOP,
+		EMFILE,
+		ENAMETOOLONG,
+		ENFILE,
+		ENOENT,
+		ENOSR,
+		ENOSPC,
+		ENOTDIR,
+		ENXIO,
+		EOVERFLOW,
+		EROFS,
+		EAGAIN,
+		ENOMEM,
+		ETXTBUSY,
+		EBADF,
+		ESPIPE,
+	};
+	
+	// Opens a file and returns its descriptor.
+	int FiOpenD (const char* pFileName, int oflag, const char* srcFile, int srcLine);
+	#define FiOpen(pFileName, oflag)  FiOpenD(pFileName,oflag,__FILE__,__LINE__)
+	
+	// Closes a file and frees its descriptor for use.
+	int FiClose (int fd);
+	
+	// Reads from a file.
+	size_t FiRead (int fd, void *pBuf, int nBytes);
+	
+	// Writes to a file.
+	size_t FiWrite (int fd, void *pBuf, int nBytes);
+	
+	// Returns the current stream position of a file.
+	int FiTell (int fd);
+	
+	// Returns the current size of a file.
+	int FiTellSize (int fd);
+	
+	// Seeks around a file, if it's seekable.
+	int FiSeek (int fd, int offset, int whence);
+
 #endif
 
 #endif//_VFS_H

@@ -7,6 +7,7 @@
 #include <task.h>
 #include <memory.h>
 #include <string.h>
+#include <print.h>
 
 // The kernel task is task 0.  Other tasks are 1-indexed.
 // This means g_runningTasks[0] is unused.
@@ -52,6 +53,24 @@ void KeTaskDebugDump()
 	if (!any_tasks)
 		LogMsg("No tasks currently running.");
 	sti;
+}
+void KeTaskAssignTag(Task* pTask, const char* pTag)
+{
+	if (!pTask)
+		return;
+	int e = strlen(pTag);
+	if (e >= 30)
+		e = 30;
+	memcpy (pTask->m_tag, pTag, e + 1);
+	char tempbuf[33];
+	sprintf(tempbuf, "[%s]", pTask->m_tag);
+	strcpy (pTask->m_tag, tempbuf);
+}
+const char* KeTaskGetTag(Task* pTask)
+{
+	if (!pTask)
+		return "<kernel task>";
+	return pTask->m_tag;
 }
 
 // This function (in asm/task.asm) prepares the initial task for
@@ -119,6 +138,9 @@ Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, co
 		pTask->m_authorLine = authorLine;
 		pTask->m_argument   = argument;
 		pTask->m_bMarkedForDeletion = false;
+		
+		char buffer[32];
+		sprintf(buffer, "<task no. %d>", i);
 		
 		KeConstructTask(pTask);
 		

@@ -44,6 +44,7 @@ enum
 	VID_FILL_SCREEN, //Actually fills the context, not the screen
 	VID_DRAW_H_LINE,
 	VID_DRAW_V_LINE,
+	VID_DRAW_LINE,
 	VID_SET_FONT,
 	VID_PLOT_CHAR,
 	VID_BLIT_IMAGE,
@@ -74,6 +75,7 @@ void *WindowCall[] = {
 	VidFillScreen,
 	VidDrawHLine,
 	VidDrawVLine,
+	VidDrawLine,
 	VidSetFont,
 	VidPlotChar,
 	VidBlitImage,

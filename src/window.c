@@ -20,6 +20,7 @@
 #include <misc.h>
 #include <keyboard.h>
 #include <wbuiltin.h>
+#include <wcall.h>
 
 //background code:
 #if 1
@@ -406,9 +407,6 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 {
 	ACQUIRE_LOCK(g_createLock);
 	
-	Heap *pHeapBackup  = g_pHeap;
-	ResetToKernelHeap ();
-	
 	int freeArea = -1;
 	for (int i = 0; i < WINDOWS_MAX; i++)
 	{
@@ -422,16 +420,19 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	Window* pWnd = &g_windows[freeArea];
 	
 	pWnd->m_used = true;
+	int strl = strlen (title) + 1;
+	if (strl >= WINDOW_TITLE_MAX) strl = WINDOW_TITLE_MAX - 1;
+	memcpy (pWnd->m_title, title, strl + 1);
+	
+	Heap *pHeapBackup  = g_pHeap;
+	ResetToKernelHeap ();
+	
 	pWnd->m_renderFinished = false;
 	pWnd->m_hidden = false;
 	pWnd->m_isBeingDragged = false;
 	pWnd->m_isSelected = false;
 	pWnd->m_eventQueueLock = false;
 	pWnd->m_flags = flags;
-	
-	int strl = strlen (title) + 1;
-	if (strl >= WINDOW_TITLE_MAX) strl = WINDOW_TITLE_MAX - 1;
-	memcpy (pWnd->m_title, title, strl + 1);
 	
 	pWnd->m_rect.left = xPos;
 	pWnd->m_rect.top  = yPos;
@@ -686,6 +687,8 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//VidSetFont(FONT_FAMISANS);
 	//VidSetFont(FONT_GLCD);
 	
+	WindowCallInitialize ();
+	
 	//test:
 #if !THREADING_ENABLED
 	//VersionProgramTask (0);
@@ -860,6 +863,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		for (int i = 0; i < 2; i++)
 			hlt;
 	}
+	WindowCallDeinitialize ();
 	KillWindowDepthBuffer();
 	g_debugConsole.pushOrWrap = 0;
 	VidSetFont (FONT_TAMSYN_REGULAR);
@@ -1476,7 +1480,7 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 			rect.bottom= rect.top + 12;
 			
 			if (!(pWindow->m_flags & WF_NOCLOSE))
-				AddControl (pWindow, CONTROL_BUTTON_EVENT, rect, "X", 0xFFFF0000, EVENT_CLOSE, 0);
+				AddControl (pWindow, CONTROL_BUTTON_EVENT, rect, "\x09", 0xFFFF0000, EVENT_CLOSE, 0);
 			
 			break;
 		}
