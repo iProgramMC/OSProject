@@ -55,8 +55,8 @@ typedef unsigned uint;
 
 #else
 	
-#define ACQUIRE_LOCK(var)
-#define FREE_LOCK(var)
+#define ACQUIRE_LOCK(var) do {} while(0)
+#define FREE_LOCK(var) do {} while(0)
 
 #endif
 

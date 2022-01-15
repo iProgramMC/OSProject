@@ -335,16 +335,6 @@ while (0)
 #undef DEFINE_DEVICE
 }
 
-static bool EndsWith(const char* pText, const char* pCheck)
-{
-	int slt = strlen (pText), slc = strlen (pCheck);
-	if (slt < slc) return false; //obviously, it can't.
-	
-	const char* pTextEnd = pText + slt;
-	pTextEnd -= slc;
-	return (strcmp (pTextEnd, pCheck) == 0);
-}
-
 void FsInitializeInitRd(void* pRamDisk)
 {
 	uint32_t location = (uint32_t)pRamDisk;

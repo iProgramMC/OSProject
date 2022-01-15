@@ -99,6 +99,24 @@ ClickInfo g_clickQueue [CLICK_INFO_MAX];
 int       g_clickQueueSize = 0;
 bool      g_clickQueueLock = false;
 
+typedef struct
+{
+	int newX, newY;
+	bool updated;
+}
+MouseMoveQueue;
+
+MouseMoveQueue g_queueMouseUpdateTo;
+
+void RefreshMouse()
+{
+	if (g_queueMouseUpdateTo.updated)
+	{
+		g_queueMouseUpdateTo.updated = false;
+		SetMousePos(g_queueMouseUpdateTo.newX, g_queueMouseUpdateTo.newY);
+	}
+}
+
 void AddClickInfoToQueue(const ClickInfo* info)
 {
 	ACQUIRE_LOCK (g_clickQueueLock);
@@ -146,6 +164,7 @@ void OnRightClick()
 }
 
 uint8_t g_previousFlags = 0;
+void ForceKernelTaskToRunNext();
 void OnUpdateMouse(uint8_t flags, uint8_t Dx, uint8_t Dy, __attribute__((unused)) uint8_t Dz)
 {
 	int dx, dy;
@@ -157,12 +176,17 @@ void OnUpdateMouse(uint8_t flags, uint8_t Dx, uint8_t Dy, __attribute__((unused)
 	int newY = g_mouseY - dy;
 	if (newX < 0) newX = 0;
 	if (newY < 0) newY = 0;
-	SetMousePos (newX, newY);
+	//SetMousePos (newX, newY);
+	
+	g_queueMouseUpdateTo.newX = newX;
+	g_queueMouseUpdateTo.newY = newY;
+	g_queueMouseUpdateTo.updated = true;
 	
 	if (flags & MOUSE_FLAG_R_BUTTON)
 	{
 		if (!(g_previousFlags & MOUSE_FLAG_R_BUTTON))
 			OnRightClick();
+		ForceKernelTaskToRunNext (); //window manager likes this
 	}
 	if (flags & MOUSE_FLAG_L_BUTTON)
 	{
@@ -170,9 +194,13 @@ void OnUpdateMouse(uint8_t flags, uint8_t Dx, uint8_t Dy, __attribute__((unused)
 			OnLeftClick();
 		else
 			OnLeftClickDrag();
+		ForceKernelTaskToRunNext (); //window manager likes this
 	}
 	else if (g_previousFlags & MOUSE_FLAG_L_BUTTON)
+	{
 		OnLeftClickRelease();
+		ForceKernelTaskToRunNext (); //window manager likes this
+	}
 	
 	g_previousFlags = flags & 7;
 }
@@ -312,116 +340,6 @@ void SetMouseVisible (bool b)
 			}
 		}
 	}
-}
-
-//small break to add this function, needed to make windows not flicker while dragged
-void VidPlotPixelCheckCursor(unsigned x, unsigned y, unsigned color);
-void SetMousePos (unsigned newX, unsigned newY)
-{
-	//NOTE: As this is called in an interrupt too, a call here might end up coming right
-	//while we we're drawing a window or something.  Keep a backup of the previous settings.
-	
-	VBEData* backup = g_vbeData;
-	g_vbeData = &g_mainScreenVBEData;
-	
-	int oldX = g_mouseX, oldY = g_mouseY;
-	
-	if (newX >= (unsigned)GetScreenSizeX()) newX = GetScreenSizeX() - 1;
-	if (newY >= (unsigned)GetScreenSizeY()) newY = GetScreenSizeY() - 1;
-	
-	g_mouseX = newX, g_mouseY = newY;
-	
-	//--uncomment if you want one pixel cursor (This is very useless and hard to use)
-	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
-	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
-	
-	//Draw the cursor image at the new position:
-	if (g_vbeData->m_bitdepth == 2)
-	{
-		//NEW: Optimization
-		int ys =                         - g_currentCursor->topOffs + g_mouseY;
-		int ye = g_currentCursor->height - g_currentCursor->topOffs + g_mouseY;
-		int kys = 0, kzs = 0;
-		if (ys < 0)
-		{
-			kys -= ys * g_currentCursor->width;
-			kzs -= ys;
-			ys = 0;
-		}
-		int xs =                         - g_currentCursor->leftOffs+ g_mouseX;
-		int xe = g_currentCursor->width  - g_currentCursor->leftOffs+ g_mouseX;
-		int off = 0;
-		if (xs < 0)
-		{
-			off = -xs;
-			xs = 0;
-		}
-		if (xe >= GetScreenSizeX())
-			xe = GetScreenSizeX() - 1;
-		//int xd = (xe - xs) * sizeof(uint32_t);
-		for (int y = ys, ky = kys, kz = kzs; y < ye; y++, kz++)
-		{
-			ky = kz * g_currentCursor->width + off;
-			//just memcpy shit
-			//memcpy (&g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + xs], &g_currentCursor->bitmap[ky], xd);
-			for (int x = xs; x < xe; x++)
-			{
-				if (g_currentCursor->bitmap[ky] != TRANSPARENT)
-					g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + x] = g_currentCursor->bitmap[ky];
-				ky++;
-			}
-		}
-	}
-	else//use the slower but more reliable method:
-	{
-		for (int i = 0, ky=g_mouseY - g_currentCursor->topOffs; i < g_currentCursor->height; i++, ky++)
-		{
-			if (ky < 0) {
-				i += ky;
-				ky = 0;
-			}
-			for (int j = 0, kx=g_mouseX - g_currentCursor->leftOffs; j < g_currentCursor->width; j++, kx++)
-			{
-				if (kx < 0) {
-					j += kx;
-					kx = 0;
-				}
-				int id = i * g_currentCursor->width + j;
-				if (g_currentCursor->bitmap[id] != TRANSPARENT)
-				{
-					//int kx = j + g_mouseX - g_currentCursor->leftOffs,
-					//	ky = i + g_mouseY - g_currentCursor->topOffs;
-					if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
-					VidPlotPixelIgnoreCursorChecksChecked (
-						kx,
-						ky,
-						g_currentCursor->bitmap[id]
-					);
-				}
-			}
-		}
-	}
-	//Redraw all the pixels under where the cursor was previously:
-	for (int i = 0; i < g_currentCursor->height; i++)
-	{
-		for (int j = 0; j < g_currentCursor->width; j++)
-		{
-			int id = i * g_currentCursor->width + j;
-			if (g_currentCursor->bitmap[id] != TRANSPARENT)
-			{
-				int kx = j + oldX - g_currentCursor->leftOffs,
-					ky = i + oldY - g_currentCursor->topOffs;
-				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
-				VidPlotPixelCheckCursor (
-					kx, ky, VidReadPixel (kx, ky)
-				);
-			}
-		}
-	}
-	
-	//TODO: check flags here
-	
-	g_vbeData = backup;
 }
 
 void SetDefaultCursor ()
@@ -933,6 +851,7 @@ void VidTextOutInternal(const char* pText, unsigned ox, unsigned oy, unsigned co
 			x = ox;
 			if (cwidth < width)
 				cwidth = width;
+			width = 0;
 		}
 		else
 		{
@@ -981,6 +900,11 @@ unsigned VidReadPixel (unsigned x, unsigned y)
 	if (y >= (unsigned)GetScreenSizeY()) return 0;
 	return g_framebufferCopy[x + y * GetScreenSizeX()];
 }
+__attribute__((always_inline))
+inline unsigned VidReadPixelInline (unsigned x, unsigned y)
+{
+	return g_framebufferCopy[x + y * g_vbeData->m_width];
+}
 
 //! DO NOT use this on non-main-screen framebuffers!
 void VidShiftScreen (int howMuch)
@@ -1015,6 +939,119 @@ void VidShiftScreen (int howMuch)
 		;//unhandled
 	}
 }
+#endif
+
+// Stuff
+#if 1
+void SetMousePos (unsigned newX, unsigned newY)
+{
+	//NOTE: As this is called in an interrupt too, a call here might end up coming right
+	//while we we're drawing a window or something.  Keep a backup of the previous settings.
+	
+	VBEData* backup = g_vbeData;
+	g_vbeData = &g_mainScreenVBEData;
+	
+	int oldX = g_mouseX, oldY = g_mouseY;
+	
+	if (newX >= (unsigned)GetScreenSizeX()) newX = GetScreenSizeX() - 1;
+	if (newY >= (unsigned)GetScreenSizeY()) newY = GetScreenSizeY() - 1;
+	
+	g_mouseX = newX, g_mouseY = newY;
+	
+	//--uncomment if you want one pixel cursor (This is very useless and hard to use)
+	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
+	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
+	
+	//Draw the cursor image at the new position:
+	if (g_vbeData->m_bitdepth == 2)
+	{
+		//NEW: Optimization
+		int ys =                         - g_currentCursor->topOffs + g_mouseY;
+		int ye = g_currentCursor->height - g_currentCursor->topOffs + g_mouseY;
+		int kys = 0, kzs = 0;
+		if (ys < 0)
+		{
+			kys -= ys * g_currentCursor->width;
+			kzs -= ys;
+			ys = 0;
+		}
+		int xs =                         - g_currentCursor->leftOffs+ g_mouseX;
+		int xe = g_currentCursor->width  - g_currentCursor->leftOffs+ g_mouseX;
+		int off = 0;
+		if (xs < 0)
+		{
+			off = -xs;
+			xs = 0;
+		}
+		if (xe >= GetScreenSizeX())
+			xe = GetScreenSizeX() - 1;
+		//int xd = (xe - xs) * sizeof(uint32_t);
+		for (int y = ys, ky = kys, kz = kzs; y < ye; y++, kz++)
+		{
+			ky = kz * g_currentCursor->width + off;
+			//just memcpy shit
+			//memcpy (&g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + xs], &g_currentCursor->bitmap[ky], xd);
+			for (int x = xs; x < xe; x++)
+			{
+				if (g_currentCursor->bitmap[ky] != TRANSPARENT)
+					g_vbeData->m_framebuffer32[y * g_vbeData->m_pitch32 + x] = g_currentCursor->bitmap[ky];
+				ky++;
+			}
+		}
+	}
+	else//use the slower but more reliable method:
+	{
+		for (int i = 0, ky=g_mouseY - g_currentCursor->topOffs; i < g_currentCursor->height; i++, ky++)
+		{
+			if (ky < 0) {
+				i += ky;
+				ky = 0;
+			}
+			for (int j = 0, kx=g_mouseX - g_currentCursor->leftOffs; j < g_currentCursor->width; j++, kx++)
+			{
+				if (kx < 0) {
+					j += kx;
+					kx = 0;
+				}
+				int id = i * g_currentCursor->width + j;
+				if (g_currentCursor->bitmap[id] != TRANSPARENT)
+				{
+					//int kx = j + g_mouseX - g_currentCursor->leftOffs,
+					//	ky = i + g_mouseY - g_currentCursor->topOffs;
+					if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+					VidPlotPixelIgnoreCursorChecksChecked (
+						kx,
+						ky,
+						g_currentCursor->bitmap[id]
+					);
+				}
+			}
+		}
+	}
+	
+	//Redraw all the pixels under where the cursor was previously:
+	for (int i = 0; i < g_currentCursor->height; i++)
+	{
+		for (int j = 0; j < g_currentCursor->width; j++)
+		{
+			int id = i * g_currentCursor->width + j;
+			if (g_currentCursor->bitmap[id] != TRANSPARENT)
+			{
+				int kx = j + oldX - g_currentCursor->leftOffs,
+					ky = i + oldY - g_currentCursor->topOffs;
+				if (kx < 0 || ky < 0 || kx >= GetScreenSizeX() || ky >= GetScreenSizeY()) continue;
+				VidPlotPixelCheckCursor (
+				//VidPlotPixelInline(
+					kx, ky, VidReadPixelInline (kx, ky)
+				);
+			}
+		}
+	}
+	//TODO: check flags here
+	
+	g_vbeData = backup;
+}
+
 #endif
 
 // Video initialization

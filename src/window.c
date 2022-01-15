@@ -22,6 +22,11 @@
 #include <wbuiltin.h>
 #include <wcall.h>
 
+#undef cli
+#undef sti
+#define cli
+#define sti
+
 //background code:
 #if 1
 
@@ -80,20 +85,20 @@
 
 void RedrawBackground (Rectangle rect)
 {
-	rect.bottom++, rect.right++;
+	/*rect.bottom++, rect.right++;
 	for (int y = rect.top; y != rect.bottom; y++)
 	{
 		for (int x = rect.left; x != rect.right; x++)
 		{
 			//TODO: is a z-buffer check necessary?
-			if (true/* && ...*/)
+			if (true/ * && ...* /)
 			{
 				VidPlotPixel (x, y, g_background->framebuffer[(x % g_background->width) + g_background->width * (y % g_background->height)]);
 			}
 		}
-	}
+	}*/
 	//simple background:
-	//VidFillRectangle (BACKGROUND_COLOR, rect);
+	VidFillRectangle (BACKGROUND_COLOR, rect);
 }
 
 void SetDefaultBackground()
@@ -340,6 +345,7 @@ void HideWindow (Window* pWindow)
 	{
 		//WindowRegisterEvent (windowDrawList[i], EVENT_PAINT, 0, 0);
 		windowDrawList[i]->m_vbeData.m_dirty = true;
+		windowDrawList[i]->m_renderFinished = true;
 	}
 	
 	//WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
@@ -351,6 +357,7 @@ void ShowWindow (Window* pWindow)
 	UpdateDepthBuffer();
 	//WindowRegisterEvent (pWindow, EVENT_PAINT, 0, 0);
 	pWindow->m_vbeData.m_dirty = true;
+	pWindow->m_renderFinished = true;
 }
 extern VBEData* g_vbeData, g_mainScreenVBEData;
 extern Heap* g_pHeap;
@@ -385,6 +392,11 @@ void DestroyWindow (Window* pWindow)
 	// "yeah you're good to go" and call ReadyToDestroyWindow().
 }
 
+void RequestRepaint (Window* pWindow)
+{
+	WindowRegisterEventUnsafe(pWindow, EVENT_PAINT, 0, 0);
+}
+
 void SelectThisWindowAndUnselectOthers(Window* pWindow)
 {
 	bool wasSelectedBefore = pWindow->m_isSelected;
@@ -397,6 +409,7 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 					WindowRegisterEvent(&g_windows[i], EVENT_KILLFOCUS, 0, 0);
 					WindowRegisterEvent(&g_windows[i], EVENT_PAINT, 0, 0);
 					g_windows[i].m_vbeData.m_dirty = true;
+					g_windows[i].m_renderFinished = true;
 				}
 			}
 		}
@@ -407,6 +420,7 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 		WindowRegisterEvent(pWindow, EVENT_SETFOCUS, 0, 0);
 		WindowRegisterEvent(pWindow, EVENT_PAINT, 0, 0);
 		pWindow->m_vbeData.m_dirty = true;
+		pWindow->m_renderFinished = true;
 	}
 }
 #endif
@@ -455,6 +469,7 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	
 	pWnd->m_vbeData.m_available     = true;
 	pWnd->m_vbeData.m_framebuffer32 = MmAllocate (sizeof (uint32_t) * xSize * ySize);
+	ZeroMemory (pWnd->m_vbeData.m_framebuffer32,  sizeof (uint32_t) * xSize * ySize);
 	pWnd->m_vbeData.m_width         = xSize;
 	pWnd->m_vbeData.m_height        = ySize;
 	pWnd->m_vbeData.m_pitch32       = xSize;
@@ -597,14 +612,15 @@ void OnUILeftClickRelease (int mouseX, int mouseY)
 		newWndRect.bottom = newWndRect.top  + GetHeight(&window->m_rect);
 		window->m_rect = newWndRect;
 		
+		ShowWindow(window);
+		
 		if (GetCurrentCursor() == &g_windowDragCursor)
 		{
 			SetCursor(NULL);
 		}
-		
-		ShowWindow(window);
 		//WindowRegisterEvent(window, EVENT_PAINT, 0, 0);
 		window->m_vbeData.m_dirty = true;
+		window->m_renderFinished = true;
 		window->m_isBeingDragged = false;
 	}
 	int x = mouseX - window->m_rect.left;
@@ -666,6 +682,7 @@ void RedrawEverything()
 bool HandleMessages(Window* pWindow);
 void RenderWindow (Window* pWindow);
 void TerminalHostTask(int arg);
+void RefreshMouse(void);
 void WindowManagerTask(__attribute__((unused)) int useless_argument)
 {
 	g_clickQueueSize = 0;
@@ -704,7 +721,8 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//VersionProgramTask (0);
 	//IconTestTask(0);
 	//PrgPaintTask(0);
-	LauncherProgramTask(0);
+	LogMsgNoCr("Huh!?? This shouldn't be on");
+	LauncherEntry(0);
 #else
 	int errorCode = 0;
 	Task* pTask;
@@ -723,7 +741,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	
 	//create the program manager task.
 	errorCode = 0;
-	pTask = KeStartTask(LauncherProgramTask, 0, &errorCode);
+	pTask = KeStartTask(LauncherEntry, 0, &errorCode);
 	DebugLogMsg("Created launcher task. pointer returned:%x, errorcode:%x", pTask, errorCode);
 	
 	
@@ -782,9 +800,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		#endif
 			cli;
-			if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
+			if (pWindow->m_renderFinished)
 			{
-				pWindow->m_vbeData.m_dirty = false;
+				pWindow->m_renderFinished = false;
 				RenderWindow(pWindow);
 			}
 			sti;
@@ -802,6 +820,8 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		
 		//cli;
 		ACQUIRE_LOCK (g_clickQueueLock);
+		
+		RefreshMouse();
 		//ACQUIRE_LOCK (g_screenLock);
 		for (int i = 0; i < g_clickQueueSize; i++)
 		{
@@ -1004,7 +1024,10 @@ void RemoveControl (Window* pWindow, int controlIndex)
 
 void ControlProcessEvent (Window* pWindow, int eventType, int parm1, int parm2)
 {
-	for (int i = 0; i != pWindow->m_controlArrayLen; i++)
+	// Go backwards, because some controls might spawn other controls
+	// They may want to be checked AFTER their children controls, so
+	// we just go backwards.
+	for (int i = pWindow->m_controlArrayLen - 1; i != -1; i--)
 	{
 		if (pWindow->m_pControlArray[i].m_active)
 		{
@@ -1274,7 +1297,7 @@ inline void blpxinl(unsigned x, unsigned y, unsigned color)
 		blpx2ver(x, y, color);
 	}
 }
-extern void VidPlotPixelCheckCursor(unsigned x, unsigned y, unsigned color);
+//extern void VidPlotPixelCheckCursor(unsigned x, unsigned y, unsigned color);
 void RenderWindow (Window* pWindow)
 {
 	//ACQUIRE_LOCK(g_screenLock);
@@ -1288,6 +1311,12 @@ void RenderWindow (Window* pWindow)
 	
 	int o = 0;
 	int x2 = x + tw, y2 = y + th;
+	
+	while (y < 0)
+	{
+		o += pWindow->m_vbeData.m_width;
+		y++;
+	}
 	
 	for (int j = y; j != y2; j++)
 	{
@@ -1304,8 +1333,8 @@ void RenderWindow (Window* pWindow)
 				}
 				if (n == windIndex)
 				{
-					if (texture[o] != TRANSPARENT)
-						VidPlotPixelCheckCursor (i, j, texture[o]);
+					//if (texture[o] != TRANSPARENT)
+					blpxinl (i, j, texture[o]);
 				}
 			}
 			o++;
@@ -1425,6 +1454,8 @@ bool HandleMessages(Window* pWindow)
 	{
 		//setup paint stuff so the window can only paint in their little box
 		VidSetVBEData (&pWindow->m_vbeData);
+		pWindow->m_vbeData.m_dirty = 0;
+		pWindow->m_renderFinished = false;
 		if (pWindow->m_eventQueue[i] == EVENT_CREATE)
 		{
 			PaintWindowBackgroundAndBorder(pWindow);

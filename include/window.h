@@ -263,6 +263,11 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 void DestroyWindow (Window* pWindow);
 
 /**
+ * Requests a safe re-paint of the window from the window manager.
+ */
+void RequestRepaint (Window* pWindow);
+
+/**
  * Displays a modal dialog box that contains a system icon, a set of buttons, and 
  * a brief application-specific message, such as status or error information.  The message
  * box returns an integer value that indicates which button the user clicked.

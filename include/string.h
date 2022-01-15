@@ -25,11 +25,14 @@ void* strcpy(const char* ds, const char* ss);
 void strtolower(char* as);
 void strtoupper(char* as);
 int strcmp(const char* as, const char* bs);
-void strcat(char* dest, char* after);
+void strcat(char* dest, const char* after);
 void fast_memcpy(void* restrict dest, const void* restrict src, int size);
 void fmemcpy32 (void* restrict dest, const void* restrict src, int size);
 void fmemcpy128(void* restrict dest, const void* restrict src, int size);
 void fmemcpy256(void* restrict dest, const void* restrict src, int size);
+
+//Other string functions:
+bool EndsWith(const char* pText, const char* pCheck);
 
 //requires 4 byte aligned size.
 void ZeroMemory (void* bufptr1, size_t size);

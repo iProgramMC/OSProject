@@ -6,6 +6,16 @@
 ******************************************/
 #include <string.h>
 
+bool EndsWith(const char* pText, const char* pCheck)
+{
+	int slt = strlen (pText), slc = strlen (pCheck);
+	if (slt < slc) return false; //obviously, it can't.
+	
+	const char* pTextEnd = pText + slt;
+	pTextEnd -= slc;
+	return (strcmp (pTextEnd, pCheck) == 0);
+}
+
 int memcmp(const void* ap, const void* bp, size_t size)
 {
 	const BYTE* a = (const BYTE*) ap;
@@ -183,7 +193,7 @@ int strcmp(const char* as, const char* bs)
 	}
 	return 0;
 }
-void strcat(char* dest, char* after)
+void strcat(char* dest, const char* after)
 {
 	char* end = strlen(dest) + dest;
 	memcpy(end, after, strlen(after) + 1);

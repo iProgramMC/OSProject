@@ -64,7 +64,7 @@ void LaunchCabinet(UNUSED Window* pWindow)
 		DebugLogMsg("Created Cabinet window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 	}*/
 	int errorCode = 0;
-	Task* pTask = KeStartTask(ListTestTask, 0, &errorCode);
+	Task* pTask = KeStartTask(CabinetEntry, 0, &errorCode);
 	DebugLogMsg("Created list view test window", pTask, errorCode);
 }
 void WindowManagerShutdown();
@@ -207,7 +207,7 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 	}
 }
 
-void LauncherProgramTask(__attribute__((unused)) int arg)
+void LauncherEntry(__attribute__((unused)) int arg)
 {
 	// create ourself a window:
 	int ww = 400, wh = 260, sw = GetScreenSizeX(), sh = GetScreenSizeY();

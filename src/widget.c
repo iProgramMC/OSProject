@@ -193,57 +193,72 @@ go_back:;
 		case EVENT_CLICKCURSOR:
 		{
 			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
-			if (RectangleContains(&scroller, &p))
+			if (RectangleContains(&basic_rectangle, &p) || this->m_scrollBarData.m_clickedBefore)
 			{
-				this->m_scrollBarData.m_isBeingDragged = true;
+				if (!this->m_scrollBarData.m_clickedBefore)
+				{
+					this->m_scrollBarData.m_yMinButton     = false;
+					this->m_scrollBarData.m_yMaxButton     = false;
+				}
+				if (RectangleContains(&scroller, &p))
+				{
+					this->m_scrollBarData.m_isBeingDragged = true;
+				}
+				if (RectangleContains(&left_button, &p))
+				{
+					this->m_scrollBarData.m_yMinButton = true;
+					this->m_scrollBarData.m_yMaxButton = false;
+				}
+				if (RectangleContains(&right_button, &p))
+				{
+					this->m_scrollBarData.m_yMaxButton = true;
+					this->m_scrollBarData.m_yMinButton = false;
+				}
+				
+				if (this->m_scrollBarData.m_isBeingDragged)
+				{
+					int posoff2 = p.x - clickable_rect.left - SCROLL_BAR_WIDTH/2;
+					posoff2 = posoff2 * (this->m_scrollBarData.m_max-1 - this->m_scrollBarData.m_min) / final_height;
+					posoff2 = posoff2 +  this->m_scrollBarData.m_min;
+					if (posoff2 <  this->m_scrollBarData.m_min) posoff2 = this->m_scrollBarData.m_min;
+					if (posoff2 >= this->m_scrollBarData.m_max) posoff2 = this->m_scrollBarData.m_max - 1;
+					this->m_scrollBarData.m_pos = posoff2;
+				}
+				
+				this->m_scrollBarData.m_clickedBefore = true;
+				
+				eventType = EVENT_PAINT;
+				goto go_back;
 			}
-			if (RectangleContains(&left_button, &p))
-			{
-				this->m_scrollBarData.m_yMinButton = true;
-				this->m_scrollBarData.m_yMaxButton = false;
-			}
-			if (RectangleContains(&right_button, &p))
-			{
-				this->m_scrollBarData.m_yMaxButton = true;
-				this->m_scrollBarData.m_yMinButton = false;
-			}
-			
-			if (this->m_scrollBarData.m_isBeingDragged)
-			{
-				int posoff2 = p.x - clickable_rect.left - SCROLL_BAR_WIDTH/2;
-				posoff2 = posoff2 * (this->m_scrollBarData.m_max-1 - this->m_scrollBarData.m_min) / final_height;
-				posoff2 = posoff2 +  this->m_scrollBarData.m_min;
-				if (posoff2 <  this->m_scrollBarData.m_min) posoff2 = this->m_scrollBarData.m_min;
-				if (posoff2 >= this->m_scrollBarData.m_max) posoff2 = this->m_scrollBarData.m_max - 1;
-				this->m_scrollBarData.m_pos = posoff2;
-			}
-			
-			this->m_scrollBarData.m_clickedBefore = true;
-			
-			eventType = EVENT_PAINT;
-			goto go_back;
+			else break;
 		}
 		case EVENT_RELEASECURSOR:
 		{
-			this->m_scrollBarData.m_isBeingDragged = false;
-			if (this->m_scrollBarData.m_yMinButton)
+			if (this->m_scrollBarData.m_isBeingDragged || this->m_scrollBarData.m_yMinButton || this->m_scrollBarData.m_yMaxButton)
 			{
-				this->m_scrollBarData.m_pos -= (this->m_scrollBarData.m_max - this->m_scrollBarData.m_min) / 10;
-				if (this->m_scrollBarData.m_pos < this->m_scrollBarData.m_min)
-					this->m_scrollBarData.m_pos = this->m_scrollBarData.m_min;
-			}
-			if (this->m_scrollBarData.m_yMaxButton)
-			{
-				this->m_scrollBarData.m_pos += (this->m_scrollBarData.m_max - this->m_scrollBarData.m_min) / 10;
-				if (this->m_scrollBarData.m_pos >= this->m_scrollBarData.m_max)
-					this->m_scrollBarData.m_pos  = this->m_scrollBarData.m_max - 1;
+				eventType = EVENT_PAINT;
+				this->m_scrollBarData.m_isBeingDragged = false;
+				if (this->m_scrollBarData.m_yMinButton)
+				{
+					this->m_scrollBarData.m_pos -= (this->m_scrollBarData.m_max - this->m_scrollBarData.m_min) / 10;
+					if (this->m_scrollBarData.m_pos < this->m_scrollBarData.m_min)
+						this->m_scrollBarData.m_pos = this->m_scrollBarData.m_min;
+				}
+				if (this->m_scrollBarData.m_yMaxButton)
+				{
+					this->m_scrollBarData.m_pos += (this->m_scrollBarData.m_max - this->m_scrollBarData.m_min) / 10;
+					if (this->m_scrollBarData.m_pos >= this->m_scrollBarData.m_max)
+						this->m_scrollBarData.m_pos  = this->m_scrollBarData.m_max - 1;
+				}
+				eventType = EVENT_PAINT;
 			}
 			this->m_scrollBarData.m_clickedBefore  = false;
 			this->m_scrollBarData.m_yMinButton     = false;
 			this->m_scrollBarData.m_yMaxButton     = false;
 			
-			eventType = EVENT_PAINT;
-			goto go_back;
+			if (eventType == EVENT_PAINT)
+				goto go_back;
+			else break;
 		}
 		case EVENT_PAINT:
 		{
@@ -304,63 +319,73 @@ go_back:;
 	{
 		case EVENT_RELEASECURSOR:
 		{
-			this->m_scrollBarData.m_isBeingDragged = false;
-			if (this->m_scrollBarData.m_yMinButton)
+			if (this->m_scrollBarData.m_isBeingDragged || this->m_scrollBarData.m_yMinButton || this->m_scrollBarData.m_yMaxButton)
 			{
-				this->m_scrollBarData.m_pos -= this->m_scrollBarData.m_dbi;
-				if (this->m_scrollBarData.m_pos < this->m_scrollBarData.m_min)
-					this->m_scrollBarData.m_pos = this->m_scrollBarData.m_min;
-			}
-			if (this->m_scrollBarData.m_yMaxButton)
-			{
-				this->m_scrollBarData.m_pos += this->m_scrollBarData.m_dbi;
-				if (this->m_scrollBarData.m_pos >= this->m_scrollBarData.m_max)
-					this->m_scrollBarData.m_pos  = this->m_scrollBarData.m_max - 1;
+				this->m_scrollBarData.m_isBeingDragged = false;
+				if (this->m_scrollBarData.m_yMinButton)
+				{
+					this->m_scrollBarData.m_pos -= this->m_scrollBarData.m_dbi;
+					if (this->m_scrollBarData.m_pos < this->m_scrollBarData.m_min)
+						this->m_scrollBarData.m_pos = this->m_scrollBarData.m_min;
+				}
+				if (this->m_scrollBarData.m_yMaxButton)
+				{
+					this->m_scrollBarData.m_pos += this->m_scrollBarData.m_dbi;
+					if (this->m_scrollBarData.m_pos >= this->m_scrollBarData.m_max)
+						this->m_scrollBarData.m_pos  = this->m_scrollBarData.m_max - 1;
+				}
+				eventType = EVENT_PAINT;
 			}
 			this->m_scrollBarData.m_clickedBefore  = false;
 			this->m_scrollBarData.m_yMinButton     = false;
 			this->m_scrollBarData.m_yMaxButton     = false;
 			
-			eventType = EVENT_PAINT;
-			goto go_back;
+			if (eventType == EVENT_PAINT)
+				goto go_back;
+			else break;
 		}
 		case EVENT_CLICKCURSOR:
 		{
 			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
-			if (!this->m_scrollBarData.m_clickedBefore)
-			{
-				this->m_scrollBarData.m_yMinButton     = false;
-				this->m_scrollBarData.m_yMaxButton     = false;
-			}
-			if (RectangleContains(&scroller, &p))
-			{
-				this->m_scrollBarData.m_isBeingDragged = true;
-			}
-			if (RectangleContains(&top_button, &p))
-			{
-				this->m_scrollBarData.m_yMinButton = true;
-				this->m_scrollBarData.m_yMaxButton = false;
-			}
-			if (RectangleContains(&bottom_button, &p))
-			{
-				this->m_scrollBarData.m_yMaxButton = true;
-				this->m_scrollBarData.m_yMinButton = false;
-			}
 			
-			if (this->m_scrollBarData.m_isBeingDragged)
+			if (RectangleContains(&basic_rectangle, &p) || this->m_scrollBarData.m_clickedBefore)
 			{
-				int posoff2 = p.y - clickable_rect.top - SCROLL_BAR_WIDTH/2;
-				posoff2 = posoff2 * (this->m_scrollBarData.m_max-1 - this->m_scrollBarData.m_min) / final_height;
-				posoff2 = posoff2 +  this->m_scrollBarData.m_min;
-				if (posoff2 <  this->m_scrollBarData.m_min) posoff2 = this->m_scrollBarData.m_min;
-				if (posoff2 >= this->m_scrollBarData.m_max) posoff2 = this->m_scrollBarData.m_max - 1;
-				this->m_scrollBarData.m_pos = posoff2;
+				if (!this->m_scrollBarData.m_clickedBefore)
+				{
+					this->m_scrollBarData.m_yMinButton     = false;
+					this->m_scrollBarData.m_yMaxButton     = false;
+				}
+				if (RectangleContains(&scroller, &p))
+				{
+					this->m_scrollBarData.m_isBeingDragged = true;
+				}
+				if (RectangleContains(&top_button, &p))
+				{
+					this->m_scrollBarData.m_yMinButton = true;
+					this->m_scrollBarData.m_yMaxButton = false;
+				}
+				if (RectangleContains(&bottom_button, &p))
+				{
+					this->m_scrollBarData.m_yMaxButton = true;
+					this->m_scrollBarData.m_yMinButton = false;
+				}
+				
+				if (this->m_scrollBarData.m_isBeingDragged)
+				{
+					int posoff2 = p.y - clickable_rect.top - SCROLL_BAR_WIDTH/2;
+					posoff2 = posoff2 * (this->m_scrollBarData.m_max-1 - this->m_scrollBarData.m_min) / final_height;
+					posoff2 = posoff2 +  this->m_scrollBarData.m_min;
+					if (posoff2 <  this->m_scrollBarData.m_min) posoff2 = this->m_scrollBarData.m_min;
+					if (posoff2 >= this->m_scrollBarData.m_max) posoff2 = this->m_scrollBarData.m_max - 1;
+					this->m_scrollBarData.m_pos = posoff2;
+				}
+				
+				this->m_scrollBarData.m_clickedBefore = true;
+				
+				eventType = EVENT_PAINT;
+				goto go_back;
 			}
-			
-			this->m_scrollBarData.m_clickedBefore = true;
-			
-			eventType = EVENT_PAINT;
-			goto go_back;
+			else break;
 		}
 		case EVENT_PAINT:
 		{
@@ -440,15 +465,12 @@ static void CtlResetList (Control* pCtl, Window* pWindow)
 {
 	ListViewData* pData = &pCtl->m_listViewData;
 	
-	if (!pData) return;//TODO
-	
 	if (pData->m_pItems)
 		MmFree (pData->m_pItems);
 	
 	pData->m_highlightedElementIdx = -1;
 	pData->m_elementCount = 0;
 	pData->m_capacity     = 10;
-	pData->m_hasIcons     = false;
 	int itemsSize         = sizeof (ListItem) * pData->m_capacity;
 	pData->m_pItems       = MmAllocate (itemsSize);
 	memset (pData->m_pItems, 0, itemsSize);
@@ -458,6 +480,14 @@ static void CtlResetList (Control* pCtl, Window* pWindow)
 	if (c <= 0)
 		c  = 1;
 	SetScrollBarMax (pWindow, -pCtl->m_comboID, c);
+}
+static const char* CtlGetElementStringFromList (Control *pCtl, int index)
+{
+	ListViewData* pData = &pCtl->m_listViewData;
+	
+	if (index < 0 || index >= pData->m_elementCount) return NULL;
+	
+	return pData->m_pItems[index].m_contents;
 }
 void AddElementToList (Window* pWindow, int comboID, const char* pText, int optionalIcon)
 {
@@ -469,6 +499,17 @@ void AddElementToList (Window* pWindow, int comboID, const char* pText, int opti
 			return;
 		}
 	}
+}
+const char* GetElementStringFromList (Window* pWindow, int comboID, int index)
+{
+	for (int i = 0; i < pWindow->m_controlArrayLen; i++)
+	{
+		if (pWindow->m_pControlArray[i].m_comboID == comboID)
+		{
+			return CtlGetElementStringFromList (&pWindow->m_pControlArray[i], index);
+		}
+	}
+	return NULL;
 }
 void RemoveElementFromList (Window* pWindow, int comboID, int elementIndex)
 {
@@ -505,10 +546,6 @@ go_back:
 			Point p = { GET_X_PARM(parm1), GET_Y_PARM(parm1) };
 			if (RectangleContains(&this->m_rect, &p))
 			{
-				/*char buffer [128];
-				sprintf (buffer, "Clicked at (%d,%d)", p.x, p.y);
-				CtlAddElementToList(this, buffer, GetRandom () % (ICON_COUNT - 1) + 1, pWindow);*/
-				
 				// Highlight some element.
 				int elementStart =   pData->m_scrollY;
 				int elementEnd   =   pData->m_scrollY + (this->m_rect.bottom - this->m_rect.top) / LIST_ITEM_HEIGHT - 1;
@@ -525,7 +562,12 @@ go_back:
 				if (elementHighlightAttempt >= pData->m_elementCount || elementHighlightAttempt < 0)
 					elementHighlightAttempt = -1;
 				
+				bool isDoubleClick = pData->m_highlightedElementIdx == elementHighlightAttempt;
 				pData->m_highlightedElementIdx = elementHighlightAttempt;
+				
+				// Allow double clicking of elements inside the list.  Will call EVENT_COMMAND to the parent window.
+				if (isDoubleClick && elementHighlightAttempt != -1)
+					pWindow->m_callback (pWindow, EVENT_COMMAND, this->m_comboID, elementHighlightAttempt);
 				
 				eventType = EVENT_PAINT;
 				goto go_back;
@@ -581,7 +623,7 @@ go_back:
 					if (pData->m_pItems[i].m_icon)
 						RenderIconForceSize (pData->m_pItems[i].m_icon, this->m_rect.left + 4, this->m_rect.top + 2 + j * LIST_ITEM_HEIGHT, 16);
 				}
-				VidTextOut (pData->m_pItems[i].m_contents, this->m_rect.left + 4 + pData->m_hasIcons * 16, this->m_rect.top + 4 + 2 + j * LIST_ITEM_HEIGHT, color, colorT);
+				VidTextOut (pData->m_pItems[i].m_contents, this->m_rect.left + 4 + pData->m_hasIcons * 24, this->m_rect.top + 4 + 2 + j * LIST_ITEM_HEIGHT, color, colorT);
 			}
 			
 			RenderButtonShapeNoRounding (this->m_rect, 0xBFBFBF, 0x000000, TRANSPARENT);
@@ -592,19 +634,13 @@ go_back:
 		{
 			// Start out with an initial size of 10 elements.
 			ListViewData* pData = &this->m_listViewData;
-			pData->m_elementCount = 5;
+			pData->m_elementCount = 0;
 			pData->m_capacity     = 10;
 			pData->m_scrollY      = 0;
 			pData->m_hasIcons     = true;
 			int itemsSize         = sizeof (ListItem) * pData->m_capacity;
 			pData->m_pItems       = MmAllocate (itemsSize);
 			memset (pData->m_pItems, 0, itemsSize);
-			
-			for (int i = 0; i< pData->m_elementCount; i++)
-			{
-				sprintf(pData->m_pItems[i].m_contents, "Item number %d", i);
-				pData->m_pItems[i].m_icon = GetRandom() % (ICON_COUNT-1) + 1;
-			}
 			
 			// Add a vertical scroll bar to its right.
 			Rectangle r;
@@ -620,7 +656,7 @@ go_back:
 			AddControl (pWindow, CONTROL_VSCROLLBAR, r, NULL, -this->m_comboID, c, 1);
 			
 			//shrink our rectangle:
-			this->m_rect.right -= SCROLL_BAR_WIDTH;
+			this->m_rect.right -= SCROLL_BAR_WIDTH + 4;
 			
 			break;
 		}

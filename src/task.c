@@ -25,6 +25,13 @@ static VBEData*     g_kernelVBEContext = NULL;
 static Heap*        g_kernelHeapContext = NULL;
 extern Heap*        g_pHeap;
 
+bool g_forceKernelTaskToRunNext = false;
+
+void ForceKernelTaskToRunNext()
+{
+	g_forceKernelTaskToRunNext = true;
+}
+
 void KeFindLastRunningTaskIndex()
 {
 	for (int i = C_MAX_TASKS - 1; i > 0; i--)
@@ -303,21 +310,33 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		}
 	}
 	
-	int i = s_currentRunningTask + 1;
-	int task = s_lastRunningTaskIndex;
-	for (; i < task; i++)
-	{
-		if (g_runningTasks[i].m_bExists)
-			break;
-	}
-	
 	Task* pNewTask = NULL;
-	if (i < task) pNewTask = g_runningTasks + i;
+	if (g_forceKernelTaskToRunNext)
+	{
+		s_currentRunningTask = -1;
+		g_forceKernelTaskToRunNext = false;
+	}
+	else
+	{
+		int i = s_currentRunningTask + 1;
+		int task = s_lastRunningTaskIndex;
+		for (; i < task; i++)
+		{
+			if (g_runningTasks[i].m_bExists)
+				break;
+		}
+		
+		if (i < task)
+		{
+			pNewTask = g_runningTasks + i;
+			s_currentRunningTask = i;
+		}
+		else
+			s_currentRunningTask = -1;
+	}
 	
 	if (pNewTask)
 	{
-		s_currentRunningTask = i;
-		
 		//first, restore this task's FPU registers:
 		KeFxRestore(pNewTask->m_fpuState);
 		g_vbeData = pNewTask->m_pVBEContext;
@@ -327,8 +346,6 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 	else
 	{
 		//Kernel task
-		s_currentRunningTask = -1;
-		
 		//first, restore the kernel task's FPU registers:
 		KeFxRestore(g_kernelFPUState);
 		g_vbeData = g_kernelVBEContext;
