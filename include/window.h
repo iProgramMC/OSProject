@@ -21,7 +21,9 @@
 #define EVENT_QUEUE_MAX 256
 
 #define TITLE_BAR_HEIGHT 11
-#define WINDOW_RIGHT_SIDE_THICKNESS 3
+
+//Optional window border.  Was going to have a 3D effect, but I scrapped it.
+#define WINDOW_RIGHT_SIDE_THICKNESS 0
 
 #define BACKGROUND_COLOR 0xFF007F7F
 #define BUTTON_MIDDLE_COLOR 0xFFCCCCCC
@@ -76,6 +78,12 @@ enum {
 	//A clickable button which triggers an event based on this->m_parm1
 	//with its comboID as its first parm.
 	CONTROL_BUTTON_EVENT,
+	//A list view.  Complicated.
+	CONTROL_LISTVIEW,
+	//A vertical scroll bar.
+	CONTROL_VSCROLLBAR,
+	//A horizontal scroll bar.
+	CONTROL_HSCROLLBAR,
 	//This control is purely to identify how many controls we support
 	//currently.  This control is unsupported and will crash your application
 	//if you use this.
@@ -109,6 +117,32 @@ struct ControlStruct;
 typedef void (*WidgetEventHandler) (struct ControlStruct*, int eventType, int parm1, int parm2, struct WindowStruct* parentWindow);
 typedef void (*WindowProc)         (struct WindowStruct*, int, int, int);
 
+typedef struct
+{
+	int  m_icon;//can be blank
+	char m_contents [128];
+}
+ListItem;
+
+#define LIST_ITEM_HEIGHT 16
+
+typedef struct
+{
+	bool m_hasIcons;
+	int  m_elementCount, m_capacity;
+	int  m_scrollY;
+	ListItem *m_pItems;
+}
+ListViewData;
+
+typedef struct
+{
+	bool m_isBeingDragged, m_clickedBefore;
+	bool m_yMinButton, m_yMaxButton;
+	int  m_min, m_max, m_pos;
+}
+ScrollBarData;
+
 typedef struct ControlStruct
 {
 	bool      m_active;
@@ -119,6 +153,13 @@ typedef struct ControlStruct
 	void*     m_dataPtr;
 	Rectangle m_rect;
 	bool      m_bMarkedForDeletion;
+	
+	//data for controls:
+	union
+	{
+		ListViewData  m_listViewData;
+		ScrollBarData m_scrollBarData;
+	};
 	
 	//event handler
 	WidgetEventHandler OnEvent;

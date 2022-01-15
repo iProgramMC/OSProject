@@ -9,7 +9,7 @@
 } while (0)
 
 #define TITLE_BAR_HEIGHT 11
-#define WINDOW_RIGHT_SIDE_THICKNESS 3
+#define WINDOW_RIGHT_SIDE_THICKNESS 0
 
 //WORK: Add in your icons here in this enum:
 enum 

@@ -950,6 +950,17 @@ int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int 
 	
 	pControl->OnEvent = GetWidgetOnEventFunction(type);
 	
+	if (type == CONTROL_VSCROLLBAR || type == CONTROL_HSCROLLBAR)
+	{
+		pControl->m_scrollBarData.m_min = (pControl->m_parm1   >>  16);
+		pControl->m_scrollBarData.m_max = (pControl->m_parm1 & 0xFFFF);
+		pControl->m_scrollBarData.m_pos = (pControl->m_parm2 & 0xFFFF);
+		if (pControl->m_scrollBarData.m_pos < pControl->m_scrollBarData.m_min)
+			pControl->m_scrollBarData.m_pos = pControl->m_scrollBarData.m_min;
+		if (pControl->m_scrollBarData.m_pos >= pControl->m_scrollBarData.m_max)
+			pControl->m_scrollBarData.m_pos =  pControl->m_scrollBarData.m_max - 1;
+	}
+	
 	//register an event for the window:
 	//WindowRegisterEvent(pWindow, EVENT_PAINT, 0, 0);
 	
@@ -1379,6 +1390,7 @@ bool IsEventDestinedForControlsToo(int type)
 {
 	switch (type)
 	{
+		case EVENT_DESTROY:
 		case EVENT_PAINT:
 		case EVENT_MOVECURSOR:
 		case EVENT_CLICKCURSOR:
@@ -1474,7 +1486,7 @@ void DefaultWindowProc (Window* pWindow, int messageType, UNUSED int parm1, UNUS
 		{
 			// Add a default QUIT button control.
 			Rectangle rect;
-			rect.right = pWindow->m_vbeData.m_width - 3 - WINDOW_RIGHT_SIDE_THICKNESS;
+			rect.right = pWindow->m_vbeData.m_width - 4 - WINDOW_RIGHT_SIDE_THICKNESS;
 			rect.left  = rect.right - 12; //The button will be 8x8.
 			rect.top   = 3;
 			rect.bottom= rect.top + 12;

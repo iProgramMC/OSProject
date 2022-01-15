@@ -708,10 +708,14 @@ void ShellExecuteCommand(char* p)
 	//LogMsg("You typed: '%s'", p);
 }
 
-void ShellRun(UNUSED int unused_arg)
+void ShellInit()
 {
 	strcpy (g_cwd, "/");
 	g_pCwdNode = FsResolvePath (g_cwd);
+}
+
+void ShellRun(UNUSED int unused_arg)
+{
 	while (1) 
 	{
 		LogMsgNoCr("%s>", g_cwd);

@@ -20,6 +20,7 @@
 #include <vfs.h>
 #include <fpu.h>
 #include <wcall.h>
+#include <window.h>
 
 __attribute__((noreturn))
 void KeStopSystem()
@@ -121,6 +122,7 @@ void KiPerformRamCheck()
 }
 
 extern void KeCPUID();//io.asm
+extern void ShellInit(void);//shell.c
 
 extern char g_initrdStart[];
 
@@ -139,6 +141,7 @@ void FpuTest();
 __attribute__((noreturn))
 void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 {
+	bool textMode = true;
 	//TODO: Serial debugging?
 	
 	// Initially, both debug consoles are initialized as E9 hacks/serial.
@@ -200,7 +203,10 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	//print the hello text, to see if the OS booted ok
 	KePrintSystemVersion();
 	if (!VidIsAvailable())
+	{
 		LogMsg("\n\x01\x0CWARNING\x01\x0F: Running NanoShell in text mode is deprecated and will be removed in the future.\n");
+		textMode = true;
+	}
 	
 	//TestAllocFunctions();
 	//ElfPerformTest();
@@ -209,8 +215,12 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	
 	//MmDebugDump();
 	//FreeTypeThing();
+	ShellInit();
 	
-	ShellRun(0);
+	if (textMode)
+		ShellRun(0);
+	else
+		WindowManagerTask (0);
 	LogMsg("Kernel ready to shutdown.");
 	KeStopSystem();
 }

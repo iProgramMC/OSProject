@@ -16,6 +16,64 @@
 	rect.left = x, rect.top = y, rect.right = x+w, rect.bottom = y+h;\
 } while (0)
 
+// List View test application.
+#if 1
+void CALLBACK ListTestProc (Window* pWindow, int messageType, int parm1, int parm2)
+{
+	switch (messageType)
+	{
+		case EVENT_PAINT:
+			break;
+		case EVENT_CREATE:
+		{
+			Rectangle r;
+			// Add a list view control.
+			/*
+			RECT(r, 20, 20, 320-40, 240-40);
+			
+			AddControl (pWindow, CONTROL_LISTVIEW, r, NULL, 1, 0, 0);*/
+			
+			RECT (r, 20, 20, 1, 240-40);
+			//goes from 0-99
+			AddControl (pWindow, CONTROL_VSCROLLBAR, r, NULL, 2, ((0<<16)|100), 50);
+			
+			RECT (r, 40, 20, 1, 240-40);
+			//goes from 0-9
+			AddControl (pWindow, CONTROL_VSCROLLBAR, r, NULL, 2, ((0<<16)|10), 5);
+			
+			RECT (r, 60, 20, 240-40, 1);
+			//goes from 0-99
+			AddControl (pWindow, CONTROL_HSCROLLBAR, r, NULL, 2, ((0<<16)|100), 50);
+			
+			RECT (r, 60, 40, 240-40, 1);
+			//goes from 0-9
+			AddControl (pWindow, CONTROL_HSCROLLBAR, r, NULL, 2, ((0<<16)|10), 5);
+			
+			break;
+		}
+		default:
+			DefaultWindowProc(pWindow, messageType, parm1, parm2);
+	}
+}
+
+void ListTestTask (__attribute__((unused)) int argument)
+{
+	// create ourself a window:
+	Window* pWindow = CreateWindow ("List Test", 300, 200, 320, 240, ListTestProc, 0);
+	
+	if (!pWindow)
+		DebugLogMsg("Hey, the window couldn't be created");
+	
+	// setup:
+	//ShowWindow(pWindow);
+	
+	// event loop:
+#if THREADING_ENABLED
+	while (HandleMessages (pWindow));
+#endif
+}
+#endif
+
 // Test program application.
 #if 1
 
@@ -221,25 +279,28 @@ void ExecuteSomeElfFile(UNUSED int argument)
 		MmFree(pData);
 	}
 }
-void LaunchCabinet(Window* pWindow)
+void LaunchCabinet(UNUSED Window* pWindow)
 {
-	if (MessageBox (pWindow, "Would you like to launch 'win.nse'?", "Hey!", MB_YESNO | ICON_EXECUTE_FILE << 16) == MBID_YES)
+	/*if (MessageBox (pWindow, "Would you like to launch 'win.nse'?", "Hey!", MB_YESNO | ICON_EXECUTE_FILE << 16) == MBID_YES)
 	{
 		int errorCode = 0;
 		Task* pTask = KeStartTask(ExecuteSomeElfFile, 0, &errorCode);
 		DebugLogMsg("Created ELF TASK. Pointer returned:%x, errorcode:%x", pTask, errorCode);
-	}
+	}*/
 	/*if (MessageBox (pWindow, "Would you like to launch Cabinet?", "Home Menu", MB_YESNO | ICON_CABINET << 16) == MBID_YES)
 	{
 		int errorCode = 0;
 		Task* pTask = KeStartTask(IconTestTask, 0, &errorCode);
 		DebugLogMsg("Created Cabinet window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 	}*/
+	int errorCode = 0;
+	Task* pTask = KeStartTask(ListTestTask, 0, &errorCode);
+	DebugLogMsg("Created list view test window", pTask, errorCode);
 }
 void WindowManagerShutdown();
 void ConfirmShutdown(Window* pWindow)
 {
-	if (MessageBox (pWindow, "This will end your NanoShell Window Manager session.", "Exit NanoShell", MB_OKCANCEL | ICON_COMPUTER_SHUTDOWN << 16) == MBID_OK)
+	if (MessageBox (pWindow, "This will end your NanoShell session.", "Shut Down", MB_OKCANCEL | ICON_COMPUTER_SHUTDOWN << 16) == MBID_OK)
 	{
 		WindowManagerShutdown ();
 	}
@@ -315,7 +376,7 @@ void CALLBACK LauncherProgramProc (Window* pWindow, int messageType, int parm1, 
 			AddControl(pWindow, CONTROL_ICON, r, NULL, LAUNCHER_ICON5, ICON_COMPUTER_SHUTDOWN, 0);
 			
 			RECT(r, STEXT_X, START_Y+5*DIST_ITEMS, 200, 32);
-			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Exit NanoShell Window Manager", LAUNCHER_SHUTDOWN, 0, 0);
+			AddControl(pWindow, CONTROL_CLICKLABEL, r, "Shutdown", LAUNCHER_SHUTDOWN, 0, 0);
 			
 			// Add a testing textbox.
 			RECT(r, 200, 50, 300, 15);
