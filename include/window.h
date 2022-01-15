@@ -131,6 +131,7 @@ typedef struct
 	bool m_hasIcons;
 	int  m_elementCount, m_capacity;
 	int  m_scrollY;
+	int  m_highlightedElementIdx;
 	ListItem *m_pItems;
 }
 ListViewData;
@@ -139,7 +140,7 @@ typedef struct
 {
 	bool m_isBeingDragged, m_clickedBefore;
 	bool m_yMinButton, m_yMaxButton;
-	int  m_min, m_max, m_pos;
+	int  m_min, m_max, m_pos, m_dbi;
 }
 ScrollBarData;
 

@@ -42,6 +42,12 @@
 #include <icons/nanoshell.h>
 #include <icons/nanoshell16.h>
 #include <icons/nanoshell_shell.h>
+#include <icons/bomb.h>
+#include <icons/bomb2.h>
+#include <icons/nanoshell_shell16.h>
+#include <icons/file16.h>
+#include <icons/text_file16.h>
+#include <icons/execute_file16.h>
 
 Image * g_iconTable[] = {
 	NULL,
@@ -80,6 +86,12 @@ Image * g_iconTable[] = {
 	&g_nanoshell_icon,
 	&g_nanoshell16_icon,
 	&g_nanoshell_shell_icon,
+	&g_nanoshell_shell16_icon,
+	&g_bomb_icon,
+	&g_bomb2_icon,
+	&g_file16_icon,
+	&g_text_file16_icon,
+	&g_execute_file16_icon,
 };
 
 STATIC_ASSERT(ARRAY_COUNT(g_iconTable) == ICON_COUNT, "Change this array if adding icons.");
@@ -91,5 +103,12 @@ void RenderIcon(IconType type, int x, int y)
 	
 	Image* p = g_iconTable[type];
 	VidBlitImage(p, x, y);
+}
+void RenderIconForceSize(IconType type, int x, int y, int size)
+{
+	if (type >= ICON_COUNT || type <= ICON_NULL) return;
+	
+	Image* p = g_iconTable[type];
+	VidBlitImageResize(p, x, y, size, size);
 }
 

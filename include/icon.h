@@ -47,8 +47,14 @@ enum
 	ICON_TEXT_FILE,
 	ICON_WARNING,
 	ICON_NANOSHELL_LETTERS,
-	ICON_NANOSHELL16,
+	ICON_NANOSHELL_LETTERS16,
 	ICON_NANOSHELL,
+	ICON_NANOSHELL16,
+	ICON_BOMB,
+	ICON_BOMB_SPIKEY,
+	ICON_FILE16,
+	ICON_TEXT_FILE16,
+	ICON_EXECUTE_FILE16,
 	ICON_COUNT
 };
 
@@ -58,5 +64,10 @@ typedef int IconType;
  * Renders an icon to the screen.
  */
 void RenderIcon(IconType type, int x, int y);
+
+/**
+ * Renders an icon to the screen, forcing it to be a certain size.
+ */
+void RenderIconForceSize(IconType type, int x, int y, int size);
 
 #endif//_ICON_H

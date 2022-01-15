@@ -794,6 +794,21 @@ void VidBlitImage(Image* pImage, int x, int y)
 			fb++;
 		}
 }
+void VidBlitImageResize(Image* p, int gx, int gy, int width, int height)
+{
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			int xgrab = x * p->width / width;
+			int ygrab = y * p->height/ height;
+			
+			uint32_t pixel = p->framebuffer[xgrab + p->width * ygrab];
+			if (pixel != TRANSPARENT)
+				VidPlotPixel (gx+x, gy+y, pixel);
+		}
+	}
+}
 void VidDrawRect(unsigned color, int left, int top, int right, int bottom)
 {
 	//basic clipping:

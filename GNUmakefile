@@ -51,9 +51,11 @@ $(BUICO)/%.h: $(ICONS)/%.png
 # Compile the kernel
 
 C_FILES=$(wildcard $(SRC)/*.c)
+D_FILES=$(wildcard $(SRC)/kapp/*.c)
 S_FILES=$(wildcard $(SRC)/asm/*.asm)
 
 O_FILES := $(patsubst $(BUILD)/$(SRC)/%.o, $(BUILD)/%.o, $(foreach file,$(C_FILES),$(BUILD)/$(file:.c=.o))) \
+		   $(patsubst $(BUILD)/$(SRC)/%.o, $(BUILD)/%.o, $(foreach file,$(D_FILES),$(BUILD)/$(file:.c=.o))) \
 		   $(patsubst $(BUILD)/$(SRC)/%.o, $(BUILD)/%.o, $(foreach file,$(S_FILES),$(BUILD)/$(file:.asm=.o)))
 
 TARGET := kernel.bin

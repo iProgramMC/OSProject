@@ -153,6 +153,11 @@ void VidPlotChar (char c, unsigned ox, unsigned oy, unsigned colorFg, unsigned c
 void VidBlitImage(Image* pImage, int x, int y);
 
 /**
+ * Blits an image onto the screen, re-sizing it to widthXheight pixels.
+ */
+void VidBlitImageResize(Image* p, int gx, int gy, int width, int height);
+
+/**
  * Prints a string in "colorFg" with an optional colorBg (if it's 0xFFFFFFFF we don't draw any).
  */
 void VidTextOut(const char* pText, unsigned ox, unsigned oy, unsigned colorFg, unsigned colorBg /*=0xFFFFFFFF*/);
