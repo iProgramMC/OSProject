@@ -12,6 +12,12 @@
 
 // Utilitary functions
 #if 1
+
+#define BUTTONDARK 0x808080
+#define BUTTONMIDD 0xC0C0C0
+#define BUTTONLITE 0xFFFFFF
+#define BUTTONMIDC 0xA0A0A0
+
 /***************************************************************************
 	Explanation of how this is supposed to render:
 
@@ -27,36 +33,6 @@
 	LDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 	DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 ***************************************************************************/
-void RenderButtonShape(Rectangle rect, unsigned colorDark, unsigned colorLight, unsigned colorMiddle)
-{
-	//draw some lines
-	VidDrawHLine (colorLight, rect.left+1,rect.right-1,  rect.top);
-	VidDrawHLine (colorDark,  rect.left+1,rect.right-1,  rect.bottom-1);
-	VidDrawVLine (colorLight, rect.top+1, rect.bottom-3, rect.left);
-	VidDrawVLine (colorDark,  rect.top+2, rect.bottom-2, rect.right);
-	
-	//shrink
-	rect.left++, rect.right--, rect.top++, rect.bottom--;
-	
-	//do the same
-	VidDrawHLine (colorLight, rect.left,  rect.right,    rect.top);
-	VidDrawHLine (colorDark,  rect.left,  rect.right,    rect.bottom-1);
-	VidDrawVLine (colorLight, rect.top,   rect.bottom-2, rect.left);
-	VidDrawVLine (colorDark,  rect.top+1, rect.bottom-1, rect.right);
-	
-	//shrink again
-	rect.left++, rect.right--, rect.top++, rect.bottom -= 2;
-	
-	//fill the background:
-	if (colorMiddle != TRANSPARENT)
-		VidFillRectangle(colorMiddle, rect);
-	
-	//then, the corners.
-	VidPlotPixel(rect.left,  rect.top, 	  colorLight);
-	VidPlotPixel(rect.left,  rect.bottom, colorDark);
-	VidPlotPixel(rect.right, rect.top,	  colorLight);
-	VidPlotPixel(rect.right, rect.bottom, colorDark);
-}
 void RenderButtonShapeNoRounding(Rectangle rect, unsigned colorDark, unsigned colorLight, unsigned colorMiddle)
 {
 	//draw some lines
@@ -80,6 +56,17 @@ void RenderButtonShapeNoRounding(Rectangle rect, unsigned colorDark, unsigned co
 	//fill the background:
 	if (colorMiddle != TRANSPARENT)
 		VidFillRectangle(colorMiddle, rect);
+}
+void RenderButtonShape(Rectangle rect, unsigned colorDark, unsigned colorLight, unsigned colorMiddle)
+{
+	//draw some lines
+	VidDrawHLine (0x000000, rect.left+1,rect.right-1,  rect.top);
+	VidDrawHLine (0x000000, rect.left+1,rect.right-1,  rect.bottom-1);
+	VidDrawVLine (0x000000, rect.top+1, rect.bottom-2, rect.left);
+	VidDrawVLine (0x000000, rect.top+1, rect.bottom-2, rect.right);
+	
+	rect.left++, rect.right--, rect.top++, rect.bottom--;
+	RenderButtonShapeNoRounding(rect, colorDark, colorLight, colorMiddle);
 }
 void RenderButtonShapeSmall(Rectangle rect, unsigned colorDark, unsigned colorLight, unsigned colorMiddle)
 {
@@ -265,16 +252,16 @@ go_back:;
 			VidFillRectangle (0x7F7F7F, basic_rectangle);
 		
 			if (this->m_scrollBarData.m_yMinButton)
-				RenderButtonShapeNoRounding (left_button,   0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				RenderButtonShapeNoRounding (left_button,   BUTTONLITE, BUTTONDARK, BUTTONMIDC);
 			else
-				RenderButtonShapeNoRounding (left_button,   0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+				RenderButtonShapeNoRounding (left_button,   BUTTONDARK, BUTTONLITE, BUTTONMIDD);
 			
 			if (this->m_scrollBarData.m_yMaxButton)
-				RenderButtonShapeNoRounding (right_button,  0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				RenderButtonShapeNoRounding (right_button,  BUTTONLITE, BUTTONDARK, BUTTONMIDC);
 			else
-				RenderButtonShapeNoRounding (right_button,  0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+				RenderButtonShapeNoRounding (right_button,  BUTTONDARK, BUTTONLITE, BUTTONMIDD);
 			
-			RenderButtonShapeNoRounding (scroller, 0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR + this->m_scrollBarData.m_isBeingDragged * 0x222222); // Green
+			RenderButtonShapeNoRounding (scroller, BUTTONDARK, BUTTONLITE, BUTTONMIDD + this->m_scrollBarData.m_isBeingDragged * 0x222222); // Green
 			
 			left_button .left++; left_button .right++; left_button .bottom++; left_button .top++;
 			right_button.left++; right_button.right++; right_button.bottom++; right_button.top++;
@@ -389,18 +376,18 @@ go_back:;
 		}
 		case EVENT_PAINT:
 		{
-			VidFillRectangle (0x7F7F7F, clickable_rect);
+			VidFillRectangle (BUTTONDARK-0x111111, clickable_rect);
 			if (this->m_scrollBarData.m_yMinButton)
-				RenderButtonShapeNoRounding (top_button,     0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				RenderButtonShapeNoRounding (top_button,     BUTTONLITE, BUTTONDARK, BUTTONMIDC);
 			else
-				RenderButtonShapeNoRounding (top_button,     0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+				RenderButtonShapeNoRounding (top_button,     BUTTONDARK, BUTTONLITE, BUTTONMIDD);
 			
 			if (this->m_scrollBarData.m_yMaxButton)
-				RenderButtonShapeNoRounding (bottom_button,  0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				RenderButtonShapeNoRounding (bottom_button,  BUTTONLITE, BUTTONDARK, BUTTONMIDC);
 			else
-				RenderButtonShapeNoRounding (bottom_button,  0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+				RenderButtonShapeNoRounding (bottom_button,  BUTTONDARK, BUTTONLITE, BUTTONMIDD);
 			
-			RenderButtonShapeNoRounding (scroller, 0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR + this->m_scrollBarData.m_isBeingDragged * 0x222222); // Green
+			RenderButtonShapeNoRounding (scroller, BUTTONDARK, BUTTONLITE, BUTTONMIDD + this->m_scrollBarData.m_isBeingDragged * 0x222222); // Green
 			
 			top_button   .left++; top_button   .right++; top_button   .bottom++; top_button   .top++;
 			bottom_button.left++; bottom_button.right++; bottom_button.bottom++; bottom_button.top++;
@@ -626,7 +613,7 @@ go_back:
 				VidTextOut (pData->m_pItems[i].m_contents, this->m_rect.left + 4 + pData->m_hasIcons * 24, this->m_rect.top + 4 + 2 + j * LIST_ITEM_HEIGHT, color, colorT);
 			}
 			
-			RenderButtonShapeNoRounding (this->m_rect, 0xBFBFBF, 0x000000, TRANSPARENT);
+			RenderButtonShapeNoRounding (this->m_rect, 0xBFBFBF, BUTTONDARK, TRANSPARENT);
 			
 			break;
 		}
@@ -732,7 +719,7 @@ void WidgetButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int
 		{
 			//draw a green rectangle:
 			//VidFillRectangle(0xFF00, this->m_rect);
-			RenderButtonShape (this->m_rect, 0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+			RenderButtonShape (this->m_rect, BUTTONDARK, BUTTONLITE, BUTTONMIDD);
 			//then fill in the text:
 			VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
 			
@@ -747,9 +734,9 @@ void WidgetButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUSED int
 				//draw the button as slightly pushed in
 				r.left++; r.right++; r.bottom++; r.top++;
 				
-				RenderButtonShape (this->m_rect, 0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				RenderButtonShape (this->m_rect, BUTTONMIDC, BUTTONDARK, BUTTONMIDC);
 				//then fill in the text:
-				VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
+				VidDrawText(this->m_text, r, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
 			}
 			break;
 		}
@@ -778,7 +765,7 @@ void WidgetActionButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUS
 		{
 			//draw a green rectangle:
 			//VidFillRectangle(0xFF00, this->m_rect);
-			RenderButtonShapeSmall (this->m_rect, 0x000000, 0xFFFFFF, BUTTON_MIDDLE_COLOR);
+			RenderButtonShapeSmall (this->m_rect, BUTTONDARK, BUTTONLITE, BUTTONMIDD);
 			//then fill in the text:
 			VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
 			
@@ -793,9 +780,9 @@ void WidgetActionButton_OnEvent(UNUSED Control* this, UNUSED int eventType, UNUS
 				//draw the button as slightly pushed in
 				r.left++; r.right++; r.bottom++; r.top++;
 				
-				RenderButtonShapeSmall (this->m_rect, 0xFFFFFF, 0x000000, WINDOW_BACKGD_COLOR);
+				RenderButtonShapeSmall (this->m_rect, BUTTONMIDC, BUTTONDARK, BUTTONMIDC);
 				//then fill in the text:
-				VidDrawText(this->m_text, this->m_rect, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
+				VidDrawText(this->m_text, r, TEXTSTYLE_HCENTERED|TEXTSTYLE_VCENTERED, 0, TRANSPARENT);
 			}
 			break;
 		}

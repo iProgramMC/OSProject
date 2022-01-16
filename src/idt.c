@@ -205,6 +205,7 @@ void KiIdtInit()
 #endif
 	
 	SetupSoftInterrupt (0x80, OnSyscallReceivedA);
+	SetupSoftInterrupt (0x81, IrqTaskA);
 	
 	//initialize the pics
 	WritePort (0x20, 0x11);

@@ -65,6 +65,7 @@ void TemporaryTask(__attribute__((unused)) int arg)
 			hlt;
 	}
 }
+extern void KeTaskDone();
 
 typedef void (*Pointer)(unsigned color, int left, int top, int right, int bottom);
 

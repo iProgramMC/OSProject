@@ -10,6 +10,8 @@
 #define MULTITASKED_WINDOW_MANAGER
 #endif
 
+void KeTaskDone(void);
+
 #define DebugLogMsg  SLogMsg
 
 #include <window.h>
@@ -406,8 +408,8 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 				if (g_windows[i].m_isSelected)
 				{
 					g_windows[i].m_isSelected = false;
-					WindowRegisterEvent(&g_windows[i], EVENT_KILLFOCUS, 0, 0);
-					WindowRegisterEvent(&g_windows[i], EVENT_PAINT, 0, 0);
+					WindowRegisterEventUnsafe(&g_windows[i], EVENT_KILLFOCUS, 0, 0);
+					WindowRegisterEventUnsafe(&g_windows[i], EVENT_PAINT, 0, 0);
 					g_windows[i].m_vbeData.m_dirty = true;
 					g_windows[i].m_renderFinished = true;
 				}
@@ -417,8 +419,8 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 		MovePreExistingWindowToFront (pWindow - g_windows);
 		pWindow->m_isSelected = true;
 		UpdateDepthBuffer();
-		WindowRegisterEvent(pWindow, EVENT_SETFOCUS, 0, 0);
-		WindowRegisterEvent(pWindow, EVENT_PAINT, 0, 0);
+		WindowRegisterEventUnsafe(pWindow, EVENT_SETFOCUS, 0, 0);
+		WindowRegisterEventUnsafe(pWindow, EVENT_PAINT, 0, 0);
 		pWindow->m_vbeData.m_dirty = true;
 		pWindow->m_renderFinished = true;
 	}
@@ -452,7 +454,7 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	ResetToKernelHeap ();
 	
 	pWnd->m_renderFinished = false;
-	pWnd->m_hidden = false;
+	pWnd->m_hidden = true;//false;
 	pWnd->m_isBeingDragged = false;
 	pWnd->m_isSelected = false;
 	pWnd->m_eventQueueLock = false;
@@ -481,9 +483,9 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	pWnd->m_pControlArray   = (Control*)MmAllocate(controlArraySize);
 	memset(pWnd->m_pControlArray, 0, controlArraySize);
 	
-	UpdateDepthBuffer();
-	
 	WindowRegisterEvent(pWnd, EVENT_CREATE, 0, 0);
+	/*UpdateDepthBuffer();
+	
 	
 	AddWindowToDrawOrder (pWnd - g_windows);
 	
@@ -492,7 +494,7 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	cli;
 	UpdateDepthBuffer();
 	sti;
-	
+	*/
 	UseHeap (pHeapBackup);
 	
 	FREE_LOCK(g_createLock);
@@ -747,7 +749,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	
 #endif
 	
-	ACQUIRE_LOCK (g_clickQueueLock);
+	/*ACQUIRE_LOCK (g_clickQueueLock);
 	//ACQUIRE_LOCK (g_screenLock);
 	//wait a bit
 	
@@ -761,7 +763,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		hlt;
 	
 	//FREE_LOCK (g_screenLock);
-	FREE_LOCK (g_clickQueueLock);
+	FREE_LOCK (g_clickQueueLock);*/
 	
 	int timeout = 10;
 	int UpdateTimeout = 100, shutdownTimeout = 500;
@@ -799,13 +801,16 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 				continue;
 			}
 		#endif
-			cli;
-			if (pWindow->m_renderFinished)
+			if (!pWindow->m_hidden)
 			{
-				pWindow->m_renderFinished = false;
-				RenderWindow(pWindow);
+				//cli;
+				if (pWindow->m_renderFinished)
+				{
+					pWindow->m_renderFinished = false;
+					RenderWindow(pWindow);
+				}
+				//sti;
 			}
-			sti;
 			
 			if (pWindow->m_markedForDeletion)
 			{
@@ -890,8 +895,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 		}
 		
-		for (int i = 0; i < 2; i++)
-			hlt;
+		//for (int i = 0; i < 2; i++)
+		hlt;
+		//KeTaskDone();
 	}
 	WindowCallDeinitialize ();
 	KillWindowDepthBuffer();
@@ -1244,7 +1250,7 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 		{
 			break;//we're done.
 		}
-		hlt;
+		hlt;//KeTaskDone();
 	}
 	
 	int dataReturned = (int)pBox->m_data;
@@ -1480,6 +1486,12 @@ bool HandleMessages(Window* pWindow)
 		//if (pWindow->m_vbeData.m_dirty && !pWindow->m_hidden)
 		//	RenderWindow(pWindow);
 		
+		if (pWindow->m_eventQueue[i] == EVENT_CREATE)
+		{
+			AddWindowToDrawOrder (pWindow - g_windows);
+			ShowWindow(pWindow);
+			SelectThisWindowAndUnselectOthers(pWindow);
+		}
 		if (pWindow->m_eventQueue[i] == EVENT_DESTROY)
 		{
 			pWindow->m_eventQueueSize = 0;
@@ -1487,7 +1499,7 @@ bool HandleMessages(Window* pWindow)
 			FREE_LOCK (pWindow->m_eventQueueLock);
 			//FREE_LOCK (g_windowLock);
 			//FREE_LOCK (g_screenLock);
-			hlt; //give it a good halt
+			hlt;//KeTaskDone();//hlt; //give it a good halt
 			
 			//Ready to destroy the window.
 			//VBEData* p = g_vbeData;
@@ -1505,7 +1517,7 @@ bool HandleMessages(Window* pWindow)
 	FREE_LOCK (pWindow->m_eventQueueLock);
 	//FREE_LOCK (g_windowLock);
 	//FREE_LOCK (g_screenLock);
-	hlt; //give it a good halt
+	hlt;//KeTaskDone();//hlt; //give it a good halt
 	return true;
 }
 /*

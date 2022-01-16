@@ -6,6 +6,7 @@
 ******************************************/
 
 #include <wbuiltin.h>
+#include <wterm.h>
 #include <vfs.h>
 #include <elf.h>
 
@@ -18,8 +19,8 @@ void LaunchSystem()
 void LaunchNotepad()
 {
 	int errorCode = 0;
-	//Task* pTask = KeStartTask(TerminalHostTask, 0, &errorCode);
-	Task* pTask = KeStartTask(IconTestTask, 0, &errorCode);
+	Task* pTask = KeStartTask(TerminalHostTask, 0, &errorCode);
+	//Task* pTask = KeStartTask(IconTestTask, 0, &errorCode);
 	DebugLogMsg("Created Notepad window. Pointer returned:%x, errorcode:%x", pTask, errorCode);
 }
 void LaunchPaint()

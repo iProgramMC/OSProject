@@ -45,7 +45,7 @@ typedef unsigned uint;
 
 #define ACQUIRE_LOCK(lock_var) do {\
 	while (lock_var) \
-		hlt; \
+		KeTaskDone(); \
 	lock_var = 1;\
 } while (0)
 

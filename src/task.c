@@ -27,12 +27,12 @@ extern Heap*        g_pHeap;
 
 bool g_forceKernelTaskToRunNext = false;
 
-void ForceKernelTaskToRunNext()
+void ForceKernelTaskToRunNext(void)
 {
 	g_forceKernelTaskToRunNext = true;
 }
 
-void KeFindLastRunningTaskIndex()
+void KeFindLastRunningTaskIndex(void)
 {
 	for (int i = C_MAX_TASKS - 1; i > 0; i--)
 	{
@@ -45,7 +45,13 @@ void KeFindLastRunningTaskIndex()
 	s_lastRunningTaskIndex = 1;
 }
 
-void KeTaskDebugDump()
+// Requests a re-schedule.
+void KeTaskDone(void)
+{
+	asm ("int $0x81\n\t");
+}
+
+void KeTaskDebugDump(void)
 {
 	cli;
 	bool any_tasks = false;
@@ -290,10 +296,6 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		g_kernelHeapContext = g_pHeap;
 	}
 	ResetToKernelHeap();
-	
-	// Acknowledge the interrupt:
-	WritePort (0x20, 0x20);
-	WritePort (0xA0, 0x20);
 	
 	// If using RTC, also flush register C
 	//WritePort (0x70, 0x0C);
