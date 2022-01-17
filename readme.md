@@ -23,6 +23,8 @@ Be warned that building this is not for the average Linux user nor is it for the
 - [x] Bochs/QEMU debugcon (E9 hack)
 - [ ] Serial port
 - [ ] PCI
+- [ ] VirtualBox/QEMU/Bochs graphics device (*not* VBE)
+- [ ] VMware SVGA device
 - [ ] Sound devices (e.g. SoundBlaster 16)
 - [ ] USB
 #### Permanent memory
