@@ -60,7 +60,12 @@ DriveStatus StDeviceRead (uint32_t lba,       void* pDest, DriveID driveId, uint
 /**
  * Mounts a testing RAM disk and returns its ID.
  */
-DriveID StMountTestRamDisk ();
+DriveID StMountTestRamDisk (void);
+
+/**
+ * Initializes IDE driver.
+ */
+void StIdeInitialize(void);
 
 
 #endif//_STORABS_H

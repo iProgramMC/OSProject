@@ -1,4 +1,9 @@
-
+;
+; 		NanoShell Operating System
+; 		  (C) 2021 iProgramInCpp
+; 
+;    Assembly global variables module
+;
 section .data
 	
 global g_kernelPageDirectory

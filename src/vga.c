@@ -128,9 +128,9 @@ extern int g_textWidth, g_textHeight;
 void SwitchFont (const uint8_t* pFont)
 {
 	if (pFont[1] == 0x08)
-		WriteFont8px(pFont+2);
+		WriteFont8px(pFont+3);
 	else
-		WriteFont16px(pFont+2);
+		WriteFont16px(pFont+3);
 }
 
 extern const unsigned char g_FamiSans8x8[];

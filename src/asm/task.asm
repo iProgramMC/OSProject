@@ -1,3 +1,9 @@
+;
+; 		NanoShell Operating System
+;      (C) 2021-2022 iProgramInCpp
+; 
+;       Task Scheduling ASM Module
+;
 BITS 32
 
 ;section .data

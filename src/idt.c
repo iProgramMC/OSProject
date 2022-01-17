@@ -168,6 +168,10 @@ void KiIdtInit()
 	SetupInterrupt (&mask1, &mask2, 0x2, IrqClockA); // IRQ2: Cascade. Never triggered
 	SetupInterrupt (&mask1, &mask2, 0x8, IrqClockA);
 	SetupInterrupt (&mask1, &mask2, 0xC, IrqMouseA);
+	//prim and sec IDE drives.  Enable IRQs to avoid spending all the
+	//CPU time polling and heating up the shit out of our CPU.
+	//SetupInterrupt (&mask1, &mask2, 0xE, IrqCascadeA);
+	//SetupInterrupt (&mask1, &mask2, 0xF, IrqCascadeA);
 	
 #ifdef HAS_EXCEPTION_HANDLERS
 	SetupExceptionInterrupt (0x00, IsrStub0 );

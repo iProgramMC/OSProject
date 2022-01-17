@@ -685,6 +685,7 @@ bool HandleMessages(Window* pWindow);
 void RenderWindow (Window* pWindow);
 void TerminalHostTask(int arg);
 void RefreshMouse(void);
+void RenderCursor(void);
 void WindowManagerTask(__attribute__((unused)) int useless_argument)
 {
 	g_clickQueueSize = 0;
@@ -720,26 +721,11 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	
 	//test:
 #if !THREADING_ENABLED
-	//VersionProgramTask (0);
-	//IconTestTask(0);
-	//PrgPaintTask(0);
 	LogMsgNoCr("Huh!?? This shouldn't be on");
 	LauncherEntry(0);
 #else
 	int errorCode = 0;
 	Task* pTask;
-	
-	/*pTask = KeStartTask(TestProgramTask, 0, &errorCode);
-	DebugLogMsg("Created test task 1. pointer returned:%x, errorcode:%x", pTask, errorCode);
-	errorCode = 0;
-	pTask = KeStartTask(IconTestTask, 0, &errorCode);
-	DebugLogMsg("Created test task 2. pointer returned:%x, errorcode:%x", pTask, errorCode);
-	errorCode = 0;
-	pTask = KeStartTask(PrgPaintTask, 0, &errorCode);
-	DebugLogMsg("Created test task 3. pointer returned:%x, errorcode:%x", pTask, errorCode);
-	errorCode = 0;
-	pTask = KeStartTask(TerminalHostTask, 0, &errorCode);
-	DebugLogMsg("Created test task 4. pointer returned:%x, errorcode:%x", pTask, errorCode);*/
 	
 	//create the program manager task.
 	errorCode = 0;
@@ -748,22 +734,6 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	
 	
 #endif
-	
-	/*ACQUIRE_LOCK (g_clickQueueLock);
-	//ACQUIRE_LOCK (g_screenLock);
-	//wait a bit
-	
-	for (int i = 0; i < 50; i++)
-		hlt;
-	//we're done.  Redraw everything.
-	//UpdateDepthBuffer();
-	RedrawEverything();
-	
-	for (int i = 0; i < 50; i++)
-		hlt;
-	
-	//FREE_LOCK (g_screenLock);
-	FREE_LOCK (g_clickQueueLock);*/
 	
 	int timeout = 10;
 	int UpdateTimeout = 100, shutdownTimeout = 500;
@@ -808,6 +778,9 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 				{
 					pWindow->m_renderFinished = false;
 					RenderWindow(pWindow);
+					Point p = { g_mouseX, g_mouseY };
+					if (RectangleContains (&pWindow->m_rect, &p))
+						RenderCursor ();
 				}
 				//sti;
 			}

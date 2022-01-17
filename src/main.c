@@ -16,6 +16,7 @@
 #include <task.h>
 #include <shell.h>
 #include <mouse.h>
+#include <storabs.h>
 #include <misc.h>
 #include <vfs.h>
 #include <fpu.h>
@@ -183,11 +184,18 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	MmInit(mbi);
 	// Initialize the video subsystem
 	VidInitialize (mbi);
-	KePrintMemoryMapInfo();
+	
+	KePrintSystemVersion();
+	
+	//KePrintMemoryMapInfo();
 	// Initialize the task scheduler
 	KiTaskSystemInitialize();
+	
+	
 	// Initialize the ramdisk
 	FsInitializeInitRd(g_initrdStart);
+	// Initialize the IDE driver
+	StIdeInitialize ();
 	
 	//Initialize the mouse driver too
 	sti;
@@ -201,7 +209,6 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	// got executed.
 	
 	//print the hello text, to see if the OS booted ok
-	KePrintSystemVersion();
 	if (!VidIsAvailable())
 	{
 		LogMsg("\n\x01\x0CWARNING\x01\x0F: Running NanoShell in text mode is deprecated and will be removed in the future.\n");

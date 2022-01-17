@@ -97,10 +97,10 @@ void GraphicsTest()
 	g_debugConsole.color = 0x1F;
 }
 
-int g_nextTaskNum = 0;
-bool g_ramDiskMounted = 0;
-int g_ramDiskID = 0;
-int g_lastReturnCode = 0;
+int  g_nextTaskNum    = 0;
+bool g_ramDiskMounted = true;
+int  g_ramDiskID      = 0x00;//ATA: Prim Mas
+int  g_lastReturnCode = 0;
 bool CoPrintCharInternal (Console* this, char c, char next);
 
 char g_cwd[PATH_MAX+1];

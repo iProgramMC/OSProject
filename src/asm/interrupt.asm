@@ -1,3 +1,9 @@
+;
+; 		NanoShell Operating System
+;      (C) 2021-2022 iProgramInCpp
+; 
+;        Interrupt handler module
+;
 BITS 32
 SECTION .text
 

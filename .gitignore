@@ -20,3 +20,6 @@ sdk/nsmake/x64/*
 sdk/nsmake/Debug/*
 sdk/nsmake/Release/*
 nanoshell_initrd
+disk.vhd
+disk.vdi
+disk.qcow2

@@ -1,3 +1,9 @@
+;
+; 		NanoShell Operating System
+; 		  (C) 2021 iProgramInCpp
+; 
+;        EarlyBird Startup module
+;
 bits 32
 
 ; Setup kernel page directory and subsequent pages.  Maps the entire memory map from 0x00000000 to BASE_ADDRESS.

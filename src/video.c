@@ -962,26 +962,9 @@ void VidShiftScreen (int howMuch)
 
 // Stuff
 #if 1
-void SetMousePos (unsigned newX, unsigned newY)
+
+void RenderCursor(void)
 {
-	//NOTE: As this is called in an interrupt too, a call here might end up coming right
-	//while we we're drawing a window or something.  Keep a backup of the previous settings.
-	
-	VBEData* backup = g_vbeData;
-	g_vbeData = &g_mainScreenVBEData;
-	
-	int oldX = g_mouseX, oldY = g_mouseY;
-	
-	if (newX >= (unsigned)GetScreenSizeX()) newX = GetScreenSizeX() - 1;
-	if (newY >= (unsigned)GetScreenSizeY()) newY = GetScreenSizeY() - 1;
-	
-	g_mouseX = newX, g_mouseY = newY;
-	
-	//--uncomment if you want one pixel cursor (This is very useless and hard to use)
-	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
-	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
-	
-	//Draw the cursor image at the new position:
 	if (g_vbeData->m_bitdepth == 2)
 	{
 		//NEW: Optimization
@@ -1047,6 +1030,29 @@ void SetMousePos (unsigned newX, unsigned newY)
 			}
 		}
 	}
+}
+
+void SetMousePos (unsigned newX, unsigned newY)
+{
+	//NOTE: As this is called in an interrupt too, a call here might end up coming right
+	//while we we're drawing a window or something.  Keep a backup of the previous settings.
+	
+	VBEData* backup = g_vbeData;
+	g_vbeData = &g_mainScreenVBEData;
+	
+	int oldX = g_mouseX, oldY = g_mouseY;
+	
+	if (newX >= (unsigned)GetScreenSizeX()) newX = GetScreenSizeX() - 1;
+	if (newY >= (unsigned)GetScreenSizeY()) newY = GetScreenSizeY() - 1;
+	
+	g_mouseX = newX, g_mouseY = newY;
+	
+	//--uncomment if you want one pixel cursor (This is very useless and hard to use)
+	//VidPlotPixelIgnoreCursorChecks (g_mouseX, g_mouseY, 0xFF);
+	//VidPlotPixel (oldX, oldY, VidReadPixel(oldX, oldY));
+	
+	//Draw the cursor image at the new position:
+	RenderCursor();
 	
 	//Redraw all the pixels under where the cursor was previously:
 	for (int i = 0; i < g_currentCursor->height; i++)
@@ -1152,7 +1158,7 @@ void VidInitialize(multiboot_info_t* pInfo)
 	}
 	else
 	{
-		SwitchMode (0);
+		SwitchMode (1);
 		CoInitAsText(&g_debugConsole);
 		//LogMsg("Warning: no VBE mode specified.");
 		//sti;

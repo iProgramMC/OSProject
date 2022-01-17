@@ -17,6 +17,9 @@ struct DirEntS;
 #define PATH_THISDIR (".")
 #define PATH_PARENTDIR ("..")
 
+#define FS_DEVICE_NAME "Device"
+#define FS_FSROOT_NAME "FSRoot"
+
 enum
 {
 	FILE_TYPE_NONE = 0,

@@ -1,3 +1,9 @@
+;
+; 		NanoShell Operating System
+;      (C) 2021-2022 iProgramInCpp
+; 
+;        Misc/Input-Output module
+;
 bits 32
 section .text
 

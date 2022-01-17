@@ -1,16 +1,44 @@
-# NanoShell V3
-Here's my latest dive into OS development. [TEMPORARY NAME]
+# NanoShell
+NanoShell 3rd Edition is a preemptively multi-tasked 32-bit operating system with a windowed GUI.
 
-## Build
+## Build instructions
 
 ### Linux build:
-Never tested.
+Not supported.  Could be supported soon, but currently not supported.
 
 ### Windows build:
-Run `abuild.bat`. Place a testing `test.img` floppy image.
-NOTE: Create a `build` directory before attempting to build the OS.
 
-Run the provided windows `build.bat` with the required tools in `tools/i686-gcc` (the binaries for `i686-elf-gcc`), and `tools/nasm`
+** Preparation **
+Create the `build` folder.  Inside it create the folders `asm`, `kapp`, `fs` and `icons`.
 
-Download the `i686-elf` binutils from: https://github.com/lordmilko/i686-elf-tools/releases
+Create the `tools` directory.  Download [the i686-elf GCC+binutils](https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-windows.zip), and extract it into `tools/i686-gcc/`.
+Also download NASM and place it inside `tools/nasm` so that it is reachable at `tools/nasm/nasm.exe`.
 
+Make sure that `make` is easily accessible by opening a command prompt anywhere and typing `make`.
+
+Compile `tools_src/fsmaker` and `tools_src/icontest`.
+
+Place `fsmaker.exe` inside `tools/`.
+Place `icontest.exe` inside `tools/icc/`. (create the directory, if necessary)
+
+** The Moment of Truth**
+
+Run `buildall.bat`.  It should start building.
+
+## Installation
+
+If you don't have grub2, install it.  It's relatively easy.
+
+Once you have a grub installed on your favorite USB drive, create a `grub.cfg` inside the `grub` directory.
+Add the following lines:
+```
+menuentry "NanoShell" {
+	multiboot /boot/kernel.bin
+	set gfxpayload=1024x768x32
+	boot
+}
+```
+
+Note that you can place your kernel image anywhere, but I prefer `/boot/kernel.bin`.  Place your kernel image so that grub can find it, and then restart.
+
+And you're done! You should be in NanoShell now.  Type `w` to go to the GUI mode.

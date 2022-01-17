@@ -1,4 +1,9 @@
-
+;
+; 		NanoShell Operating System
+;      (C) 2021-2022 iProgramInCpp
+; 
+;         Multiboot Header module
+;
 ; main multiboot header
 
 %define vbe
