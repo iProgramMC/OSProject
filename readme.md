@@ -3,6 +3,38 @@ NanoShell 3rd Edition is a preemptively multi-tasked 32-bit operating system wit
 
 Be warned that building this is not for the average Linux user nor is it for the faint of heart.  Soon I'll work on a way to compile this in an easier way.
 
+## Goals
+
+- [x] Hello World
+#### Primordial tasks
+- [x] Paging and dynamic memory allocation
+- [x] Loading an ELF at some virtual address with its own heap and executing it
+- [x] Task Switching (concurrent threads)
+#### User
+- [x] A basic shell, can execute applications
+- [x] Get a GUI running (Also in a task)
+- [x] Applications can use the GUI API
+- [ ] Port DOOM
+- [ ] (ultimate boss) Port Mesa and Super Mario 64 (based on the DOS port, please)
+#### Drivers
+- [x] PS/2 Mouse and Keyboard
+- [x] EGA Text mode
+- [x] VBE Graphics mode (fast)
+- [x] Bochs/QEMU debugcon (E9 hack)
+- [ ] Serial port
+- [ ] PCI
+- [ ] Sound devices (e.g. SoundBlaster 16)
+- [ ] USB
+#### Permanent memory
+- [x] Block storage abstraction base
+- [x] Optional RAM disk images can be loaded and used as block devices
+- [ ] ATA device driver
+- [ ] USB stick device driver
+#### File system
+- [x] Root contains several files which are packed neatly into the executable
+- [ ] Mounting other file systems to the main one
+- [ ] Cleaning up after a while of not having used a certain directory page (can't apply to root or ram disks, you know why)
+
 ## Build instructions
 
 ### Linux build:
