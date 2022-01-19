@@ -31,6 +31,25 @@ int GetRawTickCount()
 {
 	return g_nRtcTicks;
 }
+__attribute__((noreturn))
+void KeRestartSystem(void)
+{
+    uint8_t good = 0x02;
+    while (good & 0x02)
+        good = ReadPort(0x64);
+    WritePort(0x64, 0xFE);
+	
+	// Still running.
+	if (true)
+	{
+		// Try a triple fault instead.
+		asm("mov $0, %esp\n\
+			 ret");
+		
+		// If all else fails, declare defeat:
+		KeStopSystem();
+	}
+}
 
 // basic garbage rand():
 int GetRandom()
@@ -69,12 +88,6 @@ CPUIDFeatureBits GetCPUFeatureBits()
 {
 	return g_cpuidFeatureBits;
 }
-
-enum
-{
-	FORMAT_TYPE_FIXED, //hh:mm:ss
-	FORMAT_TYPE_VAR,   //H hours, M minutes, S seconds
-};
 
 //note: recommend an output buffer of at least 50 chars
 void FormatTime(char* output, int formatType, int seconds)

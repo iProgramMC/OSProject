@@ -20,17 +20,22 @@ enum ConsoleType {
 	CONSOLE_TYPE_WINDOW,
 };
 
+#define KB_BUF_SIZE 128
+
 typedef struct ConsoleStruct {
-	int type; // ConsoleType enum
-	int width, height; // width and height
+	int  type; // ConsoleType enum
+	int  width, height; // width and height
 	uint16_t *textBuffer; // unused in fb mode
 	uint16_t color; // colors
-	int curX, curY; // cursor X and Y positions
+	int  curX, curY; // cursor X and Y positions
 	bool pushOrWrap;// check if we should push whole screen up, or clear&wrap
 	VBEData* m_vbeData;//vbe data to switch to when drawing, ONLY APPLIES TO CONSOLE_TYPE_WINDOW!!
-	int offX, offY;
-	int font;
-	int cwidth, cheight;
+	int  offX, offY;
+	int  font;
+	int  cwidth, cheight;
+	bool m_dirty;
+	char m_inputBuffer[KB_BUF_SIZE];
+	int  m_inputBufferBeg, m_inputBufferEnd;
 } Console;
 
 extern Console g_debugConsole; // for LogMsg
@@ -46,6 +51,9 @@ void CoInitAsText (Console* this);
 void CoInitAsGraphics (Console* this);
 void CoInitAsSerial (Console* this);
 void CoInitAsE9Hack (Console *this);
+void CoAddToInputQueue     (Console *this, char input);
+bool CoAnythingOnInputQueue(Console* this);
+char CoReadFromInputQueue  (Console* this);
 void CLogMsg (Console *this, const char* fmt, ...);
 void CLogMsgNoCr (Console *this, const char* fmt, ...);
 void LogMsg (const char* fmt, ...);
@@ -55,5 +63,11 @@ void SLogMsgNoCr (const char* fmt, ...);
 void LogHexDumpData (void* pData, int size);
 void ResetConsole();
 void SetConsole(Console* pConsole);
+
+// on current console:
+
+bool CoInputBufferEmpty();
+char CoGetChar   ();
+void CoGetString (char* buffer, int buffer_size);
 
 #endif//_CONSOLE_H

@@ -64,6 +64,21 @@ void CoClearScreen(Console *this) {
 	{
 		VidFillScreen (g_vgaColorsToRGB[this->color >> 4]);
 	}
+	else if (this->type == CONSOLE_TYPE_WINDOW)
+	{
+		//VidFillScreen (g_vgaColorsToRGB[this->color >> 4]);
+		for (int y = 0; y < this->height; y++)
+			for (int x = 0; x < this->width; x++)
+				CoPlotChar(this, x, y, 0);
+	}
+	else
+	{
+		//print <height> newlines as a last resort:
+		for (int i = 0; i < this->height; i++)
+		{
+			CoPrintChar(this, '\n');
+		}
+	}
 }
 void CoInitAsText(Console *this) {
 	this->curX = this->curY = 0;
@@ -107,6 +122,7 @@ void CoMoveCursor(Console* this) {
 extern VBEData* g_vbeData, g_mainScreenVBEData;
 void CoPlotChar (Console *this, int x, int y, char c) {
 	if (x < 0 || y < 0 || x >= this->width || y >= this->height) return;
+	this->m_dirty = true;
 	VBEData* backup = g_vbeData;
 	if (this->type == CONSOLE_TYPE_WINDOW)
 		g_vbeData = this->m_vbeData;
@@ -117,9 +133,9 @@ void CoPlotChar (Console *this, int x, int y, char c) {
 	}
 		
 	
-	if (this->type == CONSOLE_TYPE_TEXT || this->type == CONSOLE_TYPE_WINDOW) {
+	if (this->type == CONSOLE_TYPE_TEXT || this->type == CONSOLE_TYPE_WINDOW)
+	{
 		uint16_t chara = TextModeMakeChar (this->color, c);
-		// TODO: add bounds check
 		this->textBuffer [x + y * this->width] = chara;
 	}
 	if (this->type == CONSOLE_TYPE_FRAMEBUFFER)
@@ -133,7 +149,21 @@ void CoPlotChar (Console *this, int x, int y, char c) {
 		g_vbeData = backup;
 	}
 }
+void CoRefreshChar (Console *this, int x, int y) {
+	if (x < 0 || y < 0 || x >= this->width || y >= this->height) return;
+	this->m_dirty = true;
+	VBEData* backup = g_vbeData;
+	if (this->type == CONSOLE_TYPE_WINDOW)
+	{
+		g_vbeData = this->m_vbeData;
+		uint16_t cd = this->textBuffer[y * this->width + x];
+		
+		VidPlotChar (cd & 0xFF, this->offX + x * this->cwidth, this->offY + y  * this->cheight, g_vgaColorsToRGB[(cd>>8) & 0xF], g_vgaColorsToRGB[cd >> 12]);
+		g_vbeData = backup;
+	}
+}
 void CoScrollUpByOne(Console *this) {
+	this->m_dirty = true;
 	if (this->type == CONSOLE_TYPE_WINDOW) {
 		if (this->pushOrWrap) {
 			//CoClearScreen(this);
@@ -150,7 +180,7 @@ void CoScrollUpByOne(Console *this) {
 		{
 			for (int i = 0; i < this->width; i++)
 			{
-				CoPlotChar(this, i, j, this->textBuffer[i + j * this->width]);
+				CoRefreshChar(this, i, j);
 			}
 		}
 	}
@@ -201,6 +231,16 @@ bool CoPrintCharInternal (Console* this, char c, char next) {
 			if (!next) break;
 			char color = next & 0xF;
 			this->color = (this->color & 0xF0) | color;
+			return true;
+		case '\x02':
+			//change X coordinate
+			//To use this, just type `\x02\x0B`, for example, to move cursorX to 11
+			
+			if (!next) break;
+			char xcoord = next;
+			if (xcoord >= this->width)
+				xcoord = this->width - 1;
+			this->curX = xcoord;
 			return true;
 		case '\b':
 			if (--this->curX < 0) {
@@ -263,6 +303,79 @@ void CoPrintString (Console* this, const char *c) {
 	g_shouldntUpdateCursor = false;
 	CoMoveCursor(this);
 }
+
+// Input:
+void CoAddToInputQueue (Console* this, char input)
+{
+	if (!input) return;
+	
+	this->m_inputBuffer[this->m_inputBufferEnd++] = input;
+	while
+	   (this->m_inputBufferEnd >= KB_BUF_SIZE)
+		this->m_inputBufferEnd -= KB_BUF_SIZE;
+}
+bool CoAnythingOnInputQueue (Console* this)
+{
+	return this->m_inputBufferBeg != this->m_inputBufferEnd;
+}
+char CoReadFromInputQueue (Console* this)
+{
+	if (CoAnythingOnInputQueue(this))
+	{
+		char k = this->m_inputBuffer[this->m_inputBufferBeg++];
+		while
+		   (this->m_inputBufferBeg >= KB_BUF_SIZE)
+			this->m_inputBufferBeg -= KB_BUF_SIZE;
+		return k;
+	}
+	else return 0;
+}
+
+bool CoInputBufferEmpty()
+{
+	return !CoAnythingOnInputQueue (g_currentConsole);
+}
+extern void KeTaskDone();
+char CoGetChar()
+{
+	while (!CoAnythingOnInputQueue (g_currentConsole))
+		KeTaskDone();
+	return CoReadFromInputQueue (g_currentConsole);
+}
+void CoGetString(char* buffer, int max_size)
+{
+	int index = 0, max_length = max_size - 1;
+	//index represents where the next character we type would go
+	while (index < max_length)
+	{
+		//! has to stall
+		char k = CoGetChar();
+		if (k == '\n')
+		{
+			//return:
+			LogMsgNoCr("%c", k);
+			buffer[index++] = 0;
+			return;
+		}
+		else if (k == '\b')
+		{
+			if (index > 0)
+			{
+				LogMsgNoCr("%c", k);
+				index--;
+				buffer[index] = 0;
+			}
+		}
+		else
+		{
+			buffer[index++] = k;
+			LogMsgNoCr("%c", k);
+		}
+	}
+	LogMsg("");
+	buffer[index] = 0;
+}
+
 
 void CLogMsg (Console* pConsole, const char* fmt, ...) {
 	////allocate a buffer well sized

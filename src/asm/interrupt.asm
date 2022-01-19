@@ -22,6 +22,7 @@ global IrqKeyboardA
 global IrqCascadeA
 global OnSyscallReceivedA
 
+section .text
 
 IrqTimerA:
 	pusha
@@ -66,7 +67,6 @@ extern IsrExceptionCommon
 %macro ExceptionNoErrorCode 1
 global IsrStub%+%1
 IsrStub%+%1:
-	cli
 	push 0
 	pusha
 	push esp
@@ -82,8 +82,6 @@ extern IsrExceptionCommon
 %macro ExceptionErrorCode 1
 global IsrStub%+%1
 IsrStub%+%1:
-	cli
-	;push 0
 	pusha
 	push esp
 	push %1

@@ -23,6 +23,8 @@
 #include <wcall.h>
 #include <window.h>
 
+extern void FsMountFatPartitions (void);
+
 __attribute__((noreturn))
 void KeStopSystem()
 {
@@ -138,6 +140,8 @@ extern VBEData* g_vbeData;
 
 multiboot_info_t* g_pMultibootInfo;
 
+extern uint8_t g_TestingFloppyImage[];
+
 void FpuTest();
 __attribute__((noreturn))
 void KiStartupSystem (unsigned long check, unsigned long mbaddr)
@@ -201,6 +205,8 @@ void KiStartupSystem (unsigned long check, unsigned long mbaddr)
 	sti;
 	if (VidIsAvailable())
 		MouseInit();
+	// Initialize the FAT partitions.
+	FsMountFatPartitions();
 	
 	//LogMsg("C_MAX_TASKS: %d", C_MAX_TASKS);
 	//LogMsg("Sizeof Task: %d", sizeof(Task)); <-- Currently 80 bytes.

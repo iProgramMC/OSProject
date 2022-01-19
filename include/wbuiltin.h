@@ -25,6 +25,7 @@ void PrgPaintTask (int argument);
 void IconTestTask (int argument);
 void ListTestTask (int argument);
 void CabinetEntry (int argument);
+void SystemMonitorEntry(int argument);
 void LauncherEntry(int arg);
 
 #endif//_WBUILTIN_H

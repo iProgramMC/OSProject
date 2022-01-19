@@ -412,7 +412,6 @@ static void CtlAddElementToList (Control* pCtl, const char* pText, int optionalI
 		//have to expand first
 		int oldSize = sizeof (ListItem) * pData->m_capacity;
 		int newSize = oldSize * 2;
-		LogMsg("Expanding capacity from %d to %d (in bytes)", oldSize, newSize);
 		ListItem* pNewItems = MmAllocate(newSize);
 		ZeroMemory(pNewItems, newSize);
 		memcpy (pNewItems, pData->m_pItems, oldSize);
@@ -664,6 +663,19 @@ go_back:
 	}
 }
 #endif
+
+// Misc setters
+void SetLabelText (Window *pWindow, int comboID, const char* pText)
+{
+	for (int i = 0; i < pWindow->m_controlArrayLen; i++)
+	{
+		if (pWindow->m_pControlArray[i].m_comboID == comboID)
+		{
+			strcpy(pWindow->m_pControlArray[i].m_text, pText);
+			return;
+		}
+	}
+}
 
 // Basic controls
 #if 1

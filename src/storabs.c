@@ -14,7 +14,7 @@
  * The mapping of the drive numbers is as follows:
  *
  *    - 0x00 - 0x03: IDE drives
- *    - 0x10 - 0x11: Floppy drives
+ *    - 0x10 - 0x11: Floppy drives (won't add because they don't support FAT32)
  *    - 0xF0 - 0xFF: RAM disk drives 
  *    - 0xE0 - 0xEF: USB flash drives (?)
  *    - 0xAA       : Special reserved flag. This drive ID is always empty.
@@ -60,6 +60,10 @@ static uint8_t StNoDriveGetSubID (__attribute__((unused)) DriveID did)
 {
 	return 0xFF;
 }
+static bool StNoDriveIsAvailable (__attribute__((unused)) uint8_t did)
+{
+	return false;
+}
 #endif
 
 // Unused ram disks
@@ -74,6 +78,10 @@ bool StIsRamDiskReadOnly (int num)
 	return(g_RAMDisks[num].m_bReadOnly);
 }
 
+static bool StRamDiskIsAvailable (uint8_t did)
+{
+	return StIsRamDiskMounted (did);
+}
 static DriveStatus StRamDiskWrite(uint32_t lba, const void* pSrc, uint8_t driveID, uint8_t nBlocks)
 {
 	if (!StIsRamDiskMounted(driveID))
@@ -125,14 +133,41 @@ static uint8_t StIdeGetSubID (DriveID did)
 
 bool g_ideDriveAvailable[] = { false, false, false, false };//the 4 IDE drives
 
+static bool StIdeWaitBusy (uint16_t base)
+{
+	int countWait = 0;
+	while (ReadPort (base + 7) & BSY_FLAG)
+	{
+		countWait++;
+		if (countWait >= 1000000)
+		{
+			return false;
+		}
+		//KeTaskDone();
+	}
+	return true;
+}/*
+static bool StIdeWaitBusyDrq (uint16_t base)
+{
+	int countWait = 0;
+	while (ReadPort (base + 7) & (BSY_FLAG | DRQ_FLAG))
+	{
+		countWait++;
+		if (countWait >= 2000000)
+		{
+			return false;
+		}
+		//KeTaskDone();
+	}
+	return true;
+}
+*/
 static DriveStatus StIdeDriveRead(uint32_t lba, void* pDest, uint8_t driveID, uint8_t nBlocks)
 {
-	LogMsg("Reading from drive 0x%b %d blocks from %x lba.", driveID, nBlocks, lba);
 	if (g_ideDriveAvailable[driveID] == false)
 		return DEVERR_NOTFOUND;
 	
 	uint16_t base, driveType = 0xE0;
-	int countWait = 0;
 	switch (driveID)
 	{
 		case 0:
@@ -143,32 +178,32 @@ static DriveStatus StIdeDriveRead(uint32_t lba, void* pDest, uint8_t driveID, ui
 	}
 	if (driveID % 2) driveType |= 0x10;
 	
-	WritePort (base+2, nBlocks);
+	if (!StIdeWaitBusy(base))
+	{
+		g_ideDriveAvailable[driveID] = false;
+		return DEVERR_HARDWARE_ERROR;
+	}
+	
 	//LBA: 28 bits
+	WritePort (base+6, (uint8_t)((lba & 0x0F000000)>>24) | driveType);
+	WritePort (base+1, 0x00);
+	WritePort (base+2, nBlocks);
 	WritePort (base+3, (uint8_t)((lba & 0x000000FF)));
 	WritePort (base+4, (uint8_t)((lba & 0x0000FF00)>>8));
 	WritePort (base+5, (uint8_t)((lba & 0x00FF0000)>>16));
-	WritePort (base+6, (uint8_t)((lba & 0x0F000000)>>24) | driveID);
 	WritePort (base+7, CMD_READ);
 	
 	uint16_t* pDestW = (uint16_t*)pDest;
 	
 	for (int i = 0; i < nBlocks; i++)
 	{
-		countWait = 0;
-		while (ReadPort (base + 7) & BSY_FLAG)
+		if (!StIdeWaitBusy(base))
 		{
-			countWait++;
-			if (countWait >= 1000000)
-			{
-				LogMsg("Drive %d is not responding? Marking drive as unavailable!", driveID);
-				g_ideDriveAvailable[driveID] = false;
-				return DEVERR_HARDWARE_ERROR;
-			}
-			//KeTaskDone();
+			LogMsg("Drive %d is not responding? Marking drive as unavailable!", driveID);
+			g_ideDriveAvailable[driveID] = false;
+			return DEVERR_HARDWARE_ERROR;
 		}
 		
-		LogMsg("ACTUALLY READING...");
 		for (int as = 0; as < 256; as++)
 			*(pDestW++) = ReadPortW (base);
 	}
@@ -182,7 +217,6 @@ static DriveStatus StIdeDriveWrite(uint32_t lba, const void* pDest, uint8_t driv
 		return DEVERR_NOTFOUND;
 	
 	uint16_t base, driveType = 0xE0;
-	int countWait = 0;
 	switch (driveID)
 	{
 		case 0:
@@ -193,29 +227,30 @@ static DriveStatus StIdeDriveWrite(uint32_t lba, const void* pDest, uint8_t driv
 	}
 	if (driveID % 2) driveType |= 0x10;
 	
-	WritePort (base+2, nBlocks);
+	if (!StIdeWaitBusy(base))
+	{
+		LogMsg("Before sending Write command: drive %d is not responding? Marking drive as unavailable!", driveID);
+		g_ideDriveAvailable[driveID] = false;
+		return DEVERR_HARDWARE_ERROR;
+	}
+	
 	//LBA: 28 bits
+	WritePort (base+6, (uint8_t)((lba & 0x0F000000)>>8) | driveType);
+	WritePort (base+2, nBlocks);
 	WritePort (base+3, (uint8_t)((lba & 0x000000FF)));
 	WritePort (base+4, (uint8_t)((lba & 0x0000FF00)>>8));
 	WritePort (base+5, (uint8_t)((lba & 0x00FF0000)>>8));
-	WritePort (base+6, (uint8_t)((lba & 0x0F000000)>>8) | driveID);
 	WritePort (base+7, CMD_WRITE);
 	
 	uint16_t* pDestW = (uint16_t*)pDest;
 	
 	for (int i = 0; i < nBlocks; i++)
 	{
-		countWait = 0;
-		while (ReadPort (base + 7) & BSY_FLAG)
+		if (!StIdeWaitBusy(base))
 		{
-			countWait++;
-			if (countWait >= 1000000)
-			{
-				LogMsg("Drive %d is not responding? Marking drive as unavailable!", driveID);
-				g_ideDriveAvailable[driveID] = false;
-				return DEVERR_HARDWARE_ERROR;
-			}
-			//KeTaskDone();
+			LogMsg("Drive %d is not responding? Marking drive as unavailable!", driveID);
+			g_ideDriveAvailable[driveID] = false;
+			return DEVERR_HARDWARE_ERROR;
 		}
 		
 		for (int as = 0; as < 256; as++)
@@ -227,17 +262,11 @@ static DriveStatus StIdeDriveWrite(uint32_t lba, const void* pDest, uint8_t driv
 	// Flush cache
 	WritePort (base + 7, 0xE7);
 	
-	countWait = 0;
-	while (ReadPort (base + 7) & BSY_FLAG)
+	if (!StIdeWaitBusy(base))
 	{
-		countWait++;
-		if (countWait >= 1000000)
-		{
-			LogMsg("Drive stopped responding?! Marking drive as unavailable!");
-			g_ideDriveAvailable[driveID] = false;
-			return DEVERR_HARDWARE_ERROR;
-		}
-		//KeTaskDone();
+		LogMsg("FLUSH CACHE: Drive %d is not responding? Marking drive as unavailable!", driveID);
+		g_ideDriveAvailable[driveID] = false;
+		return DEVERR_HARDWARE_ERROR;
 	}
 	
 	return DEVERR_SUCCESS;
@@ -359,6 +388,11 @@ void StIdeInitialize()
 	LogMsg("Probing done.");
 }
 
+static bool StIdeIsAvailable (uint8_t did)
+{
+	return g_ideDriveAvailable[did];
+}
+
 #endif
 
 // Abstracted out drive callbacks
@@ -385,6 +419,13 @@ static DriveGetSubIDCallback g_GetSubIDCallbacks[] = {
 	StRamDiskGetSubID, //RAM disk,
 	StNoDriveGetSubID, //Count
 };
+static DriveIsAvailableCallback g_IsAvailableCallbacks[] = {
+	StNoDriveIsAvailable, //Unknown
+	StIdeIsAvailable,     //IDE -- TODO!
+	StNoDriveIsAvailable, //Floppy -- TODO!
+	StRamDiskIsAvailable, //RAM disk,
+	StNoDriveIsAvailable, //Count
+};
 
 DriveStatus StDeviceRead(uint32_t lba, void* pDest, DriveID driveId, uint8_t nBlocks)
 {
@@ -406,32 +447,14 @@ DriveStatus StDeviceWrite(uint32_t lba, const void* pSrc, DriveID driveId, uint8
 	
 	return g_WriteCallbacks[driveType](lba, pSrc, driveSubId, nBlocks);
 }
-#endif
-
-extern uint8_t g_TestingFloppyImage[];
-DriveID StMountTestRamDisk ()
+bool StIsDriveAvailable (DriveID driveId)
 {
-	/*int numDisk = -1;
-	for (int i = 0; i < RAMDISK_MAX; i++)
-	{
-		if (!StIsRamDiskMounted(i))
-		{
-			numDisk = i;
-			break;
-		}
-	}
-	if (numDisk == -1) return 0xAA;//nope
+	DriveType driveType = StGetDriveType(driveId);
+	if (driveType == DEVICE_UNKNOWN)
+		return false;
 	
-	//initialize the ram disk:
-	RamDisk* pRD = &g_RAMDisks[numDisk];
+	uint8_t driveSubId = g_GetSubIDCallbacks[driveType](driveId);
 	
-	pRD->m_bMounted = true;
-	pRD->m_bReadOnly = true;
-	
-	//for now, just use a simple floppy image:
-	pRD->m_CapacityBlocks = 1440 * 1024 / 512; //1440K = 2880 Blocks.
-	pRD->m_pDriveContents = g_TestingFloppyImage;
-	
-	return 0xF0 + numDisk;*/
-	return 0xAA;
+	return g_IsAvailableCallbacks[driveType](driveSubId);
 }
+#endif

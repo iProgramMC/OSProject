@@ -94,11 +94,13 @@ uint32_t g_waitCursorColors[] =
 
 Cursor g_defaultCursor = {
 	12, 21, 0, 0, 
-	g_cursorColors
+	g_cursorColors,
+	true
 };
 Cursor g_waitCursor = {
 	14, 22, 0, 0, 
-	g_waitCursorColors
+	g_waitCursorColors,
+	true
 };
 #undef X
 #undef B
@@ -134,6 +136,7 @@ void RefreshMouse()
 		g_queueMouseUpdateTo.updated = false;
 		SetMousePos(g_queueMouseUpdateTo.newX, g_queueMouseUpdateTo.newY);
 	}
+	hlt;
 }
 
 void AddClickInfoToQueue(const ClickInfo* info)
@@ -1059,8 +1062,13 @@ void SetMousePos (unsigned newX, unsigned newY)
 	{
 		for (int j = 0; j < g_currentCursor->width; j++)
 		{
-			int id = i * g_currentCursor->width + j;
-			if (g_currentCursor->bitmap[id] != TRANSPARENT)
+			bool condition = true;
+			if (g_currentCursor->m_transparency)
+			{
+				int id = i * g_currentCursor->width + j;
+				condition = g_currentCursor->bitmap[id] != TRANSPARENT;
+			}
+			if (condition)
 			{
 				int kx = j + oldX - g_currentCursor->leftOffs,
 					ky = i + oldY - g_currentCursor->topOffs;

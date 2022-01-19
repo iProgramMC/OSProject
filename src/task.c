@@ -15,6 +15,7 @@
 __attribute__((aligned(16)))
 Task g_runningTasks[C_MAX_TASKS];
 
+
 static int s_lastRunningTaskIndex = 1;
 
 static int s_currentRunningTask = -1;
@@ -23,7 +24,10 @@ __attribute__((aligned(16)))
 static int          g_kernelFPUState[128];
 static VBEData*     g_kernelVBEContext = NULL;
 static Heap*        g_kernelHeapContext = NULL;
+static Console*     g_kernelConsoleContext = NULL;
+
 extern Heap*        g_pHeap;
+extern Console*     g_currentConsole; //logmsg
 
 bool g_forceKernelTaskToRunNext = false;
 
@@ -118,6 +122,7 @@ void KeConstructTask (Task* pTask)
 	
 	pTask->m_pVBEContext = &g_mainScreenVBEData;
 	pTask->m_pCurrentHeap = g_pHeap;//default kernel heap.
+	pTask->m_pConsoleContext = g_currentConsole;
 }
 
 Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, const char* authorFile, const char* authorFunc, int authorLine)
@@ -127,7 +132,10 @@ Task* KeStartTaskD(TaskedFunction function, int argument, int* pErrorCodeOut, co
 	int i = 1;
 	for (; i < C_MAX_TASKS; i++)
 	{
-		if (!g_runningTasks[i].m_bExists) break;
+		if (!g_runningTasks[i].m_bExists)
+		{
+			break;
+		}
 	}
 	
 	if (i == C_MAX_TASKS)
@@ -287,6 +295,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		KeFxSave (pTask -> m_fpuState);
 		pTask->m_pVBEContext = g_vbeData;
 		pTask->m_pCurrentHeap = g_pHeap;
+		pTask->m_pConsoleContext = g_currentConsole;
 	}
 	else
 	{
@@ -294,6 +303,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		KeFxSave (g_kernelFPUState); //perhaps we won't use this.
 		g_kernelVBEContext = g_vbeData;
 		g_kernelHeapContext = g_pHeap;
+		g_kernelConsoleContext = g_currentConsole;
 	}
 	ResetToKernelHeap();
 	
@@ -342,6 +352,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		//first, restore this task's FPU registers:
 		KeFxRestore(pNewTask->m_fpuState);
 		g_vbeData = pNewTask->m_pVBEContext;
+		g_currentConsole = pNewTask->m_pConsoleContext;
 		UseHeap (pNewTask->m_pCurrentHeap);
 		KeRestoreStandardTask(pNewTask);
 	}
@@ -351,6 +362,7 @@ void KeSwitchTask(CPUSaveState* pSaveState)
 		//first, restore the kernel task's FPU registers:
 		KeFxRestore(g_kernelFPUState);
 		g_vbeData = g_kernelVBEContext;
+		g_currentConsole = g_kernelConsoleContext;
 		UseHeap (g_kernelHeapContext);
 		KeRestoreKernelTask();
 	}

@@ -125,6 +125,7 @@ char KbWaitForKeyAndGet();
 void KbFlushBuffer();
 bool KbIsBufferEmpty();
 KeyState KbGetKeyState(unsigned char keycode);
+void SetFocusedConsole(Console *pConsole);
 
 // max_size is not optional, contrary to popular belief :)
 void KbGetString(char* buffer, int max_size);

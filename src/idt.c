@@ -59,9 +59,12 @@ void SetupExceptionInterrupt (int intNum, void* isrHandler)
  * Exception handlers.  They cause a bugcheck when we get 'em.
  */
 bool g_hasAlreadyThrownException = false;
+extern Console *g_currentConsole, g_debugConsole;
 void IsrExceptionCommon(int code, Registers* pRegs) {
-	cli;
+	g_debugConsole.color = 0x4F;
+	g_currentConsole = &g_debugConsole;
 	VidSetVBEData(NULL);
+	VidSetFont(FONT_TAMSYN_BOLD);
 	if (g_hasAlreadyThrownException)
 	{
 		LogMsg("SEVERE ERROR: Already threw an exception.");

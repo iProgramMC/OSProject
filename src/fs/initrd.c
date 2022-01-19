@@ -106,27 +106,54 @@ static uint32_t FsInitRdRead(FileNode* pNode, uint32_t offset, uint32_t size, vo
 }
 //TODO: open, close etc
 //TODO: make a different separate way to do this stuff?
+extern int       g_fatsMountedCount;
+extern FileNode* g_fatsMountedPointers[32];
 static DirEnt* FsInitRdReadDir(FileNode* pNode, uint32_t index)
 {
-	if (pNode == g_pInitRdRoot && index == 0)
+	uint32_t filesBeforeInitrd = 1 + g_fatsMountedCount;
+	if (pNode == g_pInitRdRoot && index < filesBeforeInitrd)
 	{
-		strcpy (g_DirEnt.m_name, FS_DEVICE_NAME);
-		g_DirEnt.m_inode = 0;
-		return &g_DirEnt;
+		if (index == 0)
+		{
+			strcpy (g_DirEnt.m_name, FS_DEVICE_NAME);
+			g_DirEnt.m_inode = 0;
+			return &g_DirEnt;
+		}
+		else
+		{
+			index--;
+			strcpy (g_DirEnt.m_name, g_fatsMountedPointers[index]->m_name);
+			g_DirEnt.m_inode = g_fatsMountedPointers[index]->m_inode;
+			return &g_DirEnt;
+		}
 	}
 	
-	if (index - 1 >= g_nRootNodes)
+	index -= filesBeforeInitrd;
+	if (index >= g_nRootNodes)
 		return NULL;
 	
-	strcpy(g_DirEnt.m_name, g_pRootNodes[index-1].m_name);
-	g_DirEnt.m_inode = g_pRootNodes[index-1].m_inode;
+	strcpy(g_DirEnt.m_name, g_pRootNodes[index].m_name);
+	g_DirEnt.m_inode      = g_pRootNodes[index].m_inode;
 	return &g_DirEnt;
 }
 
 static FileNode* FsInitRdFindDir(FileNode* pNode, const char* pName)
 {
-	if (pNode == g_pInitRdRoot && strcmp(pName, FS_DEVICE_NAME) == 0)
-		return g_pInitRdDev;
+	if (pNode == g_pInitRdRoot)
+	{
+		if (strcmp(pName, FS_DEVICE_NAME) == 0)
+			return g_pInitRdDev;
+		else
+		{
+			for (int i = 0; i < g_fatsMountedCount; i++)
+			{
+				if (strcmp (pName, g_fatsMountedPointers[i]->m_name) == 0)
+				{
+					return g_fatsMountedPointers[i];
+				}
+			}
+		}
+	}
 	
 	for (uint32_t i = 0; i < g_nRootNodes; i++)
 	{

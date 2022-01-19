@@ -49,4 +49,9 @@ void RemoveElementFromList (Window* pWindow, int comboID, int elemIndex);
  */
 void ResetList (Window* pWindow, int comboID);
 
+/**
+ * Changes the text of any component with text with a certain comboID.
+ */
+void SetLabelText (Window *pWindow, int comboID, const char* pText);
+
 #endif//_WIDGET_H

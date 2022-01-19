@@ -29,6 +29,29 @@ void KeTaskDone(void);
 #define cli
 #define sti
 
+//fps counter:
+#if 1
+
+int g_FPS, g_FPSThisSecond, g_FPSLastCounted;
+
+void UpdateFPSCounter()
+{
+	if (g_FPSLastCounted + 1000 <= GetTickCount())
+	{
+		g_FPS = g_FPSThisSecond;
+		g_FPSThisSecond = 0;
+		g_FPSLastCounted = GetTickCount();
+	}
+	g_FPSThisSecond++;
+}
+
+int GetWindowManagerFPS()
+{
+	return g_FPS;
+}
+
+#endif
+
 //background code:
 #if 1
 
@@ -399,10 +422,12 @@ void RequestRepaint (Window* pWindow)
 	WindowRegisterEventUnsafe(pWindow, EVENT_PAINT, 0, 0);
 }
 
+extern void SetFocusedConsole(Console* console);
 void SelectThisWindowAndUnselectOthers(Window* pWindow)
 {
 	bool wasSelectedBefore = pWindow->m_isSelected;
 	if (!wasSelectedBefore) {
+		SetFocusedConsole (NULL);
 		for (int i = 0; i < WINDOWS_MAX; i++) {
 			if (g_windows[i].m_used) {
 				if (g_windows[i].m_isSelected)
@@ -423,6 +448,7 @@ void SelectThisWindowAndUnselectOthers(Window* pWindow)
 		WindowRegisterEventUnsafe(pWindow, EVENT_PAINT, 0, 0);
 		pWindow->m_vbeData.m_dirty = true;
 		pWindow->m_renderFinished = true;
+		SetFocusedConsole (pWindow->m_consoleToFocusKeyInputsTo);
 	}
 }
 #endif
@@ -468,6 +494,8 @@ Window* CreateWindow (const char* title, int xPos, int yPos, int xSize, int ySiz
 	pWnd->m_eventQueueLock = false;
 	pWnd->m_markedForDeletion = false;
 	pWnd->m_callback = proc; 
+	
+	pWnd->m_consoleToFocusKeyInputsTo = NULL;
 	
 	pWnd->m_vbeData.m_available     = true;
 	pWnd->m_vbeData.m_framebuffer32 = MmAllocate (sizeof (uint32_t) * xSize * ySize);
@@ -577,6 +605,7 @@ void OnUILeftClickDrag (int mouseX, int mouseY)
 				g_windowDragCursor.leftOffs = mouseX - window->m_rect.left;
 				g_windowDragCursor.topOffs  = mouseY - window->m_rect.top;
 				g_windowDragCursor.bitmap   = window->m_vbeData.m_framebuffer32;
+				g_windowDragCursor.m_transparency = false;
 				
 				SetCursor (&g_windowDragCursor);
 			}
@@ -642,10 +671,12 @@ void OnUIRightClick (int mouseX, int mouseY)
 	
 	if (idx > -1)
 	{
-		Window* window = GetWindowFromIndex(idx);
+		//Window* window = GetWindowFromIndex(idx);
 		
 		//hide this window:
-		HideWindow(window);
+		//HideWindow(window);
+		
+		//TODO
 	}
 	//FREE_LOCK(g_windowLock);
 }
@@ -686,6 +717,24 @@ void RenderWindow (Window* pWindow);
 void TerminalHostTask(int arg);
 void RefreshMouse(void);
 void RenderCursor(void);
+
+static Window* g_pShutdownMessage = NULL;
+
+void WindowManagerOnShutdownTask (__attribute__((unused)) int useless)
+{
+	if (MessageBox (NULL, "It is now safe to shut down your computer.", "Shutdown Computer", MB_RESTART | ICON_NULL << 16) == MBID_OK)
+	{
+		KeRestartSystem();
+	}
+}
+
+void WindowManagerOnShutdown(void)
+{
+	//create a task
+	UNUSED int useless = 0;
+	KeStartTask(WindowManagerOnShutdownTask, 0, &useless);
+}
+
 void WindowManagerTask(__attribute__((unused)) int useless_argument)
 {
 	g_clickQueueSize = 0;
@@ -697,6 +746,8 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	g_debugConsole.pushOrWrap = 1;
 	
 	g_windowManagerRunning = true;
+	
+	g_pShutdownMessage = NULL;
 	
 	g_shutdownSentDestroySignals = false;
 	g_shutdownWaiting			 = false;
@@ -712,10 +763,11 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	//CreateTestWindows();
 	UpdateDepthBuffer();
 	
-	VidSetFont(FONT_BASIC);
+	//VidSetFont(FONT_BASIC);
 	//VidSetFont(FONT_TAMSYN_BOLD);
+	//VidSetFont(FONT_TAMSYN_REGULAR);
 	//VidSetFont(FONT_FAMISANS);
-	//VidSetFont(FONT_GLCD);
+	VidSetFont(FONT_GLCD);
 	
 	WindowCallInitialize ();
 	
@@ -731,15 +783,14 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 	errorCode = 0;
 	pTask = KeStartTask(LauncherEntry, 0, &errorCode);
 	DebugLogMsg("Created launcher task. pointer returned:%x, errorcode:%x", pTask, errorCode);
-	
-	
 #endif
 	
 	int timeout = 10;
 	int UpdateTimeout = 100, shutdownTimeout = 500;
 	
-	while (g_windowManagerRunning)
+	while (true)
 	{
+		UpdateFPSCounter();
 		bool bufferHasSomething = false;
 		char nextTypedChar = '\0';
 		if (!KbIsBufferEmpty())
@@ -765,11 +816,13 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 			
 		#if !THREADING_ENABLED
-			if (!HandleMessages (pWindow))
-			{
-				//ReadyToDestroyWindow(pWindow);
-				continue;
-			}
+			if (pWindow == g_pShutdownMessage)
+				if (!HandleMessages (pWindow))
+				{
+					//ReadyToDestroyWindow(pWindow);
+					KeStopSystem();
+					continue;
+				}
 		#endif
 			if (!pWindow->m_hidden)
 			{
@@ -832,7 +885,7 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 		if (g_shutdownWaiting)
 		{
 			shutdownTimeout--;
-			LogMsg("(Waiting for all windows to shut down... -- %d ticks left.)", shutdownTimeout);
+			//LogMsg("(Waiting for all windows to shut down... -- %d ticks left.)", shutdownTimeout);
 			bool noMoreWindows = true;
 			for (int i = 0; i < WINDOWS_MAX; i++)
 			{
@@ -844,9 +897,13 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 			}
 			if (noMoreWindows)
 			{
-				LogMsg("All windows have shutdown gracefully?  Quitting...");
-				LogMsg("STATUS: We survived!  Exitting in a brief moment.");
-				g_windowManagerRunning = false;
+				//LogMsg("All windows have shutdown gracefully?  Quitting...");
+				//LogMsg("STATUS: We survived!  Exitting in a brief moment.");
+				//g_windowManagerRunning = false;
+				
+				// On Shutdown:
+				g_shutdownWaiting = false;
+				WindowManagerOnShutdown ();
 				continue;
 			}
 			//Shutdown timeout equals zero.  If there are any windows still up, force-kill them.
@@ -864,13 +921,16 @@ void WindowManagerTask(__attribute__((unused)) int useless_argument)
 					}
 				}
 				
-				g_windowManagerRunning = false;
+				//g_windowManagerRunning = false;
+				g_shutdownWaiting = false;
+				WindowManagerOnShutdown ();
+				continue;
 			}
 		}
 		
 		//for (int i = 0; i < 2; i++)
-		hlt;
-		//KeTaskDone();
+		//hlt;
+		KeTaskDone();
 	}
 	WindowCallDeinitialize ();
 	KillWindowDepthBuffer();
@@ -1048,30 +1108,43 @@ void CALLBACK MessageBoxCallback (Window* pWindow, int messageType, int parm1, i
 int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32_t style)
 {
 	// Free the locks that have been acquired.
-	bool eqLock = pWindow->m_eventQueueLock, wnLock = g_windowLock, scLock = g_screenLock;
-	if  (eqLock) FREE_LOCK (pWindow->m_eventQueueLock);
+	bool wnLock = g_windowLock, scLock = g_screenLock, eqLock = false;
 	if  (wnLock) FREE_LOCK (g_windowLock);
 	if  (scLock) FREE_LOCK (g_screenLock);
 	
-	bool wasSelectedBefore = pWindow->m_isSelected;
-	if (wasSelectedBefore)
+	bool wasSelectedBefore = false;
+	if (pWindow)
 	{
-		pWindow->m_isSelected = false;
-		PaintWindowBorderNoBackgroundOverpaint (pWindow);
+		eqLock = pWindow->m_eventQueueLock;
+		if (eqLock) FREE_LOCK (pWindow->m_eventQueueLock);
+	
+		wasSelectedBefore = pWindow->m_isSelected;
+		if (wasSelectedBefore)
+		{
+			pWindow->m_isSelected = false;
+			PaintWindowBorderNoBackgroundOverpaint (pWindow);
+		}
 	}
 	
 	VBEData* pBackup = g_vbeData;
 	
 	VidSetVBEData(NULL);
 	// Freeze the current window.
-	WindowProc pProc = pWindow->m_callback;
-	int old_flags = pWindow->m_flags;
-	pWindow->m_callback = MessageBoxWindowLightCallback;
-	pWindow->m_flags |= WF_FROZEN;//Do not respond to user attempts to move/other
+	int old_flags = 0;
+	WindowProc pProc;
+	if (pWindow)
+	{
+		pProc = pWindow->m_callback;
+		old_flags = pWindow->m_flags;
+		pWindow->m_callback = MessageBoxWindowLightCallback;
+		pWindow->m_flags |= WF_FROZEN;//Do not respond to user attempts to move/other
+	}
 	
 	int szX, szY;
 	// Measure the pText text.
 	VidTextOutInternal (pText, 0, 0, 0, 0, true, &szX, &szY);
+	
+	szY += 12;
 	
 	int  iconID = style >> 16;
 	bool iconAvailable = iconID != ICON_NULL;
@@ -1088,7 +1161,7 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 	int wSzX = szX + 
 			   40 + //X padding on both sides
 			   10 + //Gap between icon and text.
-			   32 + //Icon's size.
+			   32 * iconAvailable + //Icon's size.
 			   5 +
 			   WINDOW_RIGHT_SIDE_THICKNESS;//End.
 	int wSzY = szY + 
@@ -1131,6 +1204,15 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 			rect.right  = rect.left + buttonWidth;
 			rect.bottom = rect.top  + buttonHeight;
 			AddControl (pBox, CONTROL_BUTTON, rect, "OK", MBID_OK, 0, 0);
+			break;
+		}
+		case MB_RESTART:
+		{
+			rect.left = (wSzX - buttonWidth) / 2;
+			rect.top  = (wSzY - buttonHeight - 10);
+			rect.right  = rect.left + buttonWidth;
+			rect.bottom = rect.top  + buttonHeight;
+			AddControl (pBox, CONTROL_BUTTON, rect, "Restart", MBID_OK, 0, 0);
 			break;
 		}
 		case MB_YESNOCANCEL:
@@ -1223,17 +1305,22 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 		{
 			break;//we're done.
 		}
-		hlt;//KeTaskDone();
+		//hlt;
+		KeTaskDone();
 	}
 	
 	int dataReturned = (int)pBox->m_data;
 	
 	ReadyToDestroyWindow (pBox);
 	
-	pWindow->m_callback = pProc;
-	pWindow->m_flags    = old_flags;
+	if (pWindow)
+	{
+		pWindow->m_callback = pProc;
+		pWindow->m_flags    = old_flags;
+	}
 	g_vbeData = pBackup;
 	
+	//NB: No null dereference, because if pWindow is null, wasSelectedBefore would be false anyway
 	if (wasSelectedBefore)
 	{
 		pWindow->m_isSelected = true;
@@ -1241,7 +1328,10 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
 	}
 	
 	// Re-acquire the locks that have been freed before.
-	if (eqLock) ACQUIRE_LOCK (pWindow->m_eventQueueLock);
+	if (pWindow)
+	{
+		if (eqLock) ACQUIRE_LOCK (pWindow->m_eventQueueLock);
+	}
 	if (wnLock) ACQUIRE_LOCK (g_windowLock);
 	if (scLock) ACQUIRE_LOCK (g_screenLock);
 	return dataReturned;
@@ -1472,7 +1562,8 @@ bool HandleMessages(Window* pWindow)
 			FREE_LOCK (pWindow->m_eventQueueLock);
 			//FREE_LOCK (g_windowLock);
 			//FREE_LOCK (g_screenLock);
-			hlt;//KeTaskDone();//hlt; //give it a good halt
+			//hlt;
+			KeTaskDone();//hlt; //give it a good halt
 			
 			//Ready to destroy the window.
 			//VBEData* p = g_vbeData;
@@ -1490,7 +1581,8 @@ bool HandleMessages(Window* pWindow)
 	FREE_LOCK (pWindow->m_eventQueueLock);
 	//FREE_LOCK (g_windowLock);
 	//FREE_LOCK (g_screenLock);
-	hlt;//KeTaskDone();//hlt; //give it a good halt
+	//hlt;
+	KeTaskDone();//hlt; //give it a good halt
 	return true;
 }
 /*

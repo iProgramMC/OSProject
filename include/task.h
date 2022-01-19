@@ -11,6 +11,7 @@
 #include <debug.h>
 #include <video.h>
 #include <memory.h>
+#include <console.h>
 
 #define C_MAX_TASKS 1024//reduced, old was 1024
 #define C_STACK_BYTES_PER_TASK 32768 //plenty, but can change later if needed.
@@ -71,6 +72,7 @@ typedef struct
 	
 	VBEData*       m_pVBEContext;
 	Heap *         m_pCurrentHeap;
+	Console*       m_pConsoleContext;
 	
 	char 		   m_tag[33];
 }

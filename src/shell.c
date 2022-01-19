@@ -22,6 +22,7 @@
 #include <elf.h>
 
 char g_lastCommandExecuted[256] = {0};
+extern Console* g_currentConsole;
 
 void ShellTaskTest(int arg)
 {
@@ -72,7 +73,7 @@ typedef void (*Pointer)(unsigned color, int left, int top, int right, int bottom
 void GraphicsTest()
 {
 	g_debugConsole.color = 0x2F;
-	CoClearScreen(&g_debugConsole);
+	CoClearScreen(g_currentConsole);
 	
 	//demonstrate some of the apis that the kernel provides:
 	//VidFillRect(0xFF0000, 10, 150, 210, 310);
@@ -93,7 +94,7 @@ void GraphicsTest()
 	VidShiftScreen(10);
 	
 	LogMsg("Test complete.  Strike a key to exit.");
-	KbWaitForKeyAndGet();
+	CoGetChar();
 	g_debugConsole.color = 0x1F;
 }
 
@@ -128,6 +129,7 @@ void funnytest(UNUSED int argument)
 	LogMsg("");
 }
 extern Heap* g_pHeap;
+extern bool  g_windowManagerRunning;
 void ShellExecuteCommand(char* p)
 {
 	TokenState state;
@@ -170,7 +172,7 @@ void ShellExecuteCommand(char* p)
 		
 		//wait for new key
 		LogMsg("Strike a key to print more.");
-		KbWaitForKeyAndGet();
+		CoGetChar();
 		
 		LogMsg("tte        - spawns 1024 threads that makes random lines forever");
 		LogMsg("ttte       - spawns 1024 threads that prints stuff");
@@ -234,7 +236,7 @@ void ShellExecuteCommand(char* p)
 		for (int y = 0; y < 16; y++)
 			for (int x = 0; x < 16; x++)
 			{
-				CoPlotChar(&g_debugConsole, x, y, (y<<4)|x);
+				CoPlotChar(g_currentConsole, x, y, (y<<4)|x);
 			}
 	}
 	else if (strcmp (token, "el") == 0)
@@ -324,21 +326,18 @@ void ShellExecuteCommand(char* p)
 				return;
 			}
 			
-			int length = FiTellSize (fd);
+			/*int length = FiTellSize (fd);
 			char* pData = (char*)MmAllocate(length + 1);
 			pData[length] = 0;
-			
+			*/
 			FiSeek(fd, 0, SEEK_SET);
 			
-			FiRead(fd, pData, length);
-			
-			for (int i = 0; i < length; i++)
+			int result; char data[2];
+			while ((result = FiRead(fd, data, 1), result > 0))
 			{
-				if (CoPrintCharInternal(&g_debugConsole, pData[i], pData[i+1]))
-					i++;
+				CoPrintChar(g_currentConsole, data[0]);
+				hlt;hlt;hlt;hlt;
 			}
-			
-			MmFree(pData);
 			
 			FiClose (fd);
 			LogMsg("");
@@ -396,7 +395,7 @@ void ShellExecuteCommand(char* p)
 			if (!pSubnode)
 				LogMsg("- [NULL?!]");
 			else
-				LogMsg("- %s\t%c%c%c\t%d\t%s", 
+				LogMsg("- %s\t%c%c%c\t%d\x02\x16%s", 
 						(pSubnode->m_type & FILE_TYPE_DIRECTORY) ? "<DIR>" : "     ", 
 						"-R"[!!(pSubnode->m_perms & PERM_READ )],
 						"-W"[!!(pSubnode->m_perms & PERM_WRITE)],
@@ -413,7 +412,13 @@ void ShellExecuteCommand(char* p)
 	else if (strcmp (token, "w") == 0)
 	{
 		if (VidIsAvailable())
-			WindowManagerTask(0);
+		{
+			int errorCode = 0;
+			Task* pTask = KeStartTask (WindowManagerTask, 0, &errorCode);
+			LogMsg("TASK: %x %x", pTask, errorCode);
+			
+			while (1) hlt;
+		}
 		else
 			LogMsg("Cannot run window manager in text mode.  Restart your computer, then make sure the gfxpayload is valid in GRUB.");
 	}
@@ -424,8 +429,8 @@ void ShellExecuteCommand(char* p)
 			LogMsg("Have a ramdisk mounted already.");
 			return;
 		}
-		g_ramDiskID = StMountTestRamDisk();
-		g_ramDiskMounted = true;
+//		g_ramDiskID = StMountTestRamDisk();
+//		g_ramDiskMounted = true;
 	}
 	else if (strcmp (token, "mspy") == 0)
 	{
@@ -538,7 +543,7 @@ void ShellExecuteCommand(char* p)
 	}
 	else if (strcmp (token, "cls") == 0)
 	{
-		CoClearScreen (&g_debugConsole);
+		CoClearScreen (g_currentConsole);
 		g_debugConsole.curX = g_debugConsole.curY = 0;
 	}
 	else if (strcmp (token, "ver") == 0)
@@ -616,7 +621,7 @@ void ShellExecuteCommand(char* p)
 		//LogMsgNoCr("Tick count: %d, Raw tick count: %d", tkc, rtkc);
 		LogMsg("Press any key to stop timing.");
 		
-		while (KbIsBufferEmpty())
+		while (CoInputBufferEmpty())
 		{
 			int tkc = GetTickCount(), rtkc = GetRawTickCount();
 			LogMsgNoCr("\rTick count: %d, Raw tick count: %d        ", tkc, rtkc);
@@ -721,7 +726,7 @@ void ShellRun(UNUSED int unused_arg)
 	{
 		LogMsgNoCr("%s>", g_cwd);
 		char buffer[256];
-		KbGetString (buffer, 256);
+		CoGetString (buffer, 256);
 		memcpy (g_lastCommandExecuted, buffer, 256);
 		
 		ShellExecuteCommand (buffer);

@@ -10,6 +10,18 @@
 
 #define inb(a) ReadPort(a)
 #define outb(a,b) WritePort(a,b)
+
+Console* g_focusedOnConsole = &g_debugConsole;
+
+// This changes the console that keypresses also go to.
+void SetFocusedConsole(Console *pConsole)
+{
+	if (!pConsole)
+		g_focusedOnConsole = &g_debugConsole;
+	else
+		g_focusedOnConsole = pConsole;
+}
+
 const unsigned char KeyboardMap[256] =
 {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
@@ -139,8 +151,6 @@ KeyState keyboardState[128];
 #define PIC1_DATA 0x21
 #define PIC2_DATA 0xa1
 
-#define KB_BUF_SIZE 32
-
 char KeyboardBuffer[KB_BUF_SIZE];
 int KeyboardBufferBeg = 0, KeyboardBufferEnd = 0;
 void KbAddKeyToBuffer(char key)
@@ -148,8 +158,10 @@ void KbAddKeyToBuffer(char key)
 	if (!key) return;
 	//LogMsg("Added key: ");LogIntDec(key);LogMsg("\n");
 	KeyboardBuffer[KeyboardBufferEnd++] = key;
-	while (KeyboardBufferEnd > KB_BUF_SIZE)
+	while (KeyboardBufferEnd >= KB_BUF_SIZE)
 		KeyboardBufferEnd -= KB_BUF_SIZE;
+	
+	CoAddToInputQueue (g_focusedOnConsole, key);
 }
 bool KbIsBufferEmpty()
 {
@@ -162,7 +174,7 @@ char KbGetKeyFromBuffer()
 	if (KeyboardBufferBeg != KeyboardBufferEnd)
 	{
 		char k = KeyboardBuffer[KeyboardBufferBeg++];
-		while (KeyboardBufferBeg > KB_BUF_SIZE)
+		while (KeyboardBufferBeg >= KB_BUF_SIZE)
 			KeyboardBufferBeg -= KB_BUF_SIZE;
 		return k;
 	}

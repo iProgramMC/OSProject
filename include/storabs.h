@@ -33,9 +33,10 @@ typedef unsigned int  DriveType;
 typedef unsigned int  DriveStatus;
 typedef unsigned char DriveID;
 
-typedef DriveStatus(*DriveReadCallback)     (uint32_t lba,       void* pDest, uint8_t driveID, uint8_t numBlocks);
-typedef DriveStatus(*DriveWriteCallback)    (uint32_t lba, const void* pSrc,  uint8_t driveID, uint8_t numBlocks);
-typedef uint8_t    (*DriveGetSubIDCallback) (DriveID driveId);
+typedef DriveStatus(*DriveReadCallback)       (uint32_t lba,       void* pDest, uint8_t driveID, uint8_t numBlocks);
+typedef DriveStatus(*DriveWriteCallback)      (uint32_t lba, const void* pSrc,  uint8_t driveID, uint8_t numBlocks);
+typedef bool       (*DriveIsAvailableCallback)(uint8_t driveID);
+typedef uint8_t    (*DriveGetSubIDCallback)   (DriveID driveId);
 
 
 typedef struct
@@ -56,6 +57,11 @@ DriveStatus StDeviceWrite(uint32_t lba, const void* pSrc,  DriveID driveId, uint
  * Reads into pDest from a storage device.
  */
 DriveStatus StDeviceRead (uint32_t lba,       void* pDest, DriveID driveId, uint8_t nBlocks);
+
+/**
+ * Checks if a drive ID is available or not.
+ */
+bool StIsDriveAvailable (DriveID driveId);
 
 /**
  * Mounts a testing RAM disk and returns its ID.

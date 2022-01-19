@@ -41,15 +41,16 @@ uint32_t FsWrite(FileNode* pNode, uint32_t offset, uint32_t size, void* pBuffer)
 	}
 	else return 0;
 }
-void FsOpen(FileNode* pNode, bool read, bool write)
+bool FsOpen(FileNode* pNode, bool read, bool write)
 {
 	if (pNode)
 	{
 		if (pNode->Open)
 			return pNode->Open(pNode, read, write);
-		else return;
+		else return true;
 	}
-	else return;
+	//FIXME: This just assumes the file is prepared for opening.
+	else return true;
 }
 void FsClose(FileNode* pNode)
 {
@@ -57,9 +58,7 @@ void FsClose(FileNode* pNode)
 	{
 		if (pNode->Close)
 			pNode->Close(pNode);
-		else return;
 	}
-	else return;
 }
 DirEnt* FsReadDir(FileNode* pNode, uint32_t index)
 {
@@ -80,6 +79,24 @@ FileNode* FsFindDir(FileNode* pNode, const char* pName)
 		else return NULL;
 	}
 	else return NULL;
+}
+bool FsOpenDir(FileNode* pNode)
+{
+	if (pNode)
+	{
+		if (pNode->OpenDir && (pNode->m_type & FILE_TYPE_DIRECTORY))
+			return pNode->OpenDir(pNode);
+		else return false;
+	}
+	else return false;
+}
+void FsCloseDir(FileNode* pNode)
+{
+	if (pNode)
+	{
+		if (pNode->OpenDir && (pNode->m_type & FILE_TYPE_DIRECTORY))
+			pNode->OpenDir(pNode);
+	}
 }
 
 FileNode* FsResolvePath (const char* pPath)
@@ -148,8 +165,6 @@ extern uint32_t  g_nDevNodes; //number of dev nodes.
 // File Descriptor handlers:
 #if 1
 
-#define FD_MAX 256
-
 typedef struct {
 	bool      m_bOpen;
 	FileNode *m_pNode;
@@ -159,11 +174,6 @@ typedef struct {
 	bool      m_bIsFIFO; //is a char device, basically
 	const char* m_openFile;
 	int       m_openLine;
-	// This is implementation defined.
-	// The idea is, FiOpen would also read the first cluster of 
-	// the file and put it here.  Then when we go across cluster
-	// boundaries, load the next chunk in.
-	uint8_t*  m_currentCluster;
 }
 FileDescriptor;
 
@@ -223,6 +233,10 @@ int FiOpenD (const char* pFileName, int oflag, const char* srcFile, int srcLine)
 	
 	if (pFile->m_type & FILE_TYPE_DIRECTORY) return -EISDIR;
 	
+	//open it:
+	if (!FsOpen(pFile, (oflag & O_RDONLY) != 0, (oflag & O_WRONLY) != 0))
+		return -EIO;
+	
 	//we have all the perms, let's write the filenode there:
 	FileDescriptor *pDesc = &g_FileNodeToDescriptor[fd];
 	pDesc->m_bOpen 			= true;
@@ -251,6 +265,9 @@ int FiClose (int fd)
 	FileDescriptor *pDesc = &g_FileNodeToDescriptor[fd];
 	pDesc->m_bOpen = false;
 	strcpy(pDesc->m_sPath, "");
+	
+	FsClose (pDesc->m_pNode);
+	
 	pDesc->m_pNode = NULL;
 	pDesc->m_nStreamOffset = 0;
 	
@@ -317,7 +334,5 @@ int FiTellSize (int fd)
 	return g_FileNodeToDescriptor[fd].m_nFileEnd;
 }
 
-
 #endif
-
 

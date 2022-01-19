@@ -111,6 +111,7 @@ enum
 #define MB_YESNO              0x00000004 //The message box contains two push buttons: Yes, and No.
 #define MB_RETRYCANCEL        0x00000005 //The message box contains two push buttons: Retry and Cancel.
 #define MB_CANCELTRYCONTINUE  0x00000006 //The message box contains three push buttons: Cancel, Retry, and Continue.
+#define MB_RESTART            0x00000007 //The message box contains one push button: Restart.
 
 struct WindowStruct;
 struct ControlStruct;
@@ -202,7 +203,10 @@ typedef struct WindowStruct
 	
 	void*      m_data; //user data
 	
-	Task*      m_pOwnerThread;
+	Task      *m_pOwnerThread, 
+	          *m_pSubThread;//in case you ever want to use this
+	
+	Console*   m_consoleToFocusKeyInputsTo;
 } Window;
 
 /**
@@ -278,6 +282,11 @@ int MessageBox (Window* pWindow, const char* pText, const char* pCaption, uint32
  * Adds a control to the window.
  */
 int AddControl(Window* pWindow, int type, Rectangle rect, const char* text, int comboID, int p1, int p2);
+
+/**
+ * Gets the updates per second the window manager could do.
+ */
+int GetWindowManagerFPS();
 
 
 #endif//_WINDOW_H

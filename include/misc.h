@@ -80,4 +80,21 @@ void KePrintSystemInfo();
  */
 void KePrintSystemInfoAdvanced();
 
+/**
+ * Triggers a restart of the system.
+ */
+__attribute__((noreturn))
+void KeRestartSystem(void);
+
+enum
+{
+	FORMAT_TYPE_FIXED, //hh:mm:ss
+	FORMAT_TYPE_VAR,   //H hours, M minutes, S seconds
+};
+
+/**
+ * Formats time as seconds into a string.  Recommend a size of at least 128.
+ */
+void FormatTime(char* output, int formatType, int seconds);
+
 #endif//_MISC_H

@@ -69,29 +69,57 @@ void LaunchExecutable (int argument)
 	//The argument is assumed to point to a valid const char*.
 	cli;
 	const char* pFileNameUnsafe = (const char*)argument;
-	char filename[PATH_MAX+4];
-	strcpy (filename, pFileNameUnsafe);
+	char filename[1024];
 	
-	FileNode* pNode = FsResolvePath (g_cabinetCWD);
+	strcpy (filename, g_cabinetCWD);
+	if (g_cabinetCWD[1] != 0)
+		strcat (filename, "/");
+	strcat (filename, pFileNameUnsafe);
 	sti;
 	
-	if (!pNode)
-		LogMsg("No such file or directory");
-	FileNode* pFile = FsFindDir(pNode, filename);
-	if (!pFile)
-		LogMsg("No such file or directory");
-	else
+	KeTaskAssignTag(KeGetRunningTask(), filename);
+	
+	int fd = FiOpen (filename, O_RDONLY | O_EXEC);
+	if (fd < 0)
 	{
-		KeTaskAssignTag(KeGetRunningTask(), filename);
-		int length = pFile->m_length;
-		char* pData = (char*)MmAllocate(length + 1);
-		pData[length] = 0;
-		
-		FsRead(pFile, 0, length, pData);
-		
-		ElfExecute(pData, length);
-		
-		MmFree(pData);
+		LogMsg("Got error %d while trying to open %s", fd, filename);
+		return;
+	}
+	
+	int length = FiTellSize (fd);
+	LogMsg("File Length: %d", length);
+	char* pData = (char*)MmAllocate(length + 1);
+	pData[length] = 0;
+	
+	FiRead(fd, pData, length);
+	
+	FiClose (fd);
+	
+	LogMsg("Executing...");
+	ElfExecute(pData, length);
+	
+	MmFree(pData);
+}
+
+void CdBack(Window* pWindow)
+{
+	for (int i = PATH_MAX - 1; i >= 0; i--)
+	{
+		if (g_cabinetCWD[i] == PATH_SEP)
+		{
+			bool o = i == 0;
+			g_cabinetCWD[i+o] = 0;
+			FileNode* checkNode = FsResolvePath(g_cabinetCWD);
+			if (!checkNode)
+			{
+				MessageBox(pWindow, "Cannot find parent directory.\n\nSince we can't go back, just exit.", pWindow->m_title, ICON_STOP << 16 | MB_OK);
+				
+				//fake a destroy call
+				DestroyWindow(pWindow);
+				return;
+			}
+			UpdateDirectoryListing (pWindow);
+		}
 	}
 }
 
@@ -115,24 +143,8 @@ void CALLBACK CabinetWindowProc (Window* pWindow, int messageType, int parm1, in
 				FileNode* pFileNode = FsFindDir	(pFolderNode, pFileName);
 				if (strcmp (pFileName, PATH_PARENTDIR) == 0)
 				{
-					for (int i = PATH_MAX - 1; i >= 0; i--)
-					{
-						if (g_cabinetCWD[i] == PATH_SEP)
-						{
-							g_cabinetCWD[i+1] = 0;
-							FileNode* checkNode = FsResolvePath(g_cabinetCWD);
-							if (!checkNode)
-							{
-								MessageBox(pWindow, "Cannot find parent directory.\n\nSince we can't go back, just exit.", pWindow->m_title, ICON_STOP << 16 | MB_OK);
-								
-								//fake a destroy call
-								DestroyWindow(pWindow);
-								return;
-							}
-							UpdateDirectoryListing (pWindow);
-							break;
-						}
-					}
+					CdBack(pWindow);
+					break;
 				}
 				else if (pFileNode)
 				{
