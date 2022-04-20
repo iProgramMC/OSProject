@@ -1,4 +1,12 @@
-# NanoShell
+# NOTE BEFORE LOOKING AROUND
+This is NanoShell's old private repository. I've made it public today _for historical purposes only_, and to give a clearer picture into its development. Since January 19th 2022, NanoShell has moved to [iProgramMC/NanoShellOS](https://github.com/iProgramMC/NanoShellOS)
+
+This repository is now archived. As such, issues and pull requests are not submittable.  
+
+
+Code licensed under GNU GPL v3.
+
+## NanoShell
 NanoShell 3rd Edition is a preemptively multi-tasked 32-bit operating system with a windowed GUI.
 
 Be warned that building this is not for the average Linux user nor is it for the faint of heart.  Soon I'll work on a way to compile this in an easier way.
